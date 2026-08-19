@@ -478,5 +478,7 @@ td {
     flex-direction:
       column;
   }
-
+[hidden] {
+  display: none !important;
+}
 }
