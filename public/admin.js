@@ -1541,13 +1541,7 @@
           await db
             .collection("menu")
             .doc(id)
-            .set(
-              data,
-              {
-                merge: true
-              }
-            );
-
+            .set(data);
 
           resetMenuForm();
 

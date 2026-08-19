@@ -5,215 +5,160 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
 
+    // =====================================
+    // HÀM CHUNG
+    // =====================================
+
     function signedIn() {
-
       return request.auth != null;
-
     }
 
 
     function isAdmin() {
-
       return signedIn()
-
         && request.auth.token.email != null
-
-        && request.auth.token.email
-          == "sangbeos1410@gmail.com";
-
+        && request.auth.token.email == "sangbeos1410@gmail.com";
     }
 
 
-    // ==============================
+    // =====================================
     // MENU
-    // ==============================
+    // =====================================
 
     match /menu/{id} {
 
-
-      // Khách chỉ đọc món đang bán.
-      // Admin đọc toàn bộ.
-
+      // Khách chỉ được đọc món đang bán.
+      // Admin được đọc toàn bộ menu.
       allow read:
-
         if resource.data.active == true
-
         || isAdmin();
 
 
-      // Chỉ Admin thêm/sửa menu.
-
+      // Chỉ Admin được thêm / sửa menu.
       allow create, update:
-
         if isAdmin()
 
         && request.resource.data.keys().hasOnly([
-
           'name',
-
           'category',
-
           'description',
-
           'sizes',
-
           'toppings',
-
           'active',
-
           'updatedAt'
-
         ])
 
-        && request.resource.data.name
-          is string
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
 
-        && request.resource.data.name.size()
-          > 0
+        && request.resource.data.category is string
+        && request.resource.data.category.size() <= 80
 
-        && request.resource.data.name.size()
-          <= 100
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 300
 
-        && request.resource.data.category
-          is string
+        && request.resource.data.sizes is list
+        && request.resource.data.sizes.size() >= 1
+        && request.resource.data.sizes.size() <= 5
 
-        && request.resource.data.category.size()
-          <= 80
+        && request.resource.data.toppings is list
+        && request.resource.data.toppings.size() <= 20
 
-        && request.resource.data.description
-          is string
+        && request.resource.data.active is bool
 
-        && request.resource.data.description.size()
-          <= 300
-
-        && request.resource.data.sizes
-          is list
-
-        && request.resource.data.sizes.size()
-          >= 1
-
-        && request.resource.data.sizes.size()
-          <= 5
-
-        && request.resource.data.toppings
-          is list
-
-        && request.resource.data.toppings.size()
-          <= 20
-
-        && request.resource.data.active
-          is bool
-
-        && request.resource.data.updatedAt
-          == request.time;
+        && request.resource.data.updatedAt == request.time;
 
 
+      // Chỉ Admin được xóa món.
       allow delete:
-
         if isAdmin();
-
     }
 
 
-    // ==============================
+    // =====================================
     // ORDERS
-    // ==============================
+    // =====================================
 
     match /orders/{id} {
 
-
-      // Khách không đọc được orders.
-
+      // Chỉ Admin được xem đơn.
       allow read:
-
         if isAdmin();
 
 
-      // Client không được tự tạo order.
-      // Cloud Function dùng Admin SDK.
-
+      // Client không được tạo order trực tiếp.
+      // Cloud Function dùng Admin SDK để tạo.
       allow create:
-
         if false;
 
 
-      // Admin chỉ được đổi trạng thái.
-
+      // Admin chỉ được đổi trạng thái đơn.
       allow update:
-
         if isAdmin()
 
         && request.resource.data
           .diff(resource.data)
           .affectedKeys()
           .hasOnly([
-
             'status',
-
             'updatedAt'
-
           ])
 
         && request.resource.data.status
           in [
-
             'new',
-
             'preparing',
-
             'done'
-
           ]
 
         && request.resource.data.updatedAt
           == request.time;
 
 
+      // Không cho client xóa order.
       allow delete:
-
         if false;
-
     }
 
 
-    // ==============================
+    // =====================================
     // DAILY STATS
-    // ==============================
+    // =====================================
 
     match /dailyStats/{id} {
 
-
+      // Chỉ Admin xem doanh thu / số cốc / số đơn.
       allow read:
-
         if isAdmin();
 
 
       // Chỉ Cloud Function ghi.
-
       allow write:
-
         if false;
-
     }
 
 
-    // ==============================
-    // ADMIN DEVICES
-    // ==============================
+    // =====================================
+    // ADMIN DEVICES / FCM TOKEN
+    // =====================================
 
     match /adminDevices/{id} {
 
-
-      // Không cho client đọc token.
-
+      // Chỉ Admin được đọc device token.
       allow read:
+        if isAdmin();
 
-        if false;
 
-
+      // Admin đăng ký / cập nhật thiết bị nhận thông báo.
       allow create, update:
-
         if isAdmin()
+
+        && request.resource.data.keys().hasOnly([
+          'token',
+          'uid',
+          'updatedAt'
+        ])
 
         && request.resource.data.uid
           == request.auth.uid
@@ -228,36 +173,32 @@ service cloud.firestore {
           == request.time;
 
 
+      // Admin có thể tắt / xóa token thiết bị.
       allow delete:
-
         if isAdmin();
-
     }
 
 
-    // ==============================
-    // CHỐNG ĐƠN TRÙNG
-    // ==============================
+    // =====================================
+    // REQUEST IDS
+    // =====================================
 
     match /requestIds/{id} {
 
+      // Chỉ Cloud Function dùng để chống đơn trùng.
       allow read, write:
-
         if false;
-
     }
 
 
-    // ==============================
-    // MẶC ĐỊNH KHÓA
-    // ==============================
+    // =====================================
+    // MẶC ĐỊNH KHÓA TOÀN BỘ
+    // =====================================
 
     match /{document=**} {
 
       allow read, write:
-
         if false;
-
     }
 
   }
