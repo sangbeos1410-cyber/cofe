@@ -3,13 +3,20 @@
   "use strict";
 
 
+  // =========================================
+  // DOM
+  // =========================================
+
   const $ = id =>
     document.getElementById(id);
 
 
   const money = n =>
-    new Intl.NumberFormat("vi-VN")
-      .format(Number(n) || 0) + "đ";
+    new Intl.NumberFormat(
+      "vi-VN"
+    ).format(
+      Number(n) || 0
+    ) + "đ";
 
 
   let MENU = [];
@@ -21,8 +28,14 @@
   let messaging = null;
 
   let currentFcmToken =
-    localStorage.getItem("fcmToken") || "";
+    localStorage.getItem(
+      "fcmToken"
+    ) || "";
 
+
+  // =========================================
+  // FIREBASE
+  // =========================================
 
   if (!firebase.apps.length) {
 
@@ -36,35 +49,51 @@
   const auth =
     firebase.auth();
 
+
   const db =
     firebase.firestore();
+
 
   const functions =
     firebase
       .app()
       .functions(
-        self.FIREBASE_FUNCTIONS_REGION ||
+        self.FIREBASE_FUNCTIONS_REGION
+        ||
         "asia-southeast1"
       );
 
 
   auth.setPersistence(
     firebase.auth.Auth.Persistence.LOCAL
+  )
+  .catch(
+    console.error
   );
 
 
+  // =========================================
+  // HELPER
+  // =========================================
+
   function isAdmin(user) {
 
-    return (
-      user &&
-      String(
-        user.email || ""
-      ).toLowerCase()
-      ===
-      String(
-        self.ADMIN_EMAIL || ""
-      ).toLowerCase()
-    );
+    if (!user) {
+      return false;
+    }
+
+
+    return String(
+      user.email || ""
+    )
+    .toLowerCase()
+
+    ===
+
+    String(
+      self.ADMIN_EMAIL || ""
+    )
+    .toLowerCase();
 
   }
 
@@ -97,71 +126,198 @@
 
   function escapeHtml(value) {
 
-    return String(value ?? "")
+    return String(
+      value ?? ""
+    )
 
-      .replaceAll(
-        "&",
-        "&amp;"
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+
+  }
+
+
+  function makeId(value) {
+
+    return String(value)
+
+      .normalize("NFD")
+
+      .replace(
+        /[\u0300-\u036f]/g,
+        ""
       )
 
-      .replaceAll(
-        "<",
-        "&lt;"
+      .toLowerCase()
+
+      .replace(
+        /[^a-z0-9]+/g,
+        "-"
       )
 
-      .replaceAll(
-        ">",
-        "&gt;"
+      .replace(
+        /^-|-$/g,
+        ""
       )
 
-      .replaceAll(
-        '"',
-        "&quot;"
+      .slice(
+        0,
+        40
       );
 
   }
 
 
+  function showMessage(text) {
+
+    const el =
+      $("message");
+
+    if (el) {
+      el.textContent =
+        text || "";
+    }
+
+  }
+
+
+  // =========================================
+  // HIỆN / ẨN LOGIN
+  // =========================================
+
   function showLogin() {
 
-    $("loginPanel")
-      .hidden = false;
+    const loginPanel =
+      $("loginPanel");
 
-    $("adminApp")
-      .hidden = true;
+    const adminApp =
+      $("adminApp");
 
-    $("logoutBtn")
-      .hidden = true;
+    const logoutBtn =
+      $("logoutBtn");
+
+
+    if (loginPanel) {
+
+      loginPanel.hidden =
+        false;
+
+      loginPanel.style.display =
+        "grid";
+
+    }
+
+
+    if (adminApp) {
+
+      adminApp.hidden =
+        true;
+
+      adminApp.style.display =
+        "none";
+
+    }
+
+
+    if (logoutBtn) {
+
+      logoutBtn.hidden =
+        true;
+
+      logoutBtn.style.display =
+        "none";
+
+    }
 
   }
 
 
   function showAdmin() {
 
-    $("loginPanel")
-      .hidden = true;
+    const loginPanel =
+      $("loginPanel");
 
-    $("adminApp")
-      .hidden = false;
+    const adminApp =
+      $("adminApp");
 
-    $("logoutBtn")
-      .hidden = false;
+    const logoutBtn =
+      $("logoutBtn");
+
+
+    if (loginPanel) {
+
+      loginPanel.hidden =
+        true;
+
+      loginPanel.style.display =
+        "none";
+
+    }
+
+
+    if (adminApp) {
+
+      adminApp.hidden =
+        false;
+
+      adminApp.style.display =
+        "block";
+
+    }
+
+
+    if (logoutBtn) {
+
+      logoutBtn.hidden =
+        false;
+
+      logoutBtn.style.display =
+        "inline-block";
+
+    }
 
   }
 
 
+  // =========================================
+  // REALTIME CLEANUP
+  // =========================================
+
   function stopRealtime() {
 
     realtimeListeners
-      .forEach(listener => {
+      .forEach(
+        unsubscribe => {
 
-        try {
+          try {
 
-          listener();
+            unsubscribe();
 
-        } catch (_) {}
+          } catch (_) {}
 
-      });
+        }
+      );
 
 
     realtimeListeners = [];
@@ -169,61 +325,93 @@
   }
 
 
-  // =============================
+  // =========================================
   // TABS
-  // =============================
-
+  // =========================================
 
   document
-    .querySelectorAll(".tab")
-    .forEach(button => {
+    .querySelectorAll(
+      ".tab"
+    )
+    .forEach(
+      button => {
 
-      button.addEventListener(
-        "click",
-        () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-          document
-            .querySelectorAll(".tab")
-            .forEach(x =>
-              x.classList
-                .remove("active")
-            );
+            document
+              .querySelectorAll(
+                ".tab"
+              )
+              .forEach(
+                tab => {
 
+                  tab.classList
+                    .remove(
+                      "active"
+                    );
 
-          document
-            .querySelectorAll(
-              ".tab-page"
-            )
-            .forEach(x =>
-              x.classList
-                .remove("active")
-            );
-
-
-          button.classList
-            .add("active");
+                }
+              );
 
 
-          $(
-            "tab-" +
-            button.dataset.tab
-          )
-          .classList
-          .add("active");
+            document
+              .querySelectorAll(
+                ".tab-page"
+              )
+              .forEach(
+                page => {
 
-        }
-      );
+                  page.classList
+                    .remove(
+                      "active"
+                    );
 
-    });
-
-
-  // =============================
-  // LOGIN
-  // =============================
+                }
+              );
 
 
-  $("loginForm")
-    .addEventListener(
+            button.classList
+              .add(
+                "active"
+              );
+
+
+            const page =
+              $(
+                "tab-" +
+                button.dataset.tab
+              );
+
+
+            if (page) {
+
+              page.classList
+                .add(
+                  "active"
+                );
+
+            }
+
+          }
+        );
+
+      }
+    );
+
+
+  // =========================================
+  // LOGIN ADMIN
+  // =========================================
+
+  const loginForm =
+    $("loginForm");
+
+
+  if (loginForm) {
+
+    loginForm.addEventListener(
       "submit",
       async event => {
 
@@ -237,14 +425,18 @@
 
         try {
 
+          const password =
+            $("password")
+              .value;
+
+
           const credential =
             await auth
               .signInWithEmailAndPassword(
 
                 self.ADMIN_EMAIL,
 
-                $("password")
-                  .value
+                password
 
               );
 
@@ -256,6 +448,7 @@
           ) {
 
             await auth.signOut();
+
 
             throw new Error(
               "Không có quyền Admin."
@@ -271,14 +464,23 @@
           $("loginMessage")
             .textContent = "";
 
+
+          showAdmin();
+
         } catch (error) {
 
-          console.error(error);
+          console.error(
+            "Login error:",
+            error
+          );
 
 
           if (
             error.code ===
             "auth/invalid-credential"
+            ||
+            error.code ===
+            "auth/wrong-password"
           ) {
 
             $("loginMessage")
@@ -289,7 +491,8 @@
 
             $("loginMessage")
               .textContent =
-              error.message ||
+              error.message
+              ||
               "Không đăng nhập được.";
 
           }
@@ -299,17 +502,40 @@
       }
     );
 
+  }
 
-  $("logoutBtn")
-    .addEventListener(
+
+  // =========================================
+  // LOGOUT
+  // =========================================
+
+  const logoutBtn =
+    $("logoutBtn");
+
+
+  if (logoutBtn) {
+
+    logoutBtn.addEventListener(
       "click",
-      () => {
+      async () => {
 
-        auth.signOut();
+        stopRealtime();
+
+
+        await auth.signOut();
+
+
+        showLogin();
 
       }
     );
 
+  }
+
+
+  // =========================================
+  // AUTH STATE
+  // =========================================
 
   auth.onAuthStateChanged(
     user => {
@@ -337,10 +563,9 @@
   );
 
 
-  // =============================
-  // REALTIME
-  // =============================
-
+  // =========================================
+  // REALTIME START
+  // =========================================
 
   function startRealtime() {
 
@@ -355,11 +580,17 @@
   }
 
 
+  // =========================================
+  // MENU REALTIME
+  // =========================================
+
   function loadMenuRealtime() {
 
     const unsubscribe =
       db
-        .collection("menu")
+        .collection(
+          "menu"
+        )
         .onSnapshot(
 
           snapshot => {
@@ -383,24 +614,38 @@
                       Array.isArray(
                         data.sizes
                       )
-
-                        ? data.sizes
-
-                        : [],
+                      ?
+                      data.sizes
+                      :
+                      [],
 
                     toppings:
                       Array.isArray(
                         data.toppings
                       )
-
-                        ? data.toppings
-
-                        : []
+                      ?
+                      data.toppings
+                      :
+                      []
 
                   };
 
                 }
               );
+
+
+            MENU.sort(
+              (a, b) =>
+                String(
+                  a.name || ""
+                )
+                .localeCompare(
+                  String(
+                    b.name || ""
+                  ),
+                  "vi"
+                )
+            );
 
 
             renderMenuTable();
@@ -409,33 +654,41 @@
 
           error => {
 
-            $("message")
-              .textContent =
+            console.error(
+              "Menu realtime error:",
+              error
+            );
 
+
+            showMessage(
               "Không đọc được menu: "
-
               +
-
-              error.message;
+              error.message
+            );
 
           }
 
         );
 
 
-    realtimeListeners
-      .push(
-        unsubscribe
-      );
+    realtimeListeners.push(
+      unsubscribe
+    );
 
   }
 
+
+  // =========================================
+  // ORDERS REALTIME
+  // =========================================
 
   function loadOrdersRealtime() {
 
     const unsubscribe =
       db
-        .collection("orders")
+        .collection(
+          "orders"
+        )
 
         .where(
           "dateKey",
@@ -480,27 +733,38 @@
 
           error => {
 
+            console.error(
+              "Orders realtime error:",
+              error
+            );
+
+
             $("ordersList")
-              .textContent =
-
-              "Không tải được đơn: "
-
-              +
-
-              error.message;
+              .innerHTML =
+              `
+              <p>
+                Không tải được đơn:
+                ${escapeHtml(
+                  error.message
+                )}
+              </p>
+              `;
 
           }
 
         );
 
 
-    realtimeListeners
-      .push(
-        unsubscribe
-      );
+    realtimeListeners.push(
+      unsubscribe
+    );
 
   }
 
+
+  // =========================================
+  // TODAY STATS
+  // =========================================
 
   function loadTodayStats() {
 
@@ -509,40 +773,62 @@
         .collection(
           "dailyStats"
         )
+
         .doc(
           todayKey()
         )
+
         .onSnapshot(
+
           doc => {
 
             const data =
               doc.exists
-                ? doc.data()
-                : {};
+              ?
+              doc.data()
+              :
+              {};
 
 
             $("todayCups")
               .textContent =
-              data.cups || 0;
+              Number(
+                data.cups
+                || 0
+              );
 
 
             $("todayRevenue")
               .textContent =
               money(
-                data.revenue || 0
+                data.revenue
+                || 0
               );
 
+          },
+
+          error => {
+
+            console.error(
+              "Stats error:",
+              error
+            );
+
           }
+
         );
 
 
-    realtimeListeners
-      .push(
-        unsubscribe
-      );
+    realtimeListeners.push(
+      unsubscribe
+    );
 
   }
 
+
+  // =========================================
+  // HISTORY
+  // =========================================
 
   function loadHistory() {
 
@@ -560,7 +846,27 @@
         .limit(31)
 
         .onSnapshot(
+
           snapshot => {
+
+            if (
+              snapshot.empty
+            ) {
+
+              $("historyTable")
+                .innerHTML =
+                `
+                <tr>
+                  <td colspan="4">
+                    Chưa có lịch sử.
+                  </td>
+                </tr>
+                `;
+
+              return;
+
+            }
+
 
             $("historyTable")
               .innerHTML =
@@ -580,7 +886,8 @@
                         <td>
                           ${
                             escapeHtml(
-                              data.date ||
+                              data.date
+                              ||
                               doc.id
                             )
                           }
@@ -588,20 +895,29 @@
 
                         <td>
                           ${
-                            data.orders || 0
+                            Number(
+                              data.orders
+                              ||
+                              0
+                            )
                           }
                         </td>
 
                         <td>
                           ${
-                            data.cups || 0
+                            Number(
+                              data.cups
+                              ||
+                              0
+                            )
                           }
                         </td>
 
                         <td>
                           ${
                             money(
-                              data.revenue ||
+                              data.revenue
+                              ||
                               0
                             )
                           }
@@ -615,22 +931,30 @@
                 )
                 .join("");
 
+          },
+
+          error => {
+
+            console.error(
+              "History error:",
+              error
+            );
+
           }
+
         );
 
 
-    realtimeListeners
-      .push(
-        unsubscribe
-      );
+    realtimeListeners.push(
+      unsubscribe
+    );
 
   }
 
 
-  // =============================
-  // ORDERS
-  // =============================
-
+  // =========================================
+  // RENDER ORDERS
+  // =========================================
 
   function renderOrders(
     orders
@@ -642,7 +966,7 @@
 
       $("ordersList")
         .innerHTML =
-        "Chưa có đơn hôm nay.";
+        "<p>Chưa có đơn hôm nay.</p>";
 
       return;
 
@@ -653,213 +977,255 @@
       .innerHTML =
 
       orders.map(
-        order => `
+        order => {
 
-          <article class="order-card">
+          const items =
+            Array.isArray(
+              order.items
+            )
+            ?
+            order.items
+            :
+            [];
 
-            <div class="order-head">
+
+          return `
+
+            <article class="order-card">
+
+              <div class="order-head">
+
+                <div>
+
+                  <div class="order-id">
+                    ${
+                      escapeHtml(
+                        order.orderId
+                      )
+                    }
+                  </div>
+
+                  <div class="order-time">
+
+                    ${
+                      order.table
+                      ?
+                      "Bàn "
+                      +
+                      escapeHtml(
+                        order.table
+                      )
+                      +
+                      " • "
+                      :
+                      ""
+                    }
+
+                    ${
+                      order.createdAt
+                      &&
+                      order.createdAt
+                        .toDate
+                      ?
+                      order.createdAt
+                        .toDate()
+                        .toLocaleTimeString(
+                          "vi-VN"
+                        )
+                      :
+                      ""
+                    }
+
+                  </div>
+
+                </div>
+
+
+                <div class="order-total">
+
+                  ${
+                    money(
+                      order.total
+                      ||
+                      0
+                    )
+                  }
+
+                </div>
+
+              </div>
+
 
               <div>
 
-                <div class="order-id">
-                  ${
-                    escapeHtml(
-                      order.orderId
-                    )
-                  }
-                </div>
-
-                <div class="order-time">
-
-                  ${
-                    order.table
-                      ? "Bàn " +
-                        escapeHtml(
-                          order.table
-                        ) +
-                        " • "
-                      : ""
-                  }
-
-                  ${
-                    order.createdAt
-                      ?.toDate
-
-                      ? order
-                          .createdAt
-                          .toDate()
-                          .toLocaleTimeString(
-                            "vi-VN"
-                          )
-
-                      : ""
-                  }
-
-                </div>
-
-              </div>
-
-
-              <div class="order-total">
-
                 ${
-                  money(
-                    order.total || 0
-                  )
-                }
+                  items.map(
+                    item => {
 
-              </div>
-
-            </div>
-
-
-            <div>
-
-              ${
-                (
-                  order.items || []
-                )
-                .map(
-                  item => `
-
-                    <div class="order-item">
-
-                      <div>
-
-                        <div class="order-item-name">
-
-                          ${
-                            escapeHtml(
-                              item.name
-                            )
-                          }
-
-                          • Size
-
-                          ${
-                            escapeHtml(
-                              item.sizeName ||
-                              item.sizeId ||
-                              ""
-                            )
-                          }
-
-                        </div>
+                      const toppings =
+                        Array.isArray(
+                          item.toppings
+                        )
+                        ?
+                        item.toppings
+                        :
+                        [];
 
 
-                        <div class="order-item-info">
+                      return `
 
-                          ${
-                            item.quantity || 0
-                          }
+                        <div class="order-item">
 
-                          ×
+                          <div>
 
-                          ${
-                            money(
-                              item.unitPrice ||
-                              item.price ||
-                              0
-                            )
-                          }
+                            <div class="order-item-name">
 
-
-                          ${
-                            (
-                              item.toppings ||
-                              []
-                            ).length
-
-                              ? " • " +
+                              ${
                                 escapeHtml(
-                                  item
-                                    .toppings
+                                  item.name
+                                )
+                              }
+
+                              • Size
+
+                              ${
+                                escapeHtml(
+                                  item.sizeName
+                                  ||
+                                  item.sizeId
+                                  ||
+                                  ""
+                                )
+                              }
+
+                            </div>
+
+
+                            <div class="order-item-info">
+
+                              ${
+                                Number(
+                                  item.quantity
+                                  ||
+                                  0
+                                )
+                              }
+
+                              ×
+
+                              ${
+                                money(
+                                  item.unitPrice
+                                  ||
+                                  item.price
+                                  ||
+                                  0
+                                )
+                              }
+
+                              ${
+                                toppings.length
+                                ?
+                                " • "
+                                +
+                                escapeHtml(
+                                  toppings
                                     .map(
                                       topping =>
                                         topping.name
                                     )
-                                    .join(", ")
+                                    .join(
+                                      ", "
+                                    )
                                 )
+                                :
+                                ""
+                              }
 
-                              : ""
-                          }
+                            </div>
+
+                          </div>
+
+
+                          <strong>
+
+                            ${
+                              money(
+                                item.subtotal
+                                ||
+                                0
+                              )
+                            }
+
+                          </strong>
 
                         </div>
 
-                      </div>
+                      `;
 
-
-                      <strong>
-
-                        ${
-                          money(
-                            item.subtotal ||
-                            0
-                          )
-                        }
-
-                      </strong>
-
-                    </div>
-
-                  `
-                )
-                .join("")
-              }
-
-            </div>
-
-
-            <div class="actions">
-
-              <button
-                class="secondary"
-                data-order-id="${
-                  escapeHtml(
-                    order.orderId
+                    }
                   )
-                }"
-                data-status="preparing"
-              >
-                Đang làm
-              </button>
-
-
-              <button
-                class="primary"
-                data-order-id="${
-                  escapeHtml(
-                    order.orderId
-                  )
-                }"
-                data-status="done"
-              >
-                Hoàn thành
-              </button>
-
-
-              <span class="badge">
-
-                ${
-                  order.status === "done"
-
-                    ? "Hoàn thành"
-
-                    : order.status ===
-                      "preparing"
-
-                      ? "Đang làm"
-
-                      : "Mới"
+                  .join("")
                 }
 
-              </span>
+              </div>
 
-            </div>
 
-          </article>
+              <div class="actions">
 
-        `
+                <button
+                  class="secondary"
+                  type="button"
+                  data-order-id="${
+                    escapeHtml(
+                      order.orderId
+                    )
+                  }"
+                  data-status="preparing"
+                >
+                  Đang làm
+                </button>
+
+
+                <button
+                  class="primary"
+                  type="button"
+                  data-order-id="${
+                    escapeHtml(
+                      order.orderId
+                    )
+                  }"
+                  data-status="done"
+                >
+                  Hoàn thành
+                </button>
+
+
+                <span class="badge">
+
+                  ${
+                    order.status ===
+                    "done"
+                    ?
+                    "Hoàn thành"
+                    :
+                    order.status ===
+                    "preparing"
+                    ?
+                    "Đang làm"
+                    :
+                    "Mới"
+                  }
+
+                </span>
+
+              </div>
+
+            </article>
+
+          `;
+
+        }
       )
       .join("");
 
@@ -916,173 +1282,201 @@
   }
 
 
-  // =============================
-  // MENU
-  // =============================
-
+  // =========================================
+  // MENU TABLE
+  // =========================================
 
   function renderMenuTable() {
+
+    if (
+      !MENU.length
+    ) {
+
+      $("menuTable")
+        .innerHTML =
+        `
+        <tr>
+          <td colspan="6">
+            Chưa có món.
+          </td>
+        </tr>
+        `;
+
+      return;
+
+    }
+
 
     $("menuTable")
       .innerHTML =
 
       MENU.map(
-        item => `
+        item => {
 
-          <tr>
+          const sizeText =
+            item.sizes
+              .map(
+                size =>
 
-            <td>
-              <strong>
+                  (
+                    size.name
+                    ||
+                    size.id
+                  )
+
+                  +
+
+                  ": "
+
+                  +
+
+                  money(
+                    size.price
+                  )
+              )
+              .join(
+                " • "
+              );
+
+
+          const toppingText =
+            item.toppings.length
+            ?
+            item.toppings
+              .map(
+                topping =>
+
+                  topping.name
+
+                  +
+
+                  ": "
+
+                  +
+
+                  money(
+                    topping.price
+                  )
+              )
+              .join(
+                " • "
+              )
+            :
+            "Không";
+
+
+          return `
+
+            <tr>
+
+              <td>
+                <strong>
+                  ${
+                    escapeHtml(
+                      item.id
+                    )
+                  }
+                </strong>
+              </td>
+
+              <td>
                 ${
                   escapeHtml(
-                    item.id
+                    item.name
                   )
                 }
-              </strong>
-            </td>
+              </td>
 
-            <td>
-              ${
-                escapeHtml(
-                  item.name
-                )
-              }
-            </td>
+              <td>
+                ${
+                  escapeHtml(
+                    sizeText
+                  )
+                }
+              </td>
 
+              <td>
+                ${
+                  escapeHtml(
+                    toppingText
+                  )
+                }
+              </td>
 
-            <td>
+              <td>
 
-              ${
-                escapeHtml(
-                  item.sizes
+                ${
+                  item.active
+                  ?
+                  "Đang bán"
+                  :
+                  "Đã ẩn"
+                }
 
-                    .map(
-                      size =>
+              </td>
 
-                        (
-                          size.name ||
-                          size.id
-                        )
+              <td>
 
-                        +
+                <div class="actions">
 
-                        ": "
-
-                        +
-
-                        money(
-                          size.price
-                        )
-                    )
-
-                    .join(" • ")
-                )
-              }
-
-            </td>
-
-
-            <td>
-
-              ${
-                escapeHtml(
-
-                  item.toppings.length
-
-                    ? item.toppings
-
-                        .map(
-                          topping =>
-
-                            topping.name
-
-                            +
-
-                            ": "
-
-                            +
-
-                            money(
-                              topping.price
-                            )
-                        )
-
-                        .join(" • ")
-
-                    : "Không"
-
-                )
-              }
-
-            </td>
+                  <button
+                    type="button"
+                    class="secondary"
+                    data-menu-action="edit"
+                    data-menu-id="${
+                      escapeHtml(
+                        item.id
+                      )
+                    }"
+                  >
+                    Sửa
+                  </button>
 
 
-            <td>
+                  <button
+                    type="button"
+                    class="secondary"
+                    data-menu-action="toggle"
+                    data-menu-id="${
+                      escapeHtml(
+                        item.id
+                      )
+                    }"
+                  >
 
-              ${
-                item.active
-                  ? "Đang bán"
-                  : "Đã ẩn"
-              }
+                    ${
+                      item.active
+                      ?
+                      "Ẩn"
+                      :
+                      "Hiện"
+                    }
 
-            </td>
-
-
-            <td>
-
-              <div class="actions">
-
-                <button
-                  class="secondary"
-                  data-menu-action="edit"
-                  data-menu-id="${
-                    escapeHtml(
-                      item.id
-                    )
-                  }"
-                >
-                  Sửa
-                </button>
+                  </button>
 
 
-                <button
-                  class="secondary"
-                  data-menu-action="toggle"
-                  data-menu-id="${
-                    escapeHtml(
-                      item.id
-                    )
-                  }"
-                >
+                  <button
+                    type="button"
+                    class="danger"
+                    data-menu-action="delete"
+                    data-menu-id="${
+                      escapeHtml(
+                        item.id
+                      )
+                    }"
+                  >
+                    Xóa
+                  </button>
 
-                  ${
-                    item.active
-                      ? "Ẩn"
-                      : "Hiện"
-                  }
+                </div>
 
-                </button>
+              </td>
 
+            </tr>
 
-                <button
-                  class="danger"
-                  data-menu-action="delete"
-                  data-menu-id="${
-                    escapeHtml(
-                      item.id
-                    )
-                  }"
-                >
-                  Xóa
-                </button>
+          `;
 
-              </div>
-
-            </td>
-
-          </tr>
-
-        `
+        }
       )
       .join("");
 
@@ -1100,14 +1494,16 @@
 
               const item =
                 MENU.find(
-                  x =>
-                    x.id ===
+                  item =>
+                    item.id ===
                     button.dataset
                       .menuId
                 );
 
 
-              if (!item) return;
+              if (!item) {
+                return;
+              }
 
 
               const action =
@@ -1115,56 +1511,81 @@
                   .menuAction;
 
 
-              if (
-                action === "edit"
-              ) {
-
-                fillMenuForm(
-                  item
-                );
-
-              }
-
-
-              if (
-                action === "toggle"
-              ) {
-
-                await db
-                  .collection("menu")
-                  .doc(item.id)
-                  .update({
-
-                    active:
-                      !item.active,
-
-                    updatedAt:
-                      firebase
-                        .firestore
-                        .FieldValue
-                        .serverTimestamp()
-
-                  });
-
-              }
-
-
-              if (
-                action === "delete"
-              ) {
+              try {
 
                 if (
-                  confirm(
-                    `Xóa món "${item.name}"?`
-                  )
+                  action ===
+                  "edit"
+                ) {
+
+                  fillMenuForm(
+                    item
+                  );
+
+                }
+
+
+                if (
+                  action ===
+                  "toggle"
                 ) {
 
                   await db
-                    .collection("menu")
-                    .doc(item.id)
-                    .delete();
+                    .collection(
+                      "menu"
+                    )
+                    .doc(
+                      item.id
+                    )
+                    .update({
+
+                      active:
+                        !item.active,
+
+                      updatedAt:
+                        firebase
+                          .firestore
+                          .FieldValue
+                          .serverTimestamp()
+
+                    });
 
                 }
+
+
+                if (
+                  action ===
+                  "delete"
+                ) {
+
+                  const confirmed =
+                    confirm(
+                      `Xóa món "${item.name}"?`
+                    );
+
+
+                  if (
+                    confirmed
+                  ) {
+
+                    await db
+                      .collection(
+                        "menu"
+                      )
+                      .doc(
+                        item.id
+                      )
+                      .delete();
+
+                  }
+
+                }
+
+              } catch (error) {
+
+                showMessage(
+                  error.message
+                );
 
               }
 
@@ -1176,6 +1597,10 @@
 
   }
 
+
+  // =========================================
+  // EDIT MENU
+  // =========================================
 
   function fillMenuForm(
     item
@@ -1191,7 +1616,8 @@
 
 
     $("itemId")
-      .disabled = true;
+      .disabled =
+      true;
 
 
     $("itemName")
@@ -1213,39 +1639,46 @@
       id =>
         item.sizes.find(
           size =>
-            String(size.id) ===
-            id
+            String(size.id)
+            ===
+            String(id)
         );
 
 
     $("sizeS")
       .value =
       getSize("S")
-        ?.price ?? "";
+        ?.price
+        ??
+        "";
 
 
     $("sizeM")
       .value =
       getSize("M")
-        ?.price ?? "";
+        ?.price
+        ??
+        "";
 
 
     $("sizeL")
       .value =
       getSize("L")
-        ?.price ?? "";
+        ?.price
+        ??
+        "";
 
 
     $("toppingsText")
       .value =
 
       item.toppings
-
         .map(
           topping =>
-            `${topping.name} | ${topping.price}`
-        )
 
+            `${topping.name} | ${topping.price}`
+
+        )
         .join("\n");
 
 
@@ -1265,53 +1698,100 @@
 
 
     $("cancelBtn")
-      .hidden = false;
+      .hidden =
+      false;
 
   }
 
 
+  // =========================================
+  // RESET FORM
+  // =========================================
+
   function resetMenuForm() {
 
-    editingId = null;
+    editingId =
+      null;
+
 
     $("menuForm")
       .reset();
 
+
     $("itemId")
-      .disabled = false;
+      .disabled =
+      false;
+
 
     $("itemActive")
-      .checked = true;
+      .checked =
+      true;
+
 
     $("formTitle")
       .textContent =
       "Thêm món mới";
 
+
     $("saveBtn")
       .textContent =
       "Thêm món";
 
+
     $("cancelBtn")
-      .hidden = true;
+      .hidden =
+      true;
+
+
+    showMessage("");
 
   }
 
 
+  $("cancelBtn")
+    .addEventListener(
+      "click",
+      resetMenuForm
+    );
+
+
+  // =========================================
+  // SIZE PARSER
+  // =========================================
+
   function parseSizes() {
 
-    const result = [];
+    const result =
+      [];
 
 
-    [
-      ["S", $("sizeS").value],
-      ["M", $("sizeM").value],
-      ["L", $("sizeL").value]
+    const values = [
 
-    ].forEach(
+      [
+        "S",
+        $("sizeS").value
+      ],
+
+      [
+        "M",
+        $("sizeM").value
+      ],
+
+      [
+        "L",
+        $("sizeL").value
+      ]
+
+    ];
+
+
+    values.forEach(
       ([id, value]) => {
 
         if (
-          String(value).trim() !== ""
+          String(value)
+            .trim()
+          !== ""
         ) {
 
           const price =
@@ -1319,7 +1799,10 @@
 
 
           if (
-            !Number.isInteger(price) ||
+            !Number.isInteger(
+              price
+            )
+            ||
             price < 0
           ) {
 
@@ -1352,7 +1835,7 @@
     ) {
 
       throw new Error(
-        "Phải có ít nhất 1 size."
+        "Phải có ít nhất một size."
       );
 
     }
@@ -1363,69 +1846,71 @@
   }
 
 
-  function makeId(
-    value
-  ) {
-
-    return String(value)
-
-      .normalize("NFD")
-
-      .replace(
-        /[\u0300-\u036f]/g,
-        ""
-      )
-
-      .toLowerCase()
-
-      .replace(
-        /[^a-z0-9]+/g,
-        "-"
-      )
-
-      .replace(
-        /^-|-$/g,
-        ""
-      );
-
-  }
-
+  // =========================================
+  // TOPPING PARSER
+  // =========================================
 
   function parseToppings() {
 
-    const lines =
+    const text =
       $("toppingsText")
-        .value
+        .value;
+
+
+    const lines =
+      text
         .split("\n")
+
         .map(
           line =>
             line.trim()
         )
+
         .filter(Boolean);
 
 
     return lines.map(
       (line, index) => {
 
-        const [
-          name,
-          rawPrice
-        ] =
+        const parts =
           line
             .split("|")
             .map(
-              x =>
-                x.trim()
+              part =>
+                part.trim()
             );
 
 
+        if (
+          parts.length !== 2
+        ) {
+
+          throw new Error(
+            `Topping dòng ${
+              index + 1
+            } phải có dạng: Tên | Giá`
+          );
+
+        }
+
+
+        const name =
+          parts[0];
+
+
         const price =
-          Number(rawPrice);
+          Number(
+            parts[1]
+          );
 
 
         if (
-          !name ||
-          !Number.isInteger(price) ||
+          !name
+          ||
+          !Number.isInteger(
+            price
+          )
+          ||
           price < 0
         ) {
 
@@ -1456,6 +1941,10 @@
 
   }
 
+
+  // =========================================
+  // SAVE MENU
+  // =========================================
 
   $("menuForm")
     .addEventListener(
@@ -1496,7 +1985,9 @@
           }
 
 
-          if (!name) {
+          if (
+            !name
+          ) {
 
             throw new Error(
               "Tên món không được để trống."
@@ -1538,23 +2029,42 @@
           };
 
 
+          /*
+            Không dùng merge:true.
+
+            Mục đích:
+            xóa field price cũ
+            của menu V4.
+          */
+
           await db
-            .collection("menu")
+            .collection(
+              "menu"
+            )
             .doc(id)
-            .set(data);
+            .set(
+              data
+            );
+
 
           resetMenuForm();
 
 
-          $("message")
-            .textContent =
-            "Đã lưu menu.";
+          showMessage(
+            "Đã lưu menu thành công."
+          );
 
         } catch (error) {
 
-          $("message")
-            .textContent =
-            error.message;
+          console.error(
+            "Save menu error:",
+            error
+          );
+
+
+          showMessage(
+            error.message
+          );
 
         }
 
@@ -1562,17 +2072,9 @@
     );
 
 
-  $("cancelBtn")
-    .addEventListener(
-      "click",
-      resetMenuForm
-    );
-
-
-  // =============================
+  // =========================================
   // PASSWORD
-  // =============================
-
+  // =========================================
 
   $("changePasswordForm")
     .addEventListener(
@@ -1584,10 +2086,24 @@
 
         try {
 
-          if (
+          const oldPassword =
+            $("currentPassword")
+              .value;
+
+
+          const newPassword =
             $("newPassword")
-              .value
-              .length < 8
+              .value;
+
+
+          const confirmPassword =
+            $("confirmPassword")
+              .value;
+
+
+          if (
+            newPassword.length
+            < 8
           ) {
 
             throw new Error(
@@ -1598,9 +2114,9 @@
 
 
           if (
-            $("newPassword").value
+            newPassword
             !==
-            $("confirmPassword").value
+            confirmPassword
           ) {
 
             throw new Error(
@@ -1614,6 +2130,15 @@
             auth.currentUser;
 
 
+          if (!user) {
+
+            throw new Error(
+              "Chưa đăng nhập Admin."
+            );
+
+          }
+
+
           const credential =
             firebase
               .auth
@@ -1622,8 +2147,7 @@
 
                 user.email,
 
-                $("currentPassword")
-                  .value
+                oldPassword
 
               );
 
@@ -1636,16 +2160,17 @@
 
           await user
             .updatePassword(
-              $("newPassword")
-                .value
+              newPassword
             );
 
 
           $("currentPassword")
             .value = "";
 
+
           $("newPassword")
             .value = "";
+
 
           $("confirmPassword")
             .value = "";
@@ -1667,24 +2192,24 @@
     );
 
 
-  // =============================
-  // PUSH NOTIFICATION
-  // =============================
-
+  // =========================================
+  // TOKEN HASH
+  // =========================================
 
   async function sha256(
     text
   ) {
 
     const buffer =
-      await crypto.subtle.digest(
+      await crypto.subtle
+        .digest(
 
-        "SHA-256",
+          "SHA-256",
 
-        new TextEncoder()
-          .encode(text)
+          new TextEncoder()
+            .encode(text)
 
-      );
+        );
 
 
     return [
@@ -1692,18 +2217,54 @@
         buffer
       )
     ]
-
     .map(
-      x =>
-        x
+      value =>
+        value
           .toString(16)
-          .padStart(2, "0")
+          .padStart(
+            2,
+            "0"
+          )
     )
-
     .join("");
 
   }
 
+
+  // =========================================
+  // PUSH STATUS
+  // =========================================
+
+  function refreshPushStatus() {
+
+    if (
+      "Notification"
+      in window
+      &&
+      Notification.permission
+      === "granted"
+      &&
+      currentFcmToken
+    ) {
+
+      $("pushStatusBadge")
+        .textContent =
+        "Đã bật";
+
+    } else {
+
+      $("pushStatusBadge")
+        .textContent =
+        "Chưa bật";
+
+    }
+
+  }
+
+
+  // =========================================
+  // ENABLE PUSH
+  // =========================================
 
   $("enablePushBtn")
     .addEventListener(
@@ -1720,7 +2281,7 @@
           ) {
 
             throw new Error(
-              "Thiết bị không hỗ trợ Service Worker."
+              "Trình duyệt không hỗ trợ Service Worker."
             );
 
           }
@@ -1734,7 +2295,35 @@
           ) {
 
             throw new Error(
-              "Thiết bị không hỗ trợ thông báo."
+              "Trình duyệt không hỗ trợ thông báo."
+            );
+
+          }
+
+
+          if (
+            !self.FIREBASE_VAPID_KEY
+          ) {
+
+            throw new Error(
+              "Chưa cấu hình FIREBASE_VAPID_KEY."
+            );
+
+          }
+
+
+          const permission =
+            await Notification
+              .requestPermission();
+
+
+          if (
+            permission
+            !== "granted"
+          ) {
+
+            throw new Error(
+              "Bạn chưa cho phép thông báo."
             );
 
           }
@@ -1752,23 +2341,6 @@
               );
 
 
-          const permission =
-            await Notification
-              .requestPermission();
-
-
-          if (
-            permission !==
-            "granted"
-          ) {
-
-            throw new Error(
-              "Bạn chưa cho phép thông báo."
-            );
-
-          }
-
-
           const token =
             await messaging
               .getToken({
@@ -1783,6 +2355,15 @@
               });
 
 
+          if (!token) {
+
+            throw new Error(
+              "Không lấy được FCM token."
+            );
+
+          }
+
+
           currentFcmToken =
             token;
 
@@ -1793,12 +2374,18 @@
           );
 
 
+          const deviceId =
+            await sha256(
+              token
+            );
+
+
           await db
             .collection(
               "adminDevices"
             )
             .doc(
-              await sha256(token)
+              deviceId
             )
             .set({
 
@@ -1823,9 +2410,15 @@
 
           $("pushMessage")
             .textContent =
-            "Thiết bị đã đăng ký nhận thông báo.";
+            "Đã bật thông báo trên thiết bị này.";
 
         } catch (error) {
+
+          console.error(
+            "Enable push error:",
+            error
+          );
+
 
           $("pushMessage")
             .textContent =
@@ -1836,6 +2429,10 @@
       }
     );
 
+
+  // =========================================
+  // DISABLE PUSH
+  // =========================================
 
   $("disablePushBtn")
     .addEventListener(
@@ -1848,14 +2445,18 @@
             currentFcmToken
           ) {
 
+            const deviceId =
+              await sha256(
+                currentFcmToken
+              );
+
+
             await db
               .collection(
                 "adminDevices"
               )
               .doc(
-                await sha256(
-                  currentFcmToken
-                )
+                deviceId
               )
               .delete();
 
@@ -1866,13 +2467,18 @@
             messaging
           ) {
 
-            await messaging
-              .deleteToken();
+            try {
+
+              await messaging
+                .deleteToken();
+
+            } catch (_) {}
 
           }
 
 
-          currentFcmToken = "";
+          currentFcmToken =
+            "";
 
 
           localStorage.removeItem(
@@ -1891,6 +2497,12 @@
 
         } catch (error) {
 
+          console.error(
+            "Disable push error:",
+            error
+          );
+
+
           $("pushMessage")
             .textContent =
             error.message;
@@ -1900,6 +2512,10 @@
       }
     );
 
+
+  // =========================================
+  // TEST PUSH
+  // =========================================
 
   $("testPushBtn")
     .addEventListener(
@@ -1925,6 +2541,12 @@
 
         } catch (error) {
 
+          console.error(
+            "Test push error:",
+            error
+          );
+
+
           $("pushMessage")
             .textContent =
             error.message;
@@ -1935,31 +2557,19 @@
     );
 
 
-  function refreshPushStatus() {
+  // =========================================
+  // KHỞI ĐỘNG
+  // =========================================
 
-    if (
-      "Notification" in window &&
-      Notification.permission ===
-        "granted"
-      &&
-      currentFcmToken
-    ) {
+  /*
+    Ban đầu bắt buộc ẩn Admin,
+    hiện Login.
 
-      $("pushStatusBadge")
-        .textContent =
-        "Đã bật";
-
-    } else {
-
-      $("pushStatusBadge")
-        .textContent =
-        "Chưa bật";
-
-    }
-
-  }
-
+    Firebase Auth sau đó sẽ
+    kiểm tra phiên đăng nhập.
+  */
 
   showLogin();
+
 
 })();
