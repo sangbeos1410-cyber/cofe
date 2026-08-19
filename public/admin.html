@@ -1,218 +1,730 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#111111">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Cheng Coffee">
-  <link rel="apple-touch-icon" href="/icon-192.png">
-  <title>Admin - Cheng Coffee</title>
-  <link rel="stylesheet" href="admin.css">
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <link
+    rel="manifest"
+    href="/manifest.json"
+  >
+
+  <meta
+    name="theme-color"
+    content="#111111"
+  >
+
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  >
+
+  <title>Admin Cheng Coffee</title>
+
+  <link
+    rel="stylesheet"
+    href="admin.css"
+  >
 </head>
+
 <body>
+
 <header class="topbar">
+
   <div>
-    <h1>Admin Cheng Coffee</h1>
-    <p>Đơn hàng, menu và doanh thu</p>
+    <small>CHENG COFFEE</small>
+    <h1>Admin Dashboard</h1>
   </div>
 
   <div class="top-actions">
-    <a href="index.html">← Menu khách</a>
-    <button id="logoutBtn" class="secondary" type="button" hidden>Đăng xuất</button>
+
+    <a href="index.html">
+      Menu khách
+    </a>
+
+    <button
+      id="logoutBtn"
+      class="secondary"
+      type="button"
+      hidden
+    >
+      Đăng xuất
+    </button>
+
   </div>
+
 </header>
 
+
 <main class="wrap">
-  <section id="loginPanel" class="panel login-panel">
-    <h2>Đăng nhập Admin</h2>
-    <p>Nhập mật khẩu tài khoản Admin Firebase.</p>
 
-    <form id="loginForm">
-      <label for="password">Mật khẩu</label>
-      <input id="password" type="password" autocomplete="current-password" required>
-      <button class="primary" type="submit">Đăng nhập</button>
-    </form>
+  <!-- ĐĂNG NHẬP -->
 
-    <p id="loginMessage"></p>
+  <section
+    id="loginPanel"
+    class="login-shell"
+  >
+
+    <div class="panel login-card">
+
+      <h2>
+        Đăng nhập Admin
+      </h2>
+
+      <p class="muted">
+        Chỉ cần nhập mật khẩu Admin.
+      </p>
+
+      <form id="loginForm">
+
+        <label for="password">
+          Mật khẩu
+        </label>
+
+        <input
+          id="password"
+          type="password"
+          autocomplete="current-password"
+          required
+        >
+
+        <button
+          class="primary"
+          type="submit"
+        >
+          Đăng nhập
+        </button>
+
+      </form>
+
+      <p id="loginMessage"></p>
+
+    </div>
+
   </section>
 
-  <div id="adminApp" hidden>
-    <section>
-      <div class="section-head">
-        <h2>Hôm nay</h2>
-        <span id="realtimeBadge" class="status-badge">Realtime</span>
+
+  <!-- ADMIN -->
+
+  <div
+    id="adminApp"
+    hidden
+  >
+
+    <!-- TAB -->
+
+    <nav class="tabs">
+
+      <button
+        class="tab active"
+        data-tab="stats"
+        type="button"
+      >
+        📊 Thống kê doanh số
+      </button>
+
+      <button
+        class="tab"
+        data-tab="orders"
+        type="button"
+      >
+        🧾 Món khách đã gọi
+      </button>
+
+      <button
+        class="tab"
+        data-tab="menu"
+        type="button"
+      >
+        ☕ Điều chỉnh menu
+      </button>
+
+      <button
+        class="tab"
+        data-tab="settings"
+        type="button"
+      >
+        ⚙️ Cài đặt
+      </button>
+
+    </nav>
+
+
+    <!-- ====================== -->
+    <!-- THỐNG KÊ -->
+    <!-- ====================== -->
+
+    <section
+      id="tab-stats"
+      class="tab-page active"
+    >
+
+      <div class="stats-grid">
+
+        <article class="stat-card">
+
+          <span>
+            Số đơn hôm nay
+          </span>
+
+          <strong id="todayOrders">
+            0
+          </strong>
+
+        </article>
+
+
+        <article class="stat-card">
+
+          <span>
+            Số cốc hôm nay
+          </span>
+
+          <strong id="todayCups">
+            0
+          </strong>
+
+        </article>
+
+
+        <article class="stat-card">
+
+          <span>
+            Doanh thu hôm nay
+          </span>
+
+          <strong id="todayRevenue">
+            0đ
+          </strong>
+
+        </article>
+
       </div>
 
-      <div class="stats">
-        <div class="stat">
-          <span>Số cốc</span>
-          <strong id="todayCups">0</strong>
-        </div>
 
-        <div class="stat">
-          <span>Doanh thu</span>
-          <strong id="todayRevenue">0đ</strong>
-        </div>
-      </div>
-    </section>
+      <section class="panel">
 
-    <section class="panel">
-      <div class="section-head">
-        <div>
-          <h2>Đơn hàng hôm nay</h2>
-          <p class="subtle">Đơn mới tự xuất hiện, không cần tải lại.</p>
-        </div>
-      </div>
+        <div class="section-head">
 
-      <div id="ordersList" class="orders-list">
-        <div class="empty-state">Đang tải đơn hàng...</div>
-      </div>
-    </section>
-
-    <section class="panel" id="installPanel">
-      <h2>Cài Cheng Coffee như ứng dụng</h2>
-      <p class="subtle">
-        Android: Chrome → Cài đặt ứng dụng.
-        iPhone: Safari → Chia sẻ → Thêm vào Màn hình chính.
-      </p>
-      <div class="push-actions">
-        <button id="installPwaBtn" class="primary" type="button" hidden>📲 Cài ứng dụng</button>
-      </div>
-      <p id="installMessage"></p>
-    </section>
-
-    <section class="panel">
-      <div class="section-head">
-        <div>
-          <h2>Thông báo đơn mới</h2>
-          <p class="subtle">Bật trên thiết bị Admin để nhận thông báo Firebase.</p>
-        </div>
-        <span id="pushStatusBadge" class="status-badge">Chưa kiểm tra</span>
-      </div>
-
-      <div class="push-actions">
-        <button id="enablePushBtn" class="primary" type="button">🔔 Bật thông báo</button>
-        <button id="testPushBtn" class="secondary" type="button">Gửi thử</button>
-        <button id="disablePushBtn" class="secondary" type="button">Tắt thông báo</button>
-      </div>
-
-      <p id="pushMessage"></p>
-    </section>
-
-    <section class="panel">
-      <h2 id="formTitle">Thêm món mới</h2>
-
-      <form id="menuForm">
-        <div class="grid">
           <div>
-            <label for="itemId">Mã món</label>
-            <input id="itemId" required placeholder="CF03">
+
+            <h2>
+              Lịch sử doanh thu
+            </h2>
+
+            <p class="muted">
+              Hiển thị 31 ngày gần nhất.
+            </p>
+
           </div>
 
-          <div>
-            <label for="itemName">Tên món</label>
-            <input id="itemName" required placeholder="Cà phê đen">
-          </div>
-
-          <div>
-            <label for="itemPrice">Giá</label>
-            <input id="itemPrice" type="number" min="0" required placeholder="25000">
-          </div>
-
-          <div class="check">
-            <label>
-              <input id="itemActive" type="checkbox" checked>
-              Đang bán
-            </label>
-          </div>
         </div>
+
+
+        <div class="table-wrap">
+
+          <table>
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  Ngày
+                </th>
+
+                <th>
+                  Số đơn
+                </th>
+
+                <th>
+                  Số cốc
+                </th>
+
+                <th>
+                  Doanh thu
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody id="historyTable"></tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+    </section>
+
+
+    <!-- ====================== -->
+    <!-- ĐƠN HÀNG -->
+    <!-- ====================== -->
+
+    <section
+      id="tab-orders"
+      class="tab-page"
+    >
+
+      <section class="panel">
+
+        <div class="section-head">
+
+          <div>
+
+            <h2>
+              Đơn hàng hôm nay
+            </h2>
+
+            <p class="muted">
+              Đơn mới tự xuất hiện realtime.
+            </p>
+
+          </div>
+
+          <span class="badge">
+            Realtime
+          </span>
+
+        </div>
+
+
+        <div
+          id="ordersList"
+          class="orders-list"
+        >
+          Đang tải đơn...
+        </div>
+
+      </section>
+
+    </section>
+
+
+    <!-- ====================== -->
+    <!-- MENU -->
+    <!-- ====================== -->
+
+    <section
+      id="tab-menu"
+      class="tab-page"
+    >
+
+      <section class="panel">
+
+        <h2 id="formTitle">
+          Thêm món mới
+        </h2>
+
+        <form id="menuForm">
+
+          <div class="form-grid">
+
+            <div>
+
+              <label for="itemId">
+                Mã món
+              </label>
+
+              <input
+                id="itemId"
+                placeholder="CF01"
+                required
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="itemName">
+                Tên món
+              </label>
+
+              <input
+                id="itemName"
+                placeholder="Cà phê sữa"
+                required
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="itemCategory">
+                Danh mục
+              </label>
+
+              <input
+                id="itemCategory"
+                placeholder="Cà phê"
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="itemDescription">
+                Mô tả
+              </label>
+
+              <input
+                id="itemDescription"
+                placeholder="Cà phê sữa truyền thống"
+              >
+
+            </div>
+
+          </div>
+
+
+          <div class="config-box">
+
+            <h3>
+              Giá theo size
+            </h3>
+
+            <div class="size-grid">
+
+              <div>
+
+                <label for="sizeS">
+                  Size S
+                </label>
+
+                <input
+                  id="sizeS"
+                  type="number"
+                  min="0"
+                  placeholder="18000"
+                >
+
+              </div>
+
+
+              <div>
+
+                <label for="sizeM">
+                  Size M
+                </label>
+
+                <input
+                  id="sizeM"
+                  type="number"
+                  min="0"
+                  placeholder="20000"
+                >
+
+              </div>
+
+
+              <div>
+
+                <label for="sizeL">
+                  Size L
+                </label>
+
+                <input
+                  id="sizeL"
+                  type="number"
+                  min="0"
+                  placeholder="25000"
+                >
+
+              </div>
+
+            </div>
+
+            <p class="muted">
+              Size nào không bán thì để trống.
+            </p>
+
+          </div>
+
+
+          <div class="config-box">
+
+            <h3>
+              Topping
+            </h3>
+
+            <p class="muted">
+              Mỗi dòng nhập theo dạng:
+              Tên topping | Giá
+            </p>
+
+            <textarea
+              id="toppingsText"
+              rows="6"
+              placeholder="Trân châu đen | 5000&#10;Thạch cà phê | 5000&#10;Kem cheese | 10000"
+            ></textarea>
+
+          </div>
+
+
+          <label class="checkbox-label">
+
+            <input
+              id="itemActive"
+              type="checkbox"
+              checked
+            >
+
+            Đang bán
+
+          </label>
+
+
+          <div class="actions">
+
+            <button
+              id="saveBtn"
+              class="primary"
+              type="submit"
+            >
+              Thêm món
+            </button>
+
+            <button
+              id="cancelBtn"
+              class="secondary"
+              type="button"
+              hidden
+            >
+              Hủy sửa
+            </button>
+
+          </div>
+
+          <p id="message"></p>
+
+        </form>
+
+      </section>
+
+
+      <section class="panel">
+
+        <h2>
+          Danh sách menu
+        </h2>
+
+        <div class="table-wrap">
+
+          <table>
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  Mã
+                </th>
+
+                <th>
+                  Tên món
+                </th>
+
+                <th>
+                  Size
+                </th>
+
+                <th>
+                  Topping
+                </th>
+
+                <th>
+                  Trạng thái
+                </th>
+
+                <th>
+                  Thao tác
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody id="menuTable"></tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+    </section>
+
+
+    <!-- ====================== -->
+    <!-- CÀI ĐẶT -->
+    <!-- ====================== -->
+
+    <section
+      id="tab-settings"
+      class="tab-page"
+    >
+
+      <section class="panel">
+
+        <div class="section-head">
+
+          <div>
+
+            <h2>
+              🔔 Thông báo đơn mới
+            </h2>
+
+            <p class="muted">
+              Nhận thông báo khi khách đặt món.
+            </p>
+
+          </div>
+
+          <span
+            id="pushStatusBadge"
+            class="badge"
+          >
+            Chưa bật
+          </span>
+
+        </div>
+
 
         <div class="actions">
-          <button class="primary" id="saveBtn" type="submit">Thêm món</button>
-          <button class="secondary" id="cancelBtn" type="button" hidden>Hủy sửa</button>
-        </div>
-      </form>
 
-      <p id="message"></p>
-    </section>
+          <button
+            id="enablePushBtn"
+            class="primary"
+            type="button"
+          >
+            Bật thông báo
+          </button>
 
-    <section class="panel">
-      <h2>Menu</h2>
+          <button
+            id="testPushBtn"
+            class="secondary"
+            type="button"
+          >
+            Gửi thử
+          </button>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Mã</th>
-              <th>Tên món</th>
-              <th>Giá</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody id="menuTable"></tbody>
-        </table>
-      </div>
-    </section>
+          <button
+            id="disablePushBtn"
+            class="secondary"
+            type="button"
+          >
+            Tắt thông báo
+          </button>
 
-    <section class="panel">
-      <h2>Lịch sử theo ngày</h2>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Ngày</th>
-              <th>Số cốc</th>
-              <th>Doanh thu</th>
-            </tr>
-          </thead>
-          <tbody id="historyTable"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h2>Đổi mật khẩu Admin</h2>
-
-      <form id="changePasswordForm">
-        <div class="password-grid">
-          <div>
-            <label for="currentPassword">Mật khẩu hiện tại</label>
-            <input id="currentPassword" type="password" autocomplete="current-password" required>
-          </div>
-
-          <div>
-            <label for="newPassword">Mật khẩu mới</label>
-            <input id="newPassword" type="password" autocomplete="new-password" minlength="8" required>
-          </div>
-
-          <div>
-            <label for="confirmPassword">Nhập lại mật khẩu mới</label>
-            <input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
-          </div>
         </div>
 
-        <div class="actions">
-          <button class="primary" type="submit">Đổi mật khẩu</button>
-        </div>
-      </form>
+        <p id="pushMessage"></p>
 
-      <p id="passwordMessage"></p>
+      </section>
+
+
+      <section class="panel">
+
+        <h2>
+          Đổi mật khẩu Admin
+        </h2>
+
+        <form id="changePasswordForm">
+
+          <div class="password-grid">
+
+            <div>
+
+              <label>
+                Mật khẩu hiện tại
+              </label>
+
+              <input
+                id="currentPassword"
+                type="password"
+                required
+              >
+
+            </div>
+
+
+            <div>
+
+              <label>
+                Mật khẩu mới
+              </label>
+
+              <input
+                id="newPassword"
+                type="password"
+                minlength="8"
+                required
+              >
+
+            </div>
+
+
+            <div>
+
+              <label>
+                Nhập lại mật khẩu
+              </label>
+
+              <input
+                id="confirmPassword"
+                type="password"
+                minlength="8"
+                required
+              >
+
+            </div>
+
+          </div>
+
+
+          <button
+            class="primary"
+            type="submit"
+          >
+            Đổi mật khẩu
+          </button>
+
+        </form>
+
+        <p id="passwordMessage"></p>
+
+      </section>
+
     </section>
+
   </div>
+
 </main>
 
+
 <script src="firebase-config.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-auth-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-functions-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-messaging-compat.js"></script>
+
 <script src="admin.js"></script>
+
 </body>
 </html>

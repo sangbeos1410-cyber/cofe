@@ -1,263 +1,865 @@
 let MENU = [];
-let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-let submitting = false;
-let authReadyPromise = null;
 
-const money = n => new Intl.NumberFormat("vi-VN").format(Number(n)) + "đ";
+let cart =
+  JSON.parse(
+    localStorage.getItem("cartV5") || "[]"
+  );
+
+let configItem = null;
+let submitting = false;
+
+const $ = id =>
+  document.getElementById(id);
+
+const money = n =>
+  new Intl.NumberFormat("vi-VN")
+    .format(Number(n) || 0) + "đ";
+
 
 if (!firebase.apps.length) {
-  firebase.initializeApp(self.FIREBASE_CONFIG);
+
+  firebase.initializeApp(
+    self.FIREBASE_CONFIG
+  );
+
 }
 
-const auth = firebase.auth();
-const db = firebase.firestore();
-const functions = firebase.app().functions(
-  self.FIREBASE_FUNCTIONS_REGION || "asia-southeast1"
+
+const auth =
+  firebase.auth();
+
+const db =
+  firebase.firestore();
+
+const functions =
+  firebase
+    .app()
+    .functions(
+      self.FIREBASE_FUNCTIONS_REGION ||
+      "asia-southeast1"
+    );
+
+const createOrder =
+  functions.httpsCallable(
+    "createOrder"
+  );
+
+
+auth.setPersistence(
+  firebase.auth.Auth.Persistence.LOCAL
 );
 
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.error);
 
-const createOrderFn = functions.httpsCallable("createOrder");
+async function ensureAuth() {
 
-function waitForAuthState() {
-  return new Promise((resolve, reject) => {
-    let unsubscribe = () => {};
-    const timeout = setTimeout(() => {
-      unsubscribe();
-      reject(new Error("Firebase Authentication phản hồi quá lâu."));
-    }, 12000);
-
-    unsubscribe = auth.onAuthStateChanged(
-      user => {
-        clearTimeout(timeout);
-        unsubscribe();
-        resolve(user);
-      },
-      error => {
-        clearTimeout(timeout);
-        unsubscribe();
-        reject(error);
-      }
-    );
-  });
-}
-
-async function ensureCustomerAuth() {
   if (auth.currentUser) {
-    await auth.currentUser.getIdToken(true);
+
+    await auth.currentUser
+      .getIdToken(true);
+
     return auth.currentUser;
+
   }
 
-  if (!authReadyPromise) {
-    authReadyPromise = (async () => {
-      const restored = await waitForAuthState();
+  const credential =
+    await auth.signInAnonymously();
 
-      if (restored) {
-        await restored.getIdToken(true);
-        return restored;
-      }
+  await credential.user
+    .getIdToken(true);
 
-      const credential = await auth.signInAnonymously();
-      const user = credential.user;
+  return credential.user;
 
-      if (!user) {
-        throw new Error("Không tạo được tài khoản khách Anonymous.");
-      }
-
-      await user.getIdToken(true);
-      return user;
-    })().finally(() => {
-      authReadyPromise = null;
-    });
-  }
-
-  return authReadyPromise;
 }
+
+
+function normalizeMenu(doc) {
+
+  const item = {
+    id: doc.id,
+    ...doc.data()
+  };
+
+  item.sizes =
+    Array.isArray(item.sizes) &&
+    item.sizes.length
+
+      ? item.sizes
+
+      : [
+          {
+            id: "M",
+            name: "M",
+            price:
+              Number(item.price || 0)
+          }
+        ];
+
+
+  item.toppings =
+    Array.isArray(item.toppings)
+      ? item.toppings
+      : [];
+
+
+  return item;
+
+}
+
 
 function loadMenu() {
-  const status = document.getElementById("menuStatus");
-  status.textContent = "Đang tải menu...";
 
-  db.collection("menu")
-    .where("active", "==", true)
+  db
+    .collection("menu")
+    .where(
+      "active",
+      "==",
+      true
+    )
     .onSnapshot(
+
       snapshot => {
-        MENU = snapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .sort((a, b) =>
-            String(a.name || "").localeCompare(String(b.name || ""), "vi")
+
+        MENU =
+          snapshot.docs.map(
+            normalizeMenu
           );
 
-        status.textContent = "";
+        $("menuStatus")
+          .textContent = "";
+
         renderMenu();
+
         renderCart();
+
       },
+
       error => {
-        console.error("Menu error:", error);
-        status.textContent =
-          "Không tải được menu: " +
-          (error.message || error.code || "Lỗi Firestore");
+
+        $("menuStatus")
+          .textContent =
+          error.message;
+
       }
+
     );
+
 }
+
 
 function renderMenu() {
-  const el = document.getElementById("menu");
-  el.innerHTML =
-    MENU.map(item => `
-      <article class="card">
-        <h3>${esc(item.name)}</h3>
-        <div class="price">${money(item.price)}</div>
-        <button class="primary" onclick="add('${attr(item.id)}')">+ Thêm món</button>
-      </article>
-    `).join("") || "<p>Chưa có món đang bán.</p>";
-}
 
-function add(id) {
-  const found = cart.find(x => x.id === id);
-  if (found) found.qty = Math.min(20, found.qty + 1);
-  else cart.push({ id, qty: 1 });
-  save();
-}
+  const query =
+    $("menuSearch")
+      .value
+      .toLowerCase()
+      .trim();
 
-function change(id, delta) {
-  const found = cart.find(x => x.id === id);
-  if (!found) return;
-  found.qty += delta;
-  if (found.qty <= 0) cart = cart.filter(x => x.id !== id);
-  save();
-}
 
-function save() {
-  localStorage.setItem("cart", JSON.stringify(cart));
-  renderCart();
-}
+  const filtered =
+    MENU.filter(item =>
+      item.name
+        .toLowerCase()
+        .includes(query)
+    );
 
-function renderCart() {
-  cart = cart.filter(c => MENU.some(m => m.id === c.id));
-  const el = document.getElementById("cartItems");
-  let total = 0;
 
-  if (!cart.length) {
-    el.innerHTML = "<p>Chưa có món nào.</p>";
-    document.getElementById("total").textContent = "0đ";
-    return;
-  }
+  $("menu").innerHTML =
 
-  el.innerHTML = cart.map(c => {
-    const item = MENU.find(m => m.id === c.id);
-    const subtotal = Number(item.price) * c.qty;
-    total += subtotal;
+    filtered.map(item => {
 
-    return `
-      <div class="cart-item">
-        <div>
-          <strong>${esc(item.name)}</strong><br>
-          <small>${money(item.price)} × ${c.qty} = ${money(subtotal)}</small>
+      const minPrice =
+        Math.min(
+          ...item.sizes.map(
+            size =>
+              Number(size.price)
+          )
+        );
+
+
+      return `
+
+        <div class="card">
+
+          <small>
+            ${escapeHtml(
+              item.category ||
+              "ĐỒ UỐNG"
+            )}
+          </small>
+
+          <h3>
+            ${escapeHtml(item.name)}
+          </h3>
+
+          <p>
+            ${escapeHtml(
+              item.description || ""
+            )}
+          </p>
+
+          <div class="price">
+            Từ ${money(minPrice)}
+          </div>
+
+          <button
+            class="primary"
+            onclick="
+              openOptions(
+                '${escapeAttr(item.id)}'
+              )
+            "
+          >
+            Chọn món
+          </button>
+
         </div>
-        <div class="qty">
-          <button onclick="change('${attr(item.id)}', -1)">−</button>
-          <span>${c.qty}</span>
-          <button onclick="change('${attr(item.id)}', 1)">+</button>
-        </div>
-      </div>
-    `;
-  }).join("");
 
-  document.getElementById("total").textContent = money(total);
+      `;
+
+    }).join("")
+
+    ||
+
+    "<p>Không tìm thấy món.</p>";
+
 }
 
-async function submitOrder() {
-  const msg = document.getElementById("message");
-  const btn = document.getElementById("orderBtn");
 
-  if (submitting) return;
-  if (!cart.length) {
-    msg.textContent = "Vui lòng chọn món.";
-    return;
-  }
+function openOptions(id) {
 
-  try {
-    submitting = true;
-    btn.disabled = true;
-    msg.textContent = "Đang xác thực thiết bị...";
+  configItem =
+    MENU.find(
+      item => item.id === id
+    );
 
-    const user = await ensureCustomerAuth();
-    const idToken = await user.getIdToken(true);
 
-    if (!idToken) {
-      throw new Error("Không lấy được Firebase ID token.");
-    }
+  $("optionItemName")
+    .textContent =
+    configItem.name;
 
-    msg.textContent = "Đang gửi đơn...";
 
-    const items = cart.map(c => ({
-      menuId: c.id,
-      quantity: Number(c.qty)
-    }));
+  $("sizeOptions")
+    .innerHTML =
 
-    const clientRequestId = crypto.randomUUID
-      ? crypto.randomUUID()
-      : Date.now() + "-" + Math.random().toString(36).slice(2);
+    configItem.sizes
+      .map(
+        (size, index) => `
 
-    const result = await createOrderFn({
-      table: document.getElementById("tableNumber").value.trim().slice(0, 20),
-      items,
-      clientRequestId
+          <label class="choice">
+
+            <input
+              type="radio"
+              name="size"
+              value="${escapeHtml(size.id)}"
+              ${index === 0
+                ? "checked"
+                : ""}
+            >
+
+            <b>
+              ${escapeHtml(
+                size.name ||
+                size.id
+              )}
+            </b>
+
+            <br>
+
+            ${money(size.price)}
+
+          </label>
+
+        `
+      )
+      .join("");
+
+
+  $("toppingOptions")
+    .innerHTML =
+
+    configItem.toppings.length
+
+      ? configItem.toppings
+          .map(
+            topping => `
+
+              <label class="topping">
+
+                <span>
+
+                  <input
+                    type="checkbox"
+                    name="tp"
+                    value="${escapeHtml(
+                      topping.id
+                    )}"
+                  >
+
+                  ${escapeHtml(
+                    topping.name
+                  )}
+
+                </span>
+
+                <b>
+                  +${money(
+                    topping.price
+                  )}
+                </b>
+
+              </label>
+
+            `
+          )
+          .join("")
+
+      : "<p>Không có topping.</p>";
+
+
+  $("optionModal")
+    .hidden = false;
+
+
+  document
+    .querySelectorAll(
+      'input[name="size"], input[name="tp"]'
+    )
+    .forEach(input => {
+
+      input.onchange =
+        calculateOptionTotal;
+
     });
 
-    cart = [];
-    save();
-    document.getElementById("tableNumber").value = "";
 
-    msg.textContent =
-      "Đặt món thành công! Mã đơn: " + (result.data.orderId || "");
-  } catch (error) {
-    console.error("CREATE ORDER ERROR:", error);
+  calculateOptionTotal();
 
-    const code = error.code || "";
-    let friendly = error.message || "Không gửi được đơn.";
+}
 
-    if (
-      code.includes("unauthenticated") ||
-      friendly.toLowerCase().includes("unauthenticated")
-    ) {
-      friendly =
-        "Firebase chưa nhận Anonymous Auth. Hãy tải lại trang rồi thử lại.";
-    } else if (
-      code.includes("failed-precondition") &&
-      friendly.toLowerCase().includes("app check")
-    ) {
-      friendly =
-        "App Check đang được bắt buộc nhưng website chưa cấu hình App Check.";
-    } else if (code.includes("permission-denied")) {
-      friendly =
-        "Không có quyền tạo đơn. Kiểm tra Firebase Authentication và Security Rules.";
-    }
 
-    msg.textContent = friendly;
-  } finally {
-    submitting = false;
-    btn.disabled = false;
+function getSelectedConfig() {
+
+  const sizeId =
+    document
+      .querySelector(
+        'input[name="size"]:checked'
+      )
+      ?.value;
+
+
+  const size =
+    configItem.sizes.find(
+      size =>
+        String(size.id) ===
+        String(sizeId)
+    );
+
+
+  const toppingIds =
+    [
+      ...document.querySelectorAll(
+        'input[name="tp"]:checked'
+      )
+    ].map(
+      input =>
+        input.value
+    );
+
+
+  const toppings =
+    configItem.toppings.filter(
+      topping =>
+        toppingIds.includes(
+          String(topping.id)
+        )
+    );
+
+
+  const unitPrice =
+
+    Number(size?.price || 0)
+
+    +
+
+    toppings.reduce(
+      (total, topping) =>
+        total +
+        Number(topping.price || 0),
+
+      0
+    );
+
+
+  return {
+    size,
+    toppings,
+    unitPrice
+  };
+
+}
+
+
+function calculateOptionTotal() {
+
+  const config =
+    getSelectedConfig();
+
+  $("optionTotal")
+    .textContent =
+    money(config.unitPrice);
+
+}
+
+
+function closeOptions() {
+
+  $("optionModal")
+    .hidden = true;
+
+  configItem = null;
+
+}
+
+
+function addConfiguredItem() {
+
+  const config =
+    getSelectedConfig();
+
+
+  const key = [
+
+    configItem.id,
+
+    config.size.id,
+
+    ...config.toppings
+      .map(t => t.id)
+      .sort()
+
+  ].join("|");
+
+
+  const existing =
+    cart.find(
+      item =>
+        item.key === key
+    );
+
+
+  if (existing) {
+
+    existing.qty++;
+
+  } else {
+
+    cart.push({
+
+      key,
+
+      menuId:
+        configItem.id,
+
+      name:
+        configItem.name,
+
+      sizeId:
+        config.size.id,
+
+      sizeName:
+        config.size.name ||
+        config.size.id,
+
+      toppingIds:
+        config.toppings
+          .map(t => t.id),
+
+      toppingNames:
+        config.toppings
+          .map(t => t.name),
+
+      unitPrice:
+        config.unitPrice,
+
+      qty: 1
+
+    });
+
   }
+
+
+  saveCart();
+
+  closeOptions();
+
 }
 
-function esc(value) {
+
+function saveCart() {
+
+  localStorage.setItem(
+    "cartV5",
+    JSON.stringify(cart)
+  );
+
+  renderCart();
+
+}
+
+
+function changeQty(key, amount) {
+
+  const item =
+    cart.find(
+      item =>
+        item.key === key
+    );
+
+
+  if (!item) return;
+
+
+  item.qty += amount;
+
+
+  if (item.qty <= 0) {
+
+    cart =
+      cart.filter(
+        item =>
+          item.key !== key
+      );
+
+  }
+
+
+  saveCart();
+
+}
+
+
+function removeLine(key) {
+
+  cart =
+    cart.filter(
+      item =>
+        item.key !== key
+    );
+
+  saveCart();
+
+}
+
+
+function renderCart() {
+
+  let total = 0;
+
+
+  $("cartCount")
+    .textContent =
+
+    cart.reduce(
+      (sum, item) =>
+        sum + item.qty,
+      0
+    )
+
+    + " món";
+
+
+  $("cartItems")
+    .innerHTML =
+
+    cart.length
+
+      ? cart.map(item => {
+
+          const subtotal =
+            item.unitPrice *
+            item.qty;
+
+
+          total += subtotal;
+
+
+          return `
+
+            <div class="cart-line">
+
+              <div class="line-top">
+
+                <div>
+
+                  <b>
+                    ${escapeHtml(
+                      item.name
+                    )}
+                  </b>
+
+                  <div class="meta">
+
+                    Size
+                    ${escapeHtml(
+                      item.sizeName
+                    )}
+
+                    ${
+                      item.toppingNames.length
+
+                        ? " • " +
+                          escapeHtml(
+                            item
+                              .toppingNames
+                              .join(", ")
+                          )
+
+                        : ""
+                    }
+
+                  </div>
+
+                </div>
+
+
+                <button
+                  class="remove"
+                  onclick="
+                    removeLine(
+                      '${escapeAttr(
+                        item.key
+                      )}'
+                    )
+                  "
+                >
+                  Xóa
+                </button>
+
+              </div>
+
+
+              <div class="line-bottom">
+
+                <div class="qty">
+
+                  <button
+                    onclick="
+                      changeQty(
+                        '${escapeAttr(
+                          item.key
+                        )}',
+                        -1
+                      )
+                    "
+                  >
+                    −
+                  </button>
+
+                  <b>
+                    ${item.qty}
+                  </b>
+
+                  <button
+                    onclick="
+                      changeQty(
+                        '${escapeAttr(
+                          item.key
+                        )}',
+                        1
+                      )
+                    "
+                  >
+                    +
+                  </button>
+
+                </div>
+
+
+                <b>
+                  ${money(subtotal)}
+                </b>
+
+              </div>
+
+            </div>
+
+          `;
+
+        }).join("")
+
+      : "<p>Chưa có món nào.</p>";
+
+
+  $("total")
+    .textContent =
+    money(total);
+
+}
+
+
+async function submitOrder() {
+
+  if (
+    submitting ||
+    !cart.length
+  ) {
+    return;
+  }
+
+
+  try {
+
+    submitting = true;
+
+    $("orderBtn")
+      .disabled = true;
+
+    $("message")
+      .textContent =
+      "Đang gửi đơn...";
+
+
+    const user =
+      await ensureAuth();
+
+    await user
+      .getIdToken(true);
+
+
+    const response =
+      await createOrder({
+
+        table:
+          $("tableNumber")
+            .value
+            .trim()
+            .slice(0, 20),
+
+        items:
+          cart.map(item => ({
+
+            menuId:
+              item.menuId,
+
+            sizeId:
+              item.sizeId,
+
+            toppingIds:
+              item.toppingIds,
+
+            quantity:
+              item.qty
+
+          })),
+
+        clientRequestId:
+          crypto.randomUUID
+
+            ? crypto.randomUUID()
+
+            : String(Date.now())
+
+      });
+
+
+    cart = [];
+
+    saveCart();
+
+
+    $("tableNumber")
+      .value = "";
+
+
+    $("message")
+      .textContent =
+
+      "Đặt món thành công! Mã đơn: "
+
+      +
+
+      response.data.orderId;
+
+  } catch (error) {
+
+    console.error(error);
+
+    $("message")
+      .textContent =
+
+      error.message ||
+      "Không gửi được đơn.";
+
+  } finally {
+
+    submitting = false;
+
+    $("orderBtn")
+      .disabled = false;
+
+  }
+
+}
+
+
+function escapeHtml(value) {
+
   return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+
+    .replaceAll(
+      '"',
+      "&quot;"
+    );
+
 }
 
-function attr(value) {
-  return String(value ?? "").replaceAll("'", "\\'");
+
+function escapeAttr(value) {
+
+  return String(value ?? "")
+    .replaceAll(
+      "'",
+      "\\'"
+    );
+
 }
 
-document.getElementById("orderBtn").addEventListener("click", submitOrder);
 
-ensureCustomerAuth()
-  .then(user => console.log("Anonymous Auth OK:", user.uid))
-  .catch(error => console.error("Anonymous Auth startup error:", error))
+$("menuSearch")
+  .oninput =
+  renderMenu;
+
+
+$("closeOptionModal")
+  .onclick =
+  closeOptions;
+
+
+$("addConfiguredItemBtn")
+  .onclick =
+  addConfiguredItem;
+
+
+$("orderBtn")
+  .onclick =
+  submitOrder;
+
+
+ensureAuth()
+  .catch(console.error)
   .finally(loadMenu);

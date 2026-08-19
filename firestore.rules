@@ -1,55 +1,265 @@
 rules_version = '2';
+
 service cloud.firestore {
+
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function isAdmin() {
-      return signedIn()
-        && request.auth.token.email != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email == "sangbeos1410@gmail.com";
+
+
+    function signedIn() {
+
+      return request.auth != null;
+
     }
+
+
+    function isAdmin() {
+
+      return signedIn()
+
+        && request.auth.token.email != null
+
+        && request.auth.token.email
+          == "sangbeos1410@gmail.com";
+
+    }
+
+
+    // ==============================
+    // MENU
+    // ==============================
 
     match /menu/{id} {
-      allow read: if resource.data.active == true || isAdmin();
-      allow create, update, delete: if isAdmin()
-        && request.resource.data.keys().hasOnly(['name','price','active','updatedAt'])
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.name.size() <= 100
-        && request.resource.data.price is int
-        && request.resource.data.price >= 0
-        && request.resource.data.price <= 10000000
-        && request.resource.data.active is bool;
+
+
+      // Khách chỉ đọc món đang bán.
+      // Admin đọc toàn bộ.
+
+      allow read:
+
+        if resource.data.active == true
+
+        || isAdmin();
+
+
+      // Chỉ Admin thêm/sửa menu.
+
+      allow create, update:
+
+        if isAdmin()
+
+        && request.resource.data.keys().hasOnly([
+
+          'name',
+
+          'category',
+
+          'description',
+
+          'sizes',
+
+          'toppings',
+
+          'active',
+
+          'updatedAt'
+
+        ])
+
+        && request.resource.data.name
+          is string
+
+        && request.resource.data.name.size()
+          > 0
+
+        && request.resource.data.name.size()
+          <= 100
+
+        && request.resource.data.category
+          is string
+
+        && request.resource.data.category.size()
+          <= 80
+
+        && request.resource.data.description
+          is string
+
+        && request.resource.data.description.size()
+          <= 300
+
+        && request.resource.data.sizes
+          is list
+
+        && request.resource.data.sizes.size()
+          >= 1
+
+        && request.resource.data.sizes.size()
+          <= 5
+
+        && request.resource.data.toppings
+          is list
+
+        && request.resource.data.toppings.size()
+          <= 20
+
+        && request.resource.data.active
+          is bool
+
+        && request.resource.data.updatedAt
+          == request.time;
+
+
+      allow delete:
+
+        if isAdmin();
+
     }
 
-    // Khách KHÔNG được ghi trực tiếp orders/dailyStats.
-    // Chỉ Cloud Function (Admin SDK) tạo đơn và tính tiền.
+
+    // ==============================
+    // ORDERS
+    // ==============================
+
     match /orders/{id} {
-      allow read: if isAdmin();
-      allow create, delete: if false;
-      allow update: if isAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['status','updatedAt'])
-        && request.resource.data.status in ['new','preparing','done'];
+
+
+      // Khách không đọc được orders.
+
+      allow read:
+
+        if isAdmin();
+
+
+      // Client không được tự tạo order.
+      // Cloud Function dùng Admin SDK.
+
+      allow create:
+
+        if false;
+
+
+      // Admin chỉ được đổi trạng thái.
+
+      allow update:
+
+        if isAdmin()
+
+        && request.resource.data
+          .diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+
+            'status',
+
+            'updatedAt'
+
+          ])
+
+        && request.resource.data.status
+          in [
+
+            'new',
+
+            'preparing',
+
+            'done'
+
+          ]
+
+        && request.resource.data.updatedAt
+          == request.time;
+
+
+      allow delete:
+
+        if false;
+
     }
+
+
+    // ==============================
+    // DAILY STATS
+    // ==============================
 
     match /dailyStats/{id} {
-      allow read: if isAdmin();
-      allow write: if false;
+
+
+      allow read:
+
+        if isAdmin();
+
+
+      // Chỉ Cloud Function ghi.
+
+      allow write:
+
+        if false;
+
     }
+
+
+    // ==============================
+    // ADMIN DEVICES
+    // ==============================
 
     match /adminDevices/{id} {
-      allow read: if false;
-      allow create, update, delete: if isAdmin()
-        && request.resource.data.uid == request.auth.uid;
+
+
+      // Không cho client đọc token.
+
+      allow read:
+
+        if false;
+
+
+      allow create, update:
+
+        if isAdmin()
+
+        && request.resource.data.uid
+          == request.auth.uid
+
+        && request.resource.data.token
+          is string
+
+        && request.resource.data.token.size()
+          > 20
+
+        && request.resource.data.updatedAt
+          == request.time;
+
+
+      allow delete:
+
+        if isAdmin();
+
     }
+
+
+    // ==============================
+    // CHỐNG ĐƠN TRÙNG
+    // ==============================
 
     match /requestIds/{id} {
-      allow read, write: if false;
+
+      allow read, write:
+
+        if false;
+
     }
 
+
+    // ==============================
+    // MẶC ĐỊNH KHÓA
+    // ==============================
+
     match /{document=**} {
-      allow read, write: if false;
+
+      allow read, write:
+
+        if false;
+
     }
+
   }
+
 }

@@ -1,684 +1,1971 @@
 (() => {
+
   "use strict";
 
-  const $ = id => document.getElementById(id);
 
-  const els = {
-    loginPanel: $("loginPanel"),
-    loginForm: $("loginForm"),
-    loginMessage: $("loginMessage"),
-    password: $("password"),
-    adminApp: $("adminApp"),
-    logoutBtn: $("logoutBtn"),
+  const $ = id =>
+    document.getElementById(id);
 
-    todayCups: $("todayCups"),
-    todayRevenue: $("todayRevenue"),
-    ordersList: $("ordersList"),
-
-    menuForm: $("menuForm"),
-    formTitle: $("formTitle"),
-    itemId: $("itemId"),
-    itemName: $("itemName"),
-    itemPrice: $("itemPrice"),
-    itemActive: $("itemActive"),
-    saveBtn: $("saveBtn"),
-    cancelBtn: $("cancelBtn"),
-    message: $("message"),
-    menuTable: $("menuTable"),
-    historyTable: $("historyTable"),
-
-    currentPassword: $("currentPassword"),
-    newPassword: $("newPassword"),
-    confirmPassword: $("confirmPassword"),
-    changePasswordForm: $("changePasswordForm"),
-    passwordMessage: $("passwordMessage"),
-
-    enablePushBtn: $("enablePushBtn"),
-    testPushBtn: $("testPushBtn"),
-    disablePushBtn: $("disablePushBtn"),
-    pushStatusBadge: $("pushStatusBadge"),
-    pushMessage: $("pushMessage"),
-
-    installPwaBtn: $("installPwaBtn"),
-    installMessage: $("installMessage")
-  };
-
-  let MENU = [];
-  let editingId = null;
-  let unsubs = [];
-  let firebaseMessaging = null;
-  let currentFcmToken = localStorage.getItem("fcmToken") || "";
-  let deferredInstallPrompt = null;
 
   const money = n =>
-    new Intl.NumberFormat("vi-VN").format(Number(n) || 0) + "đ";
+    new Intl.NumberFormat("vi-VN")
+      .format(Number(n) || 0) + "đ";
+
+
+  let MENU = [];
+
+  let editingId = null;
+
+  let realtimeListeners = [];
+
+  let messaging = null;
+
+  let currentFcmToken =
+    localStorage.getItem("fcmToken") || "";
+
 
   if (!firebase.apps.length) {
-    firebase.initializeApp(self.FIREBASE_CONFIG);
+
+    firebase.initializeApp(
+      self.FIREBASE_CONFIG
+    );
+
   }
 
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-  const functions = firebase.app().functions(
-    self.FIREBASE_FUNCTIONS_REGION || "asia-southeast1"
+
+  const auth =
+    firebase.auth();
+
+  const db =
+    firebase.firestore();
+
+  const functions =
+    firebase
+      .app()
+      .functions(
+        self.FIREBASE_FUNCTIONS_REGION ||
+        "asia-southeast1"
+      );
+
+
+  auth.setPersistence(
+    firebase.auth.Auth.Persistence.LOCAL
   );
 
-  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-    .catch(console.error);
-
-  function esc(v) {
-    return String(v ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function attr(v) {
-    return String(v ?? "").replaceAll("'", "\\'");
-  }
-
-  function msg(t) {
-    els.message.textContent = t || "";
-  }
 
   function isAdmin(user) {
-    return !!user &&
-      !!user.email &&
-      String(user.email).toLowerCase() ===
-        String(self.ADMIN_EMAIL || "").toLowerCase();
+
+    return (
+      user &&
+      String(
+        user.email || ""
+      ).toLowerCase()
+      ===
+      String(
+        self.ADMIN_EMAIL || ""
+      ).toLowerCase()
+    );
+
   }
 
-  function showLogin() {
-    els.loginPanel.hidden = false;
-    els.adminApp.hidden = true;
-    els.logoutBtn.hidden = true;
-  }
-
-  function showAdmin() {
-    els.loginPanel.hidden = true;
-    els.adminApp.hidden = false;
-    els.logoutBtn.hidden = false;
-  }
-
-  function stopRealtime() {
-    for (const unsub of unsubs) {
-      try { unsub(); } catch (_) {}
-    }
-    unsubs = [];
-  }
-
-  function statusText(status) {
-    if (status === "done") return "Hoàn thành";
-    if (status === "preparing") return "Đang làm";
-    return "Mới";
-  }
-
-  function formatTime(ts) {
-    if (!ts || !ts.toDate) return "...";
-    return ts.toDate().toLocaleTimeString("vi-VN");
-  }
 
   function todayKey() {
-    return new Intl.DateTimeFormat(
-      "en-CA",
-      {
-        timeZone: "Asia/Ho_Chi_Minh",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-      }
-    ).format(new Date());
+
+    return new Intl
+      .DateTimeFormat(
+        "en-CA",
+        {
+          timeZone:
+            "Asia/Ho_Chi_Minh",
+
+          year:
+            "numeric",
+
+          month:
+            "2-digit",
+
+          day:
+            "2-digit"
+        }
+      )
+      .format(
+        new Date()
+      );
+
   }
 
-  async function login(e) {
-    e.preventDefault();
-    els.loginMessage.textContent = "Đang đăng nhập...";
 
-    try {
-      const credential =
-        await auth.signInWithEmailAndPassword(
-          self.ADMIN_EMAIL,
-          els.password.value
-        );
+  function escapeHtml(value) {
 
-      if (!isAdmin(credential.user)) {
-        await auth.signOut();
-        throw new Error("Tài khoản này không có quyền Admin.");
-      }
+    return String(value ?? "")
 
-      els.password.value = "";
-      els.loginMessage.textContent = "";
-    } catch (error) {
-      console.error(error);
-      els.loginMessage.textContent =
-        error.code === "auth/invalid-credential"
-          ? "Sai mật khẩu."
-          : (error.message || "Không đăng nhập được.");
-    }
+      .replaceAll(
+        "&",
+        "&amp;"
+      )
+
+      .replaceAll(
+        "<",
+        "&lt;"
+      )
+
+      .replaceAll(
+        ">",
+        "&gt;"
+      )
+
+      .replaceAll(
+        '"',
+        "&quot;"
+      );
+
   }
 
-  function startRealtime() {
-    stopRealtime();
 
-    // Menu
-    unsubs.push(
-      db.collection("menu")
-        .onSnapshot(
-          snapshot => {
-            MENU = snapshot.docs
-              .map(doc => ({
-                id: doc.id,
-                ...doc.data()
-              }))
-              .sort((a, b) =>
-                String(a.name || "")
-                  .localeCompare(String(b.name || ""), "vi")
+  function showLogin() {
+
+    $("loginPanel")
+      .hidden = false;
+
+    $("adminApp")
+      .hidden = true;
+
+    $("logoutBtn")
+      .hidden = true;
+
+  }
+
+
+  function showAdmin() {
+
+    $("loginPanel")
+      .hidden = true;
+
+    $("adminApp")
+      .hidden = false;
+
+    $("logoutBtn")
+      .hidden = false;
+
+  }
+
+
+  function stopRealtime() {
+
+    realtimeListeners
+      .forEach(listener => {
+
+        try {
+
+          listener();
+
+        } catch (_) {}
+
+      });
+
+
+    realtimeListeners = [];
+
+  }
+
+
+  // =============================
+  // TABS
+  // =============================
+
+
+  document
+    .querySelectorAll(".tab")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          document
+            .querySelectorAll(".tab")
+            .forEach(x =>
+              x.classList
+                .remove("active")
+            );
+
+
+          document
+            .querySelectorAll(
+              ".tab-page"
+            )
+            .forEach(x =>
+              x.classList
+                .remove("active")
+            );
+
+
+          button.classList
+            .add("active");
+
+
+          $(
+            "tab-" +
+            button.dataset.tab
+          )
+          .classList
+          .add("active");
+
+        }
+      );
+
+    });
+
+
+  // =============================
+  // LOGIN
+  // =============================
+
+
+  $("loginForm")
+    .addEventListener(
+      "submit",
+      async event => {
+
+        event.preventDefault();
+
+
+        $("loginMessage")
+          .textContent =
+          "Đang đăng nhập...";
+
+
+        try {
+
+          const credential =
+            await auth
+              .signInWithEmailAndPassword(
+
+                self.ADMIN_EMAIL,
+
+                $("password")
+                  .value
+
               );
 
-            renderMenuTable();
-          },
-          error => {
-            console.error("menu realtime", error);
-            msg("Không đọc được menu: " + error.message);
+
+          if (
+            !isAdmin(
+              credential.user
+            )
+          ) {
+
+            await auth.signOut();
+
+            throw new Error(
+              "Không có quyền Admin."
+            );
+
           }
-        )
+
+
+          $("password")
+            .value = "";
+
+
+          $("loginMessage")
+            .textContent = "";
+
+        } catch (error) {
+
+          console.error(error);
+
+
+          if (
+            error.code ===
+            "auth/invalid-credential"
+          ) {
+
+            $("loginMessage")
+              .textContent =
+              "Sai mật khẩu.";
+
+          } else {
+
+            $("loginMessage")
+              .textContent =
+              error.message ||
+              "Không đăng nhập được.";
+
+          }
+
+        }
+
+      }
     );
 
-    // Orders hôm nay
-    unsubs.push(
-      db.collection("orders")
-        .where("dateKey", "==", todayKey())
-        .orderBy("createdAt", "desc")
-        .limit(100)
+
+  $("logoutBtn")
+    .addEventListener(
+      "click",
+      () => {
+
+        auth.signOut();
+
+      }
+    );
+
+
+  auth.onAuthStateChanged(
+    user => {
+
+      stopRealtime();
+
+
+      if (
+        isAdmin(user)
+      ) {
+
+        showAdmin();
+
+        startRealtime();
+
+        refreshPushStatus();
+
+      } else {
+
+        showLogin();
+
+      }
+
+    }
+  );
+
+
+  // =============================
+  // REALTIME
+  // =============================
+
+
+  function startRealtime() {
+
+    loadMenuRealtime();
+
+    loadOrdersRealtime();
+
+    loadTodayStats();
+
+    loadHistory();
+
+  }
+
+
+  function loadMenuRealtime() {
+
+    const unsubscribe =
+      db
+        .collection("menu")
         .onSnapshot(
+
           snapshot => {
-            const orders = snapshot.docs.map(doc => ({
-              orderId: doc.id,
-              ...doc.data()
-            }));
 
-            renderOrders(orders);
+            MENU =
+              snapshot.docs.map(
+                doc => {
+
+                  const data =
+                    doc.data();
+
+
+                  return {
+
+                    id:
+                      doc.id,
+
+                    ...data,
+
+                    sizes:
+                      Array.isArray(
+                        data.sizes
+                      )
+
+                        ? data.sizes
+
+                        : [],
+
+                    toppings:
+                      Array.isArray(
+                        data.toppings
+                      )
+
+                        ? data.toppings
+
+                        : []
+
+                  };
+
+                }
+              );
+
+
+            renderMenuTable();
+
           },
-          error => {
-            console.error("orders realtime", error);
-            els.ordersList.innerHTML =
-              `<div class="empty-state">Không tải được đơn: ${esc(error.message)}</div>`;
-          }
-        )
-    );
 
-    // Stats hôm nay
-    unsubs.push(
-      db.collection("dailyStats")
-        .doc(todayKey())
+          error => {
+
+            $("message")
+              .textContent =
+
+              "Không đọc được menu: "
+
+              +
+
+              error.message;
+
+          }
+
+        );
+
+
+    realtimeListeners
+      .push(
+        unsubscribe
+      );
+
+  }
+
+
+  function loadOrdersRealtime() {
+
+    const unsubscribe =
+      db
+        .collection("orders")
+
+        .where(
+          "dateKey",
+          "==",
+          todayKey()
+        )
+
+        .orderBy(
+          "createdAt",
+          "desc"
+        )
+
+        .limit(100)
+
+        .onSnapshot(
+
+          snapshot => {
+
+            const orders =
+              snapshot.docs.map(
+                doc => ({
+
+                  orderId:
+                    doc.id,
+
+                  ...doc.data()
+
+                })
+              );
+
+
+            $("todayOrders")
+              .textContent =
+              orders.length;
+
+
+            renderOrders(
+              orders
+            );
+
+          },
+
+          error => {
+
+            $("ordersList")
+              .textContent =
+
+              "Không tải được đơn: "
+
+              +
+
+              error.message;
+
+          }
+
+        );
+
+
+    realtimeListeners
+      .push(
+        unsubscribe
+      );
+
+  }
+
+
+  function loadTodayStats() {
+
+    const unsubscribe =
+      db
+        .collection(
+          "dailyStats"
+        )
+        .doc(
+          todayKey()
+        )
         .onSnapshot(
           doc => {
-            const data = doc.exists ? doc.data() : {};
-            els.todayCups.textContent = data.cups || 0;
-            els.todayRevenue.textContent = money(data.revenue || 0);
-          },
-          error => {
-            console.error("stats realtime", error);
-          }
-        )
-    );
 
-    // Lịch sử 31 ngày
-    unsubs.push(
-      db.collection("dailyStats")
-        .orderBy("date", "desc")
+            const data =
+              doc.exists
+                ? doc.data()
+                : {};
+
+
+            $("todayCups")
+              .textContent =
+              data.cups || 0;
+
+
+            $("todayRevenue")
+              .textContent =
+              money(
+                data.revenue || 0
+              );
+
+          }
+        );
+
+
+    realtimeListeners
+      .push(
+        unsubscribe
+      );
+
+  }
+
+
+  function loadHistory() {
+
+    const unsubscribe =
+      db
+        .collection(
+          "dailyStats"
+        )
+
+        .orderBy(
+          "date",
+          "desc"
+        )
+
         .limit(31)
+
         .onSnapshot(
           snapshot => {
-            els.historyTable.innerHTML =
-              snapshot.docs.map(doc => {
-                const x = doc.data();
-                return `
-                  <tr>
-                    <td>${esc(x.date || doc.id)}</td>
-                    <td>${Number(x.cups) || 0}</td>
-                    <td>${money(x.revenue || 0)}</td>
-                  </tr>
-                `;
-              }).join("") ||
-              `<tr><td colspan="3">Chưa có lịch sử.</td></tr>`;
-          },
-          error => {
-            console.error("history realtime", error);
+
+            $("historyTable")
+              .innerHTML =
+
+              snapshot.docs
+                .map(
+                  doc => {
+
+                    const data =
+                      doc.data();
+
+
+                    return `
+
+                      <tr>
+
+                        <td>
+                          ${
+                            escapeHtml(
+                              data.date ||
+                              doc.id
+                            )
+                          }
+                        </td>
+
+                        <td>
+                          ${
+                            data.orders || 0
+                          }
+                        </td>
+
+                        <td>
+                          ${
+                            data.cups || 0
+                          }
+                        </td>
+
+                        <td>
+                          ${
+                            money(
+                              data.revenue ||
+                              0
+                            )
+                          }
+                        </td>
+
+                      </tr>
+
+                    `;
+
+                  }
+                )
+                .join("");
+
           }
-        )
-    );
+        );
+
+
+    realtimeListeners
+      .push(
+        unsubscribe
+      );
+
   }
 
-  function renderOrders(orders) {
-    if (!orders.length) {
-      els.ordersList.innerHTML =
-        `<div class="empty-state">Chưa có đơn hàng nào hôm nay.</div>`;
+
+  // =============================
+  // ORDERS
+  // =============================
+
+
+  function renderOrders(
+    orders
+  ) {
+
+    if (
+      !orders.length
+    ) {
+
+      $("ordersList")
+        .innerHTML =
+        "Chưa có đơn hôm nay.";
+
       return;
+
     }
 
-    els.ordersList.innerHTML =
-      orders.map(order => `
-        <article class="order-card">
-          <div class="order-head">
-            <div>
-              <div class="order-id">${esc(order.orderId)}</div>
-              <div class="order-meta">
-                ${order.table ? "Bàn " + esc(order.table) + " • " : ""}
-                ${formatTime(order.createdAt)}
+
+    $("ordersList")
+      .innerHTML =
+
+      orders.map(
+        order => `
+
+          <article class="order-card">
+
+            <div class="order-head">
+
+              <div>
+
+                <div class="order-id">
+                  ${
+                    escapeHtml(
+                      order.orderId
+                    )
+                  }
+                </div>
+
+                <div class="order-time">
+
+                  ${
+                    order.table
+                      ? "Bàn " +
+                        escapeHtml(
+                          order.table
+                        ) +
+                        " • "
+                      : ""
+                  }
+
+                  ${
+                    order.createdAt
+                      ?.toDate
+
+                      ? order
+                          .createdAt
+                          .toDate()
+                          .toLocaleTimeString(
+                            "vi-VN"
+                          )
+
+                      : ""
+                  }
+
+                </div>
+
               </div>
+
+
+              <div class="order-total">
+
+                ${
+                  money(
+                    order.total || 0
+                  )
+                }
+
+              </div>
+
             </div>
 
-            <div class="order-total">${money(order.total || 0)}</div>
-          </div>
 
-          <div class="order-items">
-            ${(order.items || []).map(item => `
-              <div class="order-item-row">
-                <div>
-                  <div class="order-item-name">${esc(item.name)}</div>
-                  <div class="order-item-detail">
-                    ${Number(item.quantity) || 0} × ${money(item.price || 0)}
-                  </div>
-                </div>
-                <strong>${money(item.subtotal || 0)}</strong>
-              </div>
-            `).join("")}
-          </div>
+            <div>
 
-          <div class="actions">
-            <button
-              class="secondary"
-              type="button"
-              data-order-id="${esc(order.orderId)}"
-              data-status="preparing"
-            >Đang làm</button>
+              ${
+                (
+                  order.items || []
+                )
+                .map(
+                  item => `
 
-            <button
-              class="primary"
-              type="button"
-              data-order-id="${esc(order.orderId)}"
-              data-status="done"
-            >Hoàn thành</button>
+                    <div class="order-item">
 
-            <span class="status-badge">${esc(statusText(order.status))}</span>
-          </div>
-        </article>
-      `).join("");
+                      <div>
 
-    els.ordersList
-      .querySelectorAll("[data-order-id]")
-      .forEach(button => {
-        button.addEventListener("click", async () => {
-          const orderId = button.dataset.orderId;
-          const status = button.dataset.status;
+                        <div class="order-item-name">
 
-          try {
-            await db.collection("orders")
-              .doc(orderId)
-              .update({
-                status,
-                updatedAt:
-                  firebase.firestore.FieldValue.serverTimestamp()
-              });
-          } catch (error) {
-            msg("Không cập nhật được đơn: " + error.message);
-          }
-        });
-      });
+                          ${
+                            escapeHtml(
+                              item.name
+                            )
+                          }
+
+                          • Size
+
+                          ${
+                            escapeHtml(
+                              item.sizeName ||
+                              item.sizeId ||
+                              ""
+                            )
+                          }
+
+                        </div>
+
+
+                        <div class="order-item-info">
+
+                          ${
+                            item.quantity || 0
+                          }
+
+                          ×
+
+                          ${
+                            money(
+                              item.unitPrice ||
+                              item.price ||
+                              0
+                            )
+                          }
+
+
+                          ${
+                            (
+                              item.toppings ||
+                              []
+                            ).length
+
+                              ? " • " +
+                                escapeHtml(
+                                  item
+                                    .toppings
+                                    .map(
+                                      topping =>
+                                        topping.name
+                                    )
+                                    .join(", ")
+                                )
+
+                              : ""
+                          }
+
+                        </div>
+
+                      </div>
+
+
+                      <strong>
+
+                        ${
+                          money(
+                            item.subtotal ||
+                            0
+                          )
+                        }
+
+                      </strong>
+
+                    </div>
+
+                  `
+                )
+                .join("")
+              }
+
+            </div>
+
+
+            <div class="actions">
+
+              <button
+                class="secondary"
+                data-order-id="${
+                  escapeHtml(
+                    order.orderId
+                  )
+                }"
+                data-status="preparing"
+              >
+                Đang làm
+              </button>
+
+
+              <button
+                class="primary"
+                data-order-id="${
+                  escapeHtml(
+                    order.orderId
+                  )
+                }"
+                data-status="done"
+              >
+                Hoàn thành
+              </button>
+
+
+              <span class="badge">
+
+                ${
+                  order.status === "done"
+
+                    ? "Hoàn thành"
+
+                    : order.status ===
+                      "preparing"
+
+                      ? "Đang làm"
+
+                      : "Mới"
+                }
+
+              </span>
+
+            </div>
+
+          </article>
+
+        `
+      )
+      .join("");
+
+
+    $("ordersList")
+      .querySelectorAll(
+        "[data-order-id]"
+      )
+      .forEach(
+        button => {
+
+          button.addEventListener(
+            "click",
+            async () => {
+
+              try {
+
+                await db
+                  .collection(
+                    "orders"
+                  )
+                  .doc(
+                    button.dataset
+                      .orderId
+                  )
+                  .update({
+
+                    status:
+                      button.dataset
+                        .status,
+
+                    updatedAt:
+                      firebase
+                        .firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+                  });
+
+              } catch (error) {
+
+                alert(
+                  error.message
+                );
+
+              }
+
+            }
+          );
+
+        }
+      );
+
   }
+
+
+  // =============================
+  // MENU
+  // =============================
+
 
   function renderMenuTable() {
-    els.menuTable.innerHTML =
-      MENU.map(item => `
-        <tr>
-          <td><strong>${esc(item.id)}</strong></td>
-          <td>${esc(item.name)}</td>
-          <td>${money(item.price)}</td>
-          <td>${item.active ? "Đang bán" : "Đã ẩn"}</td>
-          <td>
-            <div class="row-actions">
-              <button
-                class="secondary"
-                type="button"
-                data-menu-action="edit"
-                data-menu-id="${esc(item.id)}"
-              >Sửa</button>
 
-              <button
-                class="secondary"
-                type="button"
-                data-menu-action="toggle"
-                data-menu-id="${esc(item.id)}"
-              >${item.active ? "Ẩn" : "Hiện"}</button>
+    $("menuTable")
+      .innerHTML =
 
-              <button
-                class="danger"
-                type="button"
-                data-menu-action="delete"
-                data-menu-id="${esc(item.id)}"
-              >Xóa</button>
-            </div>
-          </td>
-        </tr>
-      `).join("");
+      MENU.map(
+        item => `
 
-    els.menuTable
-      .querySelectorAll("[data-menu-action]")
-      .forEach(button => {
-        button.addEventListener("click", async () => {
-          const id = button.dataset.menuId;
-          const action = button.dataset.menuAction;
-          const item = MENU.find(x => x.id === id);
-          if (!item) return;
+          <tr>
 
-          if (action === "edit") {
-            editingId = id;
-            els.itemId.value = item.id;
-            els.itemName.value = item.name;
-            els.itemPrice.value = item.price;
-            els.itemActive.checked = !!item.active;
-            els.itemId.disabled = true;
-            els.formTitle.textContent = "Sửa món";
-            els.saveBtn.textContent = "Lưu thay đổi";
-            els.cancelBtn.hidden = false;
-          }
+            <td>
+              <strong>
+                ${
+                  escapeHtml(
+                    item.id
+                  )
+                }
+              </strong>
+            </td>
 
-          if (action === "toggle") {
-            try {
-              await db.collection("menu")
-                .doc(id)
-                .update({
-                  active: !item.active,
-                  updatedAt:
-                    firebase.firestore.FieldValue.serverTimestamp()
-                });
-            } catch (error) {
-              msg(error.message);
+            <td>
+              ${
+                escapeHtml(
+                  item.name
+                )
+              }
+            </td>
+
+
+            <td>
+
+              ${
+                escapeHtml(
+                  item.sizes
+
+                    .map(
+                      size =>
+
+                        (
+                          size.name ||
+                          size.id
+                        )
+
+                        +
+
+                        ": "
+
+                        +
+
+                        money(
+                          size.price
+                        )
+                    )
+
+                    .join(" • ")
+                )
+              }
+
+            </td>
+
+
+            <td>
+
+              ${
+                escapeHtml(
+
+                  item.toppings.length
+
+                    ? item.toppings
+
+                        .map(
+                          topping =>
+
+                            topping.name
+
+                            +
+
+                            ": "
+
+                            +
+
+                            money(
+                              topping.price
+                            )
+                        )
+
+                        .join(" • ")
+
+                    : "Không"
+
+                )
+              }
+
+            </td>
+
+
+            <td>
+
+              ${
+                item.active
+                  ? "Đang bán"
+                  : "Đã ẩn"
+              }
+
+            </td>
+
+
+            <td>
+
+              <div class="actions">
+
+                <button
+                  class="secondary"
+                  data-menu-action="edit"
+                  data-menu-id="${
+                    escapeHtml(
+                      item.id
+                    )
+                  }"
+                >
+                  Sửa
+                </button>
+
+
+                <button
+                  class="secondary"
+                  data-menu-action="toggle"
+                  data-menu-id="${
+                    escapeHtml(
+                      item.id
+                    )
+                  }"
+                >
+
+                  ${
+                    item.active
+                      ? "Ẩn"
+                      : "Hiện"
+                  }
+
+                </button>
+
+
+                <button
+                  class="danger"
+                  data-menu-action="delete"
+                  data-menu-id="${
+                    escapeHtml(
+                      item.id
+                    )
+                  }"
+                >
+                  Xóa
+                </button>
+
+              </div>
+
+            </td>
+
+          </tr>
+
+        `
+      )
+      .join("");
+
+
+    $("menuTable")
+      .querySelectorAll(
+        "[data-menu-action]"
+      )
+      .forEach(
+        button => {
+
+          button.addEventListener(
+            "click",
+            async () => {
+
+              const item =
+                MENU.find(
+                  x =>
+                    x.id ===
+                    button.dataset
+                      .menuId
+                );
+
+
+              if (!item) return;
+
+
+              const action =
+                button.dataset
+                  .menuAction;
+
+
+              if (
+                action === "edit"
+              ) {
+
+                fillMenuForm(
+                  item
+                );
+
+              }
+
+
+              if (
+                action === "toggle"
+              ) {
+
+                await db
+                  .collection("menu")
+                  .doc(item.id)
+                  .update({
+
+                    active:
+                      !item.active,
+
+                    updatedAt:
+                      firebase
+                        .firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+                  });
+
+              }
+
+
+              if (
+                action === "delete"
+              ) {
+
+                if (
+                  confirm(
+                    `Xóa món "${item.name}"?`
+                  )
+                ) {
+
+                  await db
+                    .collection("menu")
+                    .doc(item.id)
+                    .delete();
+
+                }
+
+              }
+
             }
-          }
+          );
 
-          if (action === "delete") {
-            if (!confirm(`Xóa món "${item.name}"?`)) return;
+        }
+      );
 
-            try {
-              await db.collection("menu").doc(id).delete();
-            } catch (error) {
-              msg(error.message);
-            }
-          }
-        });
-      });
   }
+
+
+  function fillMenuForm(
+    item
+  ) {
+
+    editingId =
+      item.id;
+
+
+    $("itemId")
+      .value =
+      item.id;
+
+
+    $("itemId")
+      .disabled = true;
+
+
+    $("itemName")
+      .value =
+      item.name || "";
+
+
+    $("itemCategory")
+      .value =
+      item.category || "";
+
+
+    $("itemDescription")
+      .value =
+      item.description || "";
+
+
+    const getSize =
+      id =>
+        item.sizes.find(
+          size =>
+            String(size.id) ===
+            id
+        );
+
+
+    $("sizeS")
+      .value =
+      getSize("S")
+        ?.price ?? "";
+
+
+    $("sizeM")
+      .value =
+      getSize("M")
+        ?.price ?? "";
+
+
+    $("sizeL")
+      .value =
+      getSize("L")
+        ?.price ?? "";
+
+
+    $("toppingsText")
+      .value =
+
+      item.toppings
+
+        .map(
+          topping =>
+            `${topping.name} | ${topping.price}`
+        )
+
+        .join("\n");
+
+
+    $("itemActive")
+      .checked =
+      !!item.active;
+
+
+    $("formTitle")
+      .textContent =
+      "Sửa món";
+
+
+    $("saveBtn")
+      .textContent =
+      "Lưu thay đổi";
+
+
+    $("cancelBtn")
+      .hidden = false;
+
+  }
+
 
   function resetMenuForm() {
+
     editingId = null;
-    els.menuForm.reset();
-    els.itemActive.checked = true;
-    els.itemId.disabled = false;
-    els.formTitle.textContent = "Thêm món mới";
-    els.saveBtn.textContent = "Thêm món";
-    els.cancelBtn.hidden = true;
+
+    $("menuForm")
+      .reset();
+
+    $("itemId")
+      .disabled = false;
+
+    $("itemActive")
+      .checked = true;
+
+    $("formTitle")
+      .textContent =
+      "Thêm món mới";
+
+    $("saveBtn")
+      .textContent =
+      "Thêm món";
+
+    $("cancelBtn")
+      .hidden = true;
+
   }
 
-  async function saveMenu(e) {
-    e.preventDefault();
 
-    try {
-      const id =
-        (editingId || els.itemId.value.trim().toUpperCase());
+  function parseSizes() {
 
-      const name = els.itemName.value.trim();
-      const price = Number(els.itemPrice.value);
-      const active = els.itemActive.checked;
+    const result = [];
 
-      if (!/^[A-Z0-9_-]{1,30}$/.test(id)) {
-        throw new Error("Mã món không hợp lệ.");
+
+    [
+      ["S", $("sizeS").value],
+      ["M", $("sizeM").value],
+      ["L", $("sizeL").value]
+
+    ].forEach(
+      ([id, value]) => {
+
+        if (
+          String(value).trim() !== ""
+        ) {
+
+          const price =
+            Number(value);
+
+
+          if (
+            !Number.isInteger(price) ||
+            price < 0
+          ) {
+
+            throw new Error(
+              "Giá size không hợp lệ."
+            );
+
+          }
+
+
+          result.push({
+
+            id,
+
+            name:
+              id,
+
+            price
+
+          });
+
+        }
+
       }
-
-      if (!name || name.length > 100) {
-        throw new Error("Tên món không hợp lệ.");
-      }
-
-      if (!Number.isInteger(price) || price < 0 || price > 10000000) {
-        throw new Error("Giá không hợp lệ.");
-      }
-
-      await db.collection("menu")
-        .doc(id)
-        .set(
-          {
-            name,
-            price,
-            active,
-            updatedAt:
-              firebase.firestore.FieldValue.serverTimestamp()
-          },
-          { merge: true }
-        );
-
-      resetMenuForm();
-      msg("Đã lưu món.");
-    } catch (error) {
-      console.error(error);
-      msg(error.message);
-    }
-  }
-
-  async function changePassword(e) {
-    e.preventDefault();
-
-    if (els.newPassword.value.length < 8) {
-      els.passwordMessage.textContent =
-        "Mật khẩu mới phải có ít nhất 8 ký tự.";
-      return;
-    }
-
-    if (els.newPassword.value !== els.confirmPassword.value) {
-      els.passwordMessage.textContent =
-        "Hai mật khẩu mới không khớp.";
-      return;
-    }
-
-    try {
-      const user = auth.currentUser;
-
-      const credential =
-        firebase.auth.EmailAuthProvider.credential(
-          user.email,
-          els.currentPassword.value
-        );
-
-      await user.reauthenticateWithCredential(credential);
-      await user.updatePassword(els.newPassword.value);
-
-      els.currentPassword.value = "";
-      els.newPassword.value = "";
-      els.confirmPassword.value = "";
-
-      els.passwordMessage.textContent =
-        "Đổi mật khẩu thành công.";
-    } catch (error) {
-      els.passwordMessage.textContent =
-        error.message || "Không đổi được mật khẩu.";
-    }
-  }
-
-  async function sha256(text) {
-    const digest = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(text)
     );
 
-    return [...new Uint8Array(digest)]
-      .map(x => x.toString(16).padStart(2, "0"))
-      .join("");
-  }
 
-  function firebasePushConfigured() {
-    const c = self.FIREBASE_CONFIG || {};
+    if (
+      !result.length
+    ) {
 
-    return c.apiKey &&
-      self.FIREBASE_VAPID_KEY &&
-      !String(c.apiKey).startsWith("DIEN_") &&
-      !String(self.FIREBASE_VAPID_KEY).startsWith("DIEN_");
-  }
+      throw new Error(
+        "Phải có ít nhất 1 size."
+      );
 
-  async function enablePush() {
-    try {
-      if (!("serviceWorker" in navigator)) {
-        throw new Error("Thiết bị không hỗ trợ Service Worker.");
-      }
-
-      if (!("Notification" in window)) {
-        throw new Error("Thiết bị không hỗ trợ thông báo.");
-      }
-
-      if (!firebasePushConfigured()) {
-        throw new Error("Chưa cấu hình Firebase/VAPID.");
-      }
-
-      firebaseMessaging = firebase.messaging();
-
-      const registration =
-        await navigator.serviceWorker.register(
-          "/firebase-messaging-sw.js"
-        );
-
-      const permission =
-        await Notification.requestPermission();
-
-      if (permission !== "granted") {
-        throw new Error("Bạn chưa cho phép thông báo.");
-      }
-
-      const token =
-        await firebaseMessaging.getToken({
-          vapidKey: self.FIREBASE_VAPID_KEY,
-          serviceWorkerRegistration: registration
-        });
-
-      if (!token) {
-        throw new Error("Không lấy được FCM token.");
-      }
-
-      await db.collection("adminDevices")
-        .doc(await sha256(token))
-        .set({
-          token,
-          uid: auth.currentUser.uid,
-          updatedAt:
-            firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-      currentFcmToken = token;
-      localStorage.setItem("fcmToken", token);
-
-      els.pushStatusBadge.textContent = "Đã bật";
-      els.pushMessage.textContent =
-        "Thiết bị này đã đăng ký nhận thông báo.";
-    } catch (error) {
-      els.pushMessage.textContent = error.message;
     }
+
+
+    return result;
+
   }
 
-  async function disablePush() {
-    try {
-      if (currentFcmToken) {
-        await db.collection("adminDevices")
-          .doc(await sha256(currentFcmToken))
-          .delete();
+
+  function makeId(
+    value
+  ) {
+
+    return String(value)
+
+      .normalize("NFD")
+
+      .replace(
+        /[\u0300-\u036f]/g,
+        ""
+      )
+
+      .toLowerCase()
+
+      .replace(
+        /[^a-z0-9]+/g,
+        "-"
+      )
+
+      .replace(
+        /^-|-$/g,
+        ""
+      );
+
+  }
+
+
+  function parseToppings() {
+
+    const lines =
+      $("toppingsText")
+        .value
+        .split("\n")
+        .map(
+          line =>
+            line.trim()
+        )
+        .filter(Boolean);
+
+
+    return lines.map(
+      (line, index) => {
+
+        const [
+          name,
+          rawPrice
+        ] =
+          line
+            .split("|")
+            .map(
+              x =>
+                x.trim()
+            );
+
+
+        const price =
+          Number(rawPrice);
+
+
+        if (
+          !name ||
+          !Number.isInteger(price) ||
+          price < 0
+        ) {
+
+          throw new Error(
+            `Topping dòng ${
+              index + 1
+            } không hợp lệ.`
+          );
+
+        }
+
+
+        return {
+
+          id:
+            makeId(name)
+            ||
+            "tp-" + index,
+
+          name,
+
+          price
+
+        };
+
       }
+    );
 
-      if (firebaseMessaging) {
-        await firebaseMessaging.deleteToken();
+  }
+
+
+  $("menuForm")
+    .addEventListener(
+      "submit",
+      async event => {
+
+        event.preventDefault();
+
+
+        try {
+
+          const id =
+            (
+              editingId
+              ||
+              $("itemId")
+                .value
+                .trim()
+                .toUpperCase()
+            );
+
+
+          const name =
+            $("itemName")
+              .value
+              .trim();
+
+
+          if (
+            !/^[A-Z0-9_-]{1,30}$/
+              .test(id)
+          ) {
+
+            throw new Error(
+              "Mã món không hợp lệ."
+            );
+
+          }
+
+
+          if (!name) {
+
+            throw new Error(
+              "Tên món không được để trống."
+            );
+
+          }
+
+
+          const data = {
+
+            name,
+
+            category:
+              $("itemCategory")
+                .value
+                .trim(),
+
+            description:
+              $("itemDescription")
+                .value
+                .trim(),
+
+            sizes:
+              parseSizes(),
+
+            toppings:
+              parseToppings(),
+
+            active:
+              $("itemActive")
+                .checked,
+
+            updatedAt:
+              firebase
+                .firestore
+                .FieldValue
+                .serverTimestamp()
+
+          };
+
+
+          await db
+            .collection("menu")
+            .doc(id)
+            .set(
+              data,
+              {
+                merge: true
+              }
+            );
+
+
+          resetMenuForm();
+
+
+          $("message")
+            .textContent =
+            "Đã lưu menu.";
+
+        } catch (error) {
+
+          $("message")
+            .textContent =
+            error.message;
+
+        }
+
       }
+    );
 
-      currentFcmToken = "";
-      localStorage.removeItem("fcmToken");
 
-      els.pushStatusBadge.textContent = "Đã tắt";
-      els.pushMessage.textContent = "Đã tắt thông báo.";
-    } catch (error) {
-      els.pushMessage.textContent = error.message;
-    }
+  $("cancelBtn")
+    .addEventListener(
+      "click",
+      resetMenuForm
+    );
+
+
+  // =============================
+  // PASSWORD
+  // =============================
+
+
+  $("changePasswordForm")
+    .addEventListener(
+      "submit",
+      async event => {
+
+        event.preventDefault();
+
+
+        try {
+
+          if (
+            $("newPassword")
+              .value
+              .length < 8
+          ) {
+
+            throw new Error(
+              "Mật khẩu mới phải có ít nhất 8 ký tự."
+            );
+
+          }
+
+
+          if (
+            $("newPassword").value
+            !==
+            $("confirmPassword").value
+          ) {
+
+            throw new Error(
+              "Hai mật khẩu mới không khớp."
+            );
+
+          }
+
+
+          const user =
+            auth.currentUser;
+
+
+          const credential =
+            firebase
+              .auth
+              .EmailAuthProvider
+              .credential(
+
+                user.email,
+
+                $("currentPassword")
+                  .value
+
+              );
+
+
+          await user
+            .reauthenticateWithCredential(
+              credential
+            );
+
+
+          await user
+            .updatePassword(
+              $("newPassword")
+                .value
+            );
+
+
+          $("currentPassword")
+            .value = "";
+
+          $("newPassword")
+            .value = "";
+
+          $("confirmPassword")
+            .value = "";
+
+
+          $("passwordMessage")
+            .textContent =
+            "Đổi mật khẩu thành công.";
+
+        } catch (error) {
+
+          $("passwordMessage")
+            .textContent =
+            error.message;
+
+        }
+
+      }
+    );
+
+
+  // =============================
+  // PUSH NOTIFICATION
+  // =============================
+
+
+  async function sha256(
+    text
+  ) {
+
+    const buffer =
+      await crypto.subtle.digest(
+
+        "SHA-256",
+
+        new TextEncoder()
+          .encode(text)
+
+      );
+
+
+    return [
+      ...new Uint8Array(
+        buffer
+      )
+    ]
+
+    .map(
+      x =>
+        x
+          .toString(16)
+          .padStart(2, "0")
+    )
+
+    .join("");
+
   }
 
-  async function testPush() {
-    try {
-      els.pushMessage.textContent = "Đang gửi thử...";
 
-      await functions
-        .httpsCallable("testAdminPush")({});
+  $("enablePushBtn")
+    .addEventListener(
+      "click",
+      async () => {
 
-      els.pushMessage.textContent =
-        "Đã yêu cầu gửi thông báo thử.";
-    } catch (error) {
-      els.pushMessage.textContent =
-        error.message || "Không gửi thử được.";
-    }
-  }
+        try {
 
-  function refreshPushState() {
-    if (!firebasePushConfigured()) {
-      els.pushStatusBadge.textContent = "Chưa cấu hình";
-      return;
-    }
+          if (
+            !(
+              "serviceWorker"
+              in navigator
+            )
+          ) {
+
+            throw new Error(
+              "Thiết bị không hỗ trợ Service Worker."
+            );
+
+          }
+
+
+          if (
+            !(
+              "Notification"
+              in window
+            )
+          ) {
+
+            throw new Error(
+              "Thiết bị không hỗ trợ thông báo."
+            );
+
+          }
+
+
+          messaging =
+            firebase.messaging();
+
+
+          const registration =
+            await navigator
+              .serviceWorker
+              .register(
+                "/firebase-messaging-sw.js"
+              );
+
+
+          const permission =
+            await Notification
+              .requestPermission();
+
+
+          if (
+            permission !==
+            "granted"
+          ) {
+
+            throw new Error(
+              "Bạn chưa cho phép thông báo."
+            );
+
+          }
+
+
+          const token =
+            await messaging
+              .getToken({
+
+                vapidKey:
+                  self
+                    .FIREBASE_VAPID_KEY,
+
+                serviceWorkerRegistration:
+                  registration
+
+              });
+
+
+          currentFcmToken =
+            token;
+
+
+          localStorage.setItem(
+            "fcmToken",
+            token
+          );
+
+
+          await db
+            .collection(
+              "adminDevices"
+            )
+            .doc(
+              await sha256(token)
+            )
+            .set({
+
+              token,
+
+              uid:
+                auth.currentUser.uid,
+
+              updatedAt:
+                firebase
+                  .firestore
+                  .FieldValue
+                  .serverTimestamp()
+
+            });
+
+
+          $("pushStatusBadge")
+            .textContent =
+            "Đã bật";
+
+
+          $("pushMessage")
+            .textContent =
+            "Thiết bị đã đăng ký nhận thông báo.";
+
+        } catch (error) {
+
+          $("pushMessage")
+            .textContent =
+            error.message;
+
+        }
+
+      }
+    );
+
+
+  $("disablePushBtn")
+    .addEventListener(
+      "click",
+      async () => {
+
+        try {
+
+          if (
+            currentFcmToken
+          ) {
+
+            await db
+              .collection(
+                "adminDevices"
+              )
+              .doc(
+                await sha256(
+                  currentFcmToken
+                )
+              )
+              .delete();
+
+          }
+
+
+          if (
+            messaging
+          ) {
+
+            await messaging
+              .deleteToken();
+
+          }
+
+
+          currentFcmToken = "";
+
+
+          localStorage.removeItem(
+            "fcmToken"
+          );
+
+
+          $("pushStatusBadge")
+            .textContent =
+            "Đã tắt";
+
+
+          $("pushMessage")
+            .textContent =
+            "Đã tắt thông báo.";
+
+        } catch (error) {
+
+          $("pushMessage")
+            .textContent =
+            error.message;
+
+        }
+
+      }
+    );
+
+
+  $("testPushBtn")
+    .addEventListener(
+      "click",
+      async () => {
+
+        try {
+
+          $("pushMessage")
+            .textContent =
+            "Đang gửi thử...";
+
+
+          await functions
+            .httpsCallable(
+              "testAdminPush"
+            )({});
+
+
+          $("pushMessage")
+            .textContent =
+            "Đã gửi thông báo thử.";
+
+        } catch (error) {
+
+          $("pushMessage")
+            .textContent =
+            error.message;
+
+        }
+
+      }
+    );
+
+
+  function refreshPushStatus() {
 
     if (
       "Notification" in window &&
-      Notification.permission === "granted" &&
+      Notification.permission ===
+        "granted"
+      &&
       currentFcmToken
     ) {
-      els.pushStatusBadge.textContent = "Đã bật";
+
+      $("pushStatusBadge")
+        .textContent =
+        "Đã bật";
+
     } else {
-      els.pushStatusBadge.textContent = "Chưa bật";
+
+      $("pushStatusBadge")
+        .textContent =
+        "Chưa bật";
+
     }
+
   }
 
-  // Events
-  els.loginForm.addEventListener("submit", login);
-  els.logoutBtn.addEventListener("click", () => auth.signOut());
-  els.menuForm.addEventListener("submit", saveMenu);
-  els.cancelBtn.addEventListener("click", resetMenuForm);
-  els.changePasswordForm.addEventListener("submit", changePassword);
-  els.enablePushBtn.addEventListener("click", enablePush);
-  els.disablePushBtn.addEventListener("click", disablePush);
-  els.testPushBtn.addEventListener("click", testPush);
 
-  window.addEventListener("beforeinstallprompt", event => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-    els.installPwaBtn.hidden = false;
-  });
-
-  els.installPwaBtn.addEventListener("click", async () => {
-    if (!deferredInstallPrompt) {
-      els.installMessage.textContent =
-        "iPhone: Safari → Chia sẻ → Thêm vào Màn hình chính.";
-      return;
-    }
-
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-    els.installPwaBtn.hidden = true;
-  });
-
-  // QUAN TRỌNG: không hiện Admin cho đến khi Auth xác nhận.
   showLogin();
 
-  auth.onAuthStateChanged(user => {
-    stopRealtime();
-
-    if (isAdmin(user)) {
-      showAdmin();
-      startRealtime();
-      refreshPushState();
-    } else {
-      showLogin();
-    }
-  });
 })();

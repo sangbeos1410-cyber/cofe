@@ -1,51 +1,121 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#111111">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Cheng Coffee">
-  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta name="theme-color" content="#111">
+
   <title>Cheng Coffee</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-<header class="header">
+
+<header class="hero">
   <div>
-    <div class="brand">☕ CHENG COFFEE</div>
-    <div class="subtitle">Menu & đặt món</div>
+    <small>CHENG COFFEE</small>
+    <h1>Menu & Đặt món</h1>
+    <p>Chọn size, topping và kiểm tra lại trước khi đặt.</p>
   </div>
-  <a href="admin.html" class="admin-link">Admin</a>
+
+  <a href="admin.html">Admin</a>
 </header>
 
-<main class="container">
-  <h2>Menu</h2>
-  <p id="menuStatus" class="muted">Đang tải menu...</p>
-  <div id="menu" class="menu-grid"></div>
+<main class="layout">
 
-  <section class="cart">
-    <h2>Giỏ hàng</h2>
+  <section>
+    <div class="head">
+      <div>
+        <h2>Menu hôm nay</h2>
+        <p id="menuStatus"></p>
+      </div>
+
+      <input id="menuSearch" placeholder="Tìm món...">
+    </div>
+
+    <div id="menu" class="menu-grid"></div>
+  </section>
+
+  <aside class="cart">
+
+    <div class="head">
+      <div>
+        <h2>Món đã chọn</h2>
+        <p>Kiểm tra lại trước khi đặt.</p>
+      </div>
+
+      <b id="cartCount">0 món</b>
+    </div>
+
     <div id="cartItems"></div>
+
     <label>Số bàn</label>
     <input id="tableNumber" placeholder="Ví dụ: 05">
-    <div class="total-row">
+
+    <div class="total">
       <span>Tổng tiền</span>
-      <strong id="total">0đ</strong>
+      <b id="total">0đ</b>
     </div>
-    <button id="orderBtn" class="primary">ĐẶT MÓN</button>
-    <p id="message" class="message"></p>
-  </section>
+
+    <button id="orderBtn" class="primary">
+      ĐẶT MÓN
+    </button>
+
+    <p id="message"></p>
+
+  </aside>
+
 </main>
 
+<div id="optionModal" class="modal" hidden>
+
+  <div class="modal-card">
+
+    <button id="closeOptionModal" class="close">
+      ×
+    </button>
+
+    <small>TÙY CHỌN MÓN</small>
+
+    <h2 id="optionItemName"></h2>
+
+    <div>
+      <h3>Chọn size</h3>
+      <div id="sizeOptions" class="choice-grid"></div>
+    </div>
+
+    <div>
+      <h3>Chọn topping</h3>
+      <div id="toppingOptions"></div>
+    </div>
+
+    <div class="modal-foot">
+
+      <b id="optionTotal">0đ</b>
+
+      <button
+        id="addConfiguredItemBtn"
+        class="primary"
+      >
+        Thêm vào giỏ
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
 <script src="firebase-config.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-functions-compat.js"></script>
+
 <script src="app.js"></script>
+
 </body>
 </html>
