@@ -863,3 +863,53 @@ $("orderBtn")
 ensureAuth()
   .catch(console.error)
   .finally(loadMenu);
+ window.addEventListener(
+  "load",
+  () => {
+
+    const welcome =
+      document.getElementById(
+        "welcomeScreen"
+      );
+
+
+    if (!welcome) {
+      return;
+    }
+
+
+    /*
+      Splash chạy khoảng 2.7 giây.
+
+      Sau đó fade + trượt lên.
+    */
+
+    setTimeout(
+      () => {
+
+        welcome
+          .classList
+          .add("hide");
+
+      },
+      2700
+    );
+
+
+    /*
+      Sau animation
+      thì xóa hẳn splash
+      khỏi DOM.
+    */
+
+    setTimeout(
+      () => {
+
+        welcome.remove();
+
+      },
+      3500
+    );
+
+  }
+);
