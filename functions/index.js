@@ -7,10 +7,10 @@ const crypto=require("crypto");
 initializeApp();
 const db=getFirestore();
 const REGION="asia-southeast1";
-const ADMIN_EMAIL="DIEN_EMAIL_ADMIN";
+const ADMIN_EMAIL="sangbeos1410@gmail.com";
 
 function isAdmin(req){
-  return !!req.auth && req.auth.token.email_verified===true &&
+  return !!req.auth &&
     String(req.auth.token.email||"").toLowerCase()===ADMIN_EMAIL.toLowerCase();
 }
 function dateKeyVN(date=new Date()){
@@ -27,7 +27,7 @@ function validItems(items){
 exports.createOrder=onCall(
   {
     region:REGION,
-    enforceAppCheck:true,
+    enforceAppCheck:false,
     timeoutSeconds:10,
     memory:"256MiB"
   },
@@ -308,7 +308,7 @@ async function sendOrderNotification_(
   }
 }
 
-exports.testAdminPush=onCall({region:REGION,enforceAppCheck:true},async req=>{
+exports.testAdminPush=onCall({region:REGION,enforceAppCheck:false},async req=>{
   if(!isAdmin(req))throw new HttpsError("permission-denied","Không có quyền Admin.");
   const devices=await db.collection("adminDevices").get();
   const tokens=devices.docs.map(d=>d.data().token).filter(Boolean);
