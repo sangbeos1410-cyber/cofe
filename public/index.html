@@ -1,145 +1,464 @@
 <!doctype html>
 <html lang="vi">
+
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
 
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#111">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
+
+  <meta
+    name="theme-color"
+    content="#111111"
+  >
+
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  >
+
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="black-translucent"
+  >
+
+  <meta
+    name="apple-mobile-web-app-title"
+    content="Cheng Coffee"
+  >
+
+  <link
+    rel="manifest"
+    href="/manifest.json"
+  >
+
+  <link
+    rel="apple-touch-icon"
+    href="/icon-192.png"
+  >
 
   <title>Cheng Coffee</title>
-  <link rel="stylesheet" href="style.css">
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
 </head>
 
+
 <body>
-  <div id="welcomeScreen" class="welcome-screen">
-  <div class="welcome-bg-shape shape-one"></div>
-  <div class="welcome-bg-shape shape-two"></div>
+
+
+<!-- =========================
+     MÀN HÌNH CHÀO
+========================= -->
+
+<div
+  id="welcomeScreen"
+  class="welcome-screen"
+>
+
+  <div class="welcome-light light-one"></div>
+
+  <div class="welcome-light light-two"></div>
+
 
   <div class="welcome-content">
-    <div class="welcome-icon-wrap">
-      <div class="welcome-icon">☕</div>
+
+    <div class="welcome-logo">
+      ☕
     </div>
 
-    <div class="welcome-brand">CHENG COFFEE</div>
 
-    <h1>Chào mừng bạn</h1>
+    <div class="welcome-brand">
+      CHENG COFFEE
+    </div>
+
+
+    <h1>
+      Chào mừng bạn
+    </h1>
+
 
     <p>
-      Chúc bạn có một trải nghiệm thật ngon miệng
+      Chọn món yêu thích và tận hưởng
+      một chút thư giãn cùng Cheng Coffee.
     </p>
 
-    <div class="welcome-loader">
+
+    <div class="welcome-progress">
       <span></span>
     </div>
 
-    <small>Đang chuẩn bị menu...</small>
+
+    <small>
+      Đang chuẩn bị menu...
+    </small>
+
   </div>
+
 </div>
 
+
+<!-- =========================
+     HEADER
+========================= -->
+
 <header class="hero">
-  <div>
-    <small>CHENG COFFEE</small>
-    <h1>Menu & Đặt món</h1>
-    <p>Chọn size, topping và kiểm tra lại trước khi đặt.</p>
+
+  <div class="hero-inner">
+
+    <div>
+
+      <div class="brand-small">
+        CHENG COFFEE
+      </div>
+
+
+      <h1>
+        Hôm nay bạn muốn uống gì?
+      </h1>
+
+
+      <p>
+        Chọn món, size và topping.
+        Đơn của bạn sẽ được gửi trực tiếp đến quầy.
+      </p>
+
+    </div>
+
+
+    <a
+      href="admin.html"
+      class="admin-link"
+    >
+      Admin
+    </a>
+
   </div>
 
-  <a href="admin.html">Admin</a>
 </header>
 
-<main class="layout">
 
-  <section>
-    <div class="head">
+<!-- =========================
+     MAIN
+========================= -->
+
+<main class="main-layout">
+
+
+  <!-- MENU -->
+
+  <section class="menu-area">
+
+
+    <div class="menu-toolbar">
+
+
       <div>
-        <h2>Menu hôm nay</h2>
-        <p id="menuStatus"></p>
+
+        <h2>
+          Menu
+        </h2>
+
+        <p id="menuStatus">
+          Đang tải menu...
+        </p>
+
       </div>
 
-      <input id="menuSearch" placeholder="Tìm món...">
+
+      <div class="search-box">
+
+        <span>
+          ⌕
+        </span>
+
+        <input
+          id="menuSearch"
+          type="search"
+          placeholder="Tìm món..."
+          autocomplete="off"
+        >
+
+      </div>
+
     </div>
 
-    <div id="menu" class="menu-grid"></div>
+
+    <!-- DANH MỤC -->
+
+    <div class="category-bar">
+
+      <div
+        id="categoryNav"
+        class="category-nav"
+      >
+
+        <button
+          class="category-button active"
+          data-category="all"
+          type="button"
+        >
+          Tất cả
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- MÓN -->
+
+    <div id="menu"></div>
+
+
   </section>
 
-  <aside class="cart">
 
-    <div class="head">
-      <div>
-        <h2>Món đã chọn</h2>
-        <p>Kiểm tra lại trước khi đặt.</p>
+  <!-- =========================
+       GIỎ HÀNG
+  ========================= -->
+
+  <aside class="cart-area">
+
+    <div class="cart-card">
+
+
+      <div class="cart-header">
+
+        <div>
+
+          <div class="section-label">
+            ĐƠN CỦA BẠN
+          </div>
+
+          <h2>
+            Món đã chọn
+          </h2>
+
+        </div>
+
+
+        <span
+          id="cartCount"
+          class="cart-count"
+        >
+          0 món
+        </span>
+
       </div>
 
-      <b id="cartCount">0 món</b>
+
+      <div
+        id="cartItems"
+        class="cart-items"
+      >
+
+        <div class="empty-cart">
+
+          <div>
+            🧋
+          </div>
+
+          <strong>
+            Chưa có món nào
+          </strong>
+
+          <span>
+            Chọn một món từ menu để bắt đầu.
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div class="divider"></div>
+
+
+      <div class="table-field">
+
+        <label for="tableNumber">
+          Số bàn
+        </label>
+
+        <input
+          id="tableNumber"
+          maxlength="20"
+          placeholder="Ví dụ: 05"
+        >
+
+      </div>
+
+
+      <div class="total-row">
+
+        <span>
+          Tổng cộng
+        </span>
+
+        <strong id="total">
+          0đ
+        </strong>
+
+      </div>
+
+
+      <button
+        id="orderBtn"
+        class="order-button"
+        type="button"
+      >
+        ĐẶT MÓN
+      </button>
+
+
+      <p
+        id="message"
+        class="order-message"
+      ></p>
+
+
     </div>
-
-    <div id="cartItems"></div>
-
-    <label>Số bàn</label>
-    <input id="tableNumber" placeholder="Ví dụ: 05">
-
-    <div class="total">
-      <span>Tổng tiền</span>
-      <b id="total">0đ</b>
-    </div>
-
-    <button id="orderBtn" class="primary">
-      ĐẶT MÓN
-    </button>
-
-    <p id="message"></p>
 
   </aside>
 
+
 </main>
 
-<div id="optionModal" class="modal" hidden>
 
-  <div class="modal-card">
+<!-- =========================
+     MODAL SIZE + TOPPING
+========================= -->
 
-    <button id="closeOptionModal" class="close">
+<div
+  id="optionModal"
+  class="option-modal"
+  hidden
+>
+
+  <div class="option-dialog">
+
+
+    <button
+      id="closeOptionModal"
+      class="dialog-close"
+      type="button"
+    >
       ×
     </button>
 
-    <small>TÙY CHỌN MÓN</small>
+
+    <div class="dialog-label">
+      TÙY CHỌN MÓN
+    </div>
+
 
     <h2 id="optionItemName"></h2>
 
-    <div>
-      <h3>Chọn size</h3>
-      <div id="sizeOptions" class="choice-grid"></div>
-    </div>
 
-    <div>
-      <h3>Chọn topping</h3>
-      <div id="toppingOptions"></div>
-    </div>
+    <p
+      id="optionItemDescription"
+      class="dialog-description"
+    ></p>
 
-    <div class="modal-foot">
 
-      <b id="optionTotal">0đ</b>
+    <!-- SIZE -->
+
+    <section class="option-section">
+
+      <div class="option-title">
+
+        <h3>
+          Chọn size
+        </h3>
+
+        <span>
+          Bắt buộc
+        </span>
+
+      </div>
+
+
+      <div
+        id="sizeOptions"
+        class="size-options"
+      ></div>
+
+    </section>
+
+
+    <!-- TOPPING -->
+
+    <section class="option-section">
+
+      <div class="option-title">
+
+        <h3>
+          Topping
+        </h3>
+
+        <span>
+          Tùy chọn
+        </span>
+
+      </div>
+
+
+      <div
+        id="toppingOptions"
+        class="topping-options"
+      ></div>
+
+    </section>
+
+
+    <div class="dialog-footer">
+
+      <div>
+
+        <span>
+          Thành tiền
+        </span>
+
+        <strong id="optionTotal">
+          0đ
+        </strong>
+
+      </div>
+
 
       <button
         id="addConfiguredItemBtn"
-        class="primary"
+        class="add-cart-button"
+        type="button"
       >
         Thêm vào giỏ
       </button>
 
     </div>
 
+
   </div>
 
 </div>
 
+
 <script src="firebase-config.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-auth-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-functions-compat.js"></script>
 
 <script src="app.js"></script>
+
 
 </body>
 </html>

@@ -2,21 +2,44 @@ let MENU = [];
 
 let cart =
   JSON.parse(
-    localStorage.getItem("cartV5") || "[]"
+    localStorage.getItem(
+      "cartV5"
+    )
+    ||
+    "[]"
   );
 
-let configItem = null;
-let submitting = false;
+let configItem =
+  null;
+
+let submitting =
+  false;
+
+let activeCategory =
+  "all";
+
 
 const $ = id =>
   document.getElementById(id);
 
-const money = n =>
-  new Intl.NumberFormat("vi-VN")
-    .format(Number(n) || 0) + "đ";
+
+const money = value =>
+  new Intl
+    .NumberFormat(
+      "vi-VN"
+    )
+    .format(
+      Number(value)
+      ||
+      0
+    )
+  +
+  "đ";
 
 
-if (!firebase.apps.length) {
+if (
+  !firebase.apps.length
+) {
 
   firebase.initializeApp(
     self.FIREBASE_CONFIG
@@ -28,77 +51,158 @@ if (!firebase.apps.length) {
 const auth =
   firebase.auth();
 
+
 const db =
   firebase.firestore();
+
 
 const functions =
   firebase
     .app()
     .functions(
-      self.FIREBASE_FUNCTIONS_REGION ||
+      self.FIREBASE_FUNCTIONS_REGION
+      ||
       "asia-southeast1"
     );
 
+
 const createOrder =
-  functions.httpsCallable(
-    "createOrder"
-  );
+  functions
+    .httpsCallable(
+      "createOrder"
+    );
 
 
 auth.setPersistence(
   firebase.auth.Auth.Persistence.LOCAL
+)
+.catch(
+  console.error
 );
 
 
+// ==============================
+// AUTH KHÁCH
+// ==============================
+
 async function ensureAuth() {
 
-  if (auth.currentUser) {
+  if (
+    auth.currentUser
+  ) {
 
-    await auth.currentUser
+    await auth
+      .currentUser
       .getIdToken(true);
+
 
     return auth.currentUser;
 
   }
 
-  const credential =
-    await auth.signInAnonymously();
 
-  await credential.user
+  const credential =
+    await auth
+      .signInAnonymously();
+
+
+  if (
+    !credential.user
+  ) {
+
+    throw new Error(
+      "Không tạo được phiên khách."
+    );
+
+  }
+
+
+  await credential
+    .user
     .getIdToken(true);
+
 
   return credential.user;
 
 }
 
 
-function normalizeMenu(doc) {
+// ==============================
+// MENU DATA
+// ==============================
+
+function normalizeMenu(
+  doc
+) {
 
   const item = {
-    id: doc.id,
+
+    id:
+      doc.id,
+
     ...doc.data()
+
   };
 
+
+  item.category =
+    String(
+      item.category
+      ||
+      "Khác"
+    )
+    .trim()
+    ||
+    "Khác";
+
+
   item.sizes =
-    Array.isArray(item.sizes) &&
+
+    Array.isArray(
+      item.sizes
+    )
+    &&
     item.sizes.length
 
-      ? item.sizes
+    ?
 
-      : [
-          {
-            id: "M",
-            name: "M",
-            price:
-              Number(item.price || 0)
-          }
-        ];
+    item.sizes
+
+    :
+
+    [
+      {
+
+        id:
+          "M",
+
+        name:
+          "M",
+
+        price:
+          Number(
+            item.price
+            ||
+            0
+          )
+
+      }
+    ];
 
 
   item.toppings =
-    Array.isArray(item.toppings)
-      ? item.toppings
-      : [];
+
+    Array.isArray(
+      item.toppings
+    )
+
+    ?
+
+    item.toppings
+
+    :
+
+    [];
 
 
   return item;
@@ -106,26 +210,68 @@ function normalizeMenu(doc) {
 }
 
 
+// ==============================
+// LOAD MENU
+// ==============================
+
 function loadMenu() {
 
+  $("menuStatus")
+    .textContent =
+    "Đang tải menu...";
+
+
   db
-    .collection("menu")
+    .collection(
+      "menu"
+    )
+
     .where(
       "active",
       "==",
       true
     )
+
     .onSnapshot(
 
       snapshot => {
 
         MENU =
-          snapshot.docs.map(
-            normalizeMenu
-          );
+          snapshot.docs
+
+            .map(
+              normalizeMenu
+            )
+
+            .sort(
+              (a, b) =>
+                String(
+                  a.name || ""
+                )
+                .localeCompare(
+                  String(
+                    b.name || ""
+                  ),
+                  "vi"
+                )
+            );
+
 
         $("menuStatus")
-          .textContent = "";
+          .textContent =
+
+          MENU.length
+
+          ?
+
+          `${MENU.length} món đang phục vụ`
+
+          :
+
+          "Chưa có món đang bán";
+
+
+        renderCategoryNav();
 
         renderMenu();
 
@@ -133,11 +279,17 @@ function loadMenu() {
 
       },
 
+
       error => {
+
+        console.error(
+          error
+        );
+
 
         $("menuStatus")
           .textContent =
-          error.message;
+          "Không tải được menu.";
 
       }
 
@@ -146,91 +298,449 @@ function loadMenu() {
 }
 
 
+// ==============================
+// CATEGORY
+// ==============================
+
+function getCategories() {
+
+  return [
+    ...new Set(
+
+      MENU.map(
+        item =>
+          item.category
+      )
+
+    )
+  ]
+
+  .sort(
+    (a, b) =>
+      a.localeCompare(
+        b,
+        "vi"
+      )
+  );
+
+}
+
+
+function renderCategoryNav() {
+
+  const categories =
+    getCategories();
+
+
+  $("categoryNav")
+    .innerHTML =
+
+    `
+
+    <button
+      class="
+        category-button
+        ${
+          activeCategory
+          ===
+          "all"
+          ?
+          "active"
+          :
+          ""
+        }
+      "
+      data-category="all"
+      type="button"
+    >
+      Tất cả
+    </button>
+
+    `
+
+    +
+
+    categories
+      .map(
+        category => `
+
+          <button
+            class="
+              category-button
+              ${
+                activeCategory
+                ===
+                category
+                ?
+                "active"
+                :
+                ""
+              }
+            "
+            data-category="${
+              escapeHtml(
+                category
+              )
+            }"
+            type="button"
+          >
+            ${
+              escapeHtml(
+                category
+              )
+            }
+          </button>
+
+        `
+      )
+      .join("");
+
+
+  $("categoryNav")
+    .querySelectorAll(
+      "[data-category]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            activeCategory =
+              button.dataset
+                .category;
+
+
+            renderCategoryNav();
+
+            renderMenu();
+
+          }
+        );
+
+      }
+    );
+
+}
+
+
+// ==============================
+// RENDER MENU
+// ==============================
+
 function renderMenu() {
 
   const query =
     $("menuSearch")
       .value
-      .toLowerCase()
-      .trim();
+      .trim()
+      .toLowerCase();
 
 
-  const filtered =
-    MENU.filter(item =>
-      item.name
-        .toLowerCase()
-        .includes(query)
+  let filtered =
+    MENU.filter(
+      item => {
+
+        const searchText =
+          [
+
+            item.name,
+
+            item.category,
+
+            item.description
+
+          ]
+
+          .join(" ")
+
+          .toLowerCase();
+
+
+        return searchText
+          .includes(query);
+
+      }
     );
 
 
-  $("menu").innerHTML =
+  if (
+    activeCategory
+    !==
+    "all"
+  ) {
 
-    filtered.map(item => {
+    filtered =
+      filtered.filter(
+        item =>
+          item.category
+          ===
+          activeCategory
+      );
 
-      const minPrice =
-        Math.min(
-          ...item.sizes.map(
-            size =>
-              Number(size.price)
-          )
-        );
+  }
 
 
-      return `
+  if (
+    !filtered.length
+  ) {
 
-        <div class="card">
+    $("menu")
+      .innerHTML = `
 
-          <small>
-            ${escapeHtml(
-              item.category ||
-              "ĐỒ UỐNG"
-            )}
-          </small>
+        <div class="empty-cart">
 
-          <h3>
-            ${escapeHtml(item.name)}
-          </h3>
-
-          <p>
-            ${escapeHtml(
-              item.description || ""
-            )}
-          </p>
-
-          <div class="price">
-            Từ ${money(minPrice)}
+          <div>
+            ☕
           </div>
 
-          <button
-            class="primary"
-            onclick="
-              openOptions(
-                '${escapeAttr(item.id)}'
-              )
-            "
-          >
-            Chọn món
-          </button>
+          <strong>
+            Không tìm thấy món
+          </strong>
+
+          <span>
+            Thử chọn danh mục khác.
+          </span>
 
         </div>
 
       `;
 
-    }).join("")
+    return;
 
-    ||
+  }
 
-    "<p>Không tìm thấy món.</p>";
+
+  const groups = {};
+
+
+  filtered.forEach(
+    item => {
+
+      if (
+        !groups[
+          item.category
+        ]
+      ) {
+
+        groups[
+          item.category
+        ] = [];
+
+      }
+
+
+      groups[
+        item.category
+      ]
+      .push(item);
+
+    }
+  );
+
+
+  const categories =
+    Object
+      .keys(groups)
+
+      .sort(
+        (a, b) =>
+          a.localeCompare(
+            b,
+            "vi"
+          )
+      );
+
+
+  $("menu")
+    .innerHTML =
+
+    categories.map(
+      category => {
+
+        const items =
+          groups[
+            category
+          ];
+
+
+        return `
+
+          <section class="menu-category">
+
+            <div class="category-heading">
+
+              <div class="category-heading-left">
+
+                <div class="category-line">
+                </div>
+
+                <h2>
+                  ${
+                    escapeHtml(
+                      category
+                    )
+                  }
+                </h2>
+
+              </div>
+
+
+              <span>
+                ${items.length} món
+              </span>
+
+            </div>
+
+
+            <div class="menu-grid">
+
+              ${
+                items.map(
+                  item =>
+                    renderMenuCard(
+                      item
+                    )
+                )
+                .join("")
+              }
+
+            </div>
+
+          </section>
+
+        `;
+
+      }
+    )
+    .join("");
 
 }
 
+
+// ==============================
+// CARD
+// ==============================
+
+function renderMenuCard(
+  item
+) {
+
+  const minPrice =
+    Math.min(
+
+      ...item.sizes.map(
+        size =>
+          Number(
+            size.price
+          )
+          ||
+          0
+      )
+
+    );
+
+
+  return `
+
+    <article class="menu-card">
+
+      <div class="menu-category-name">
+
+        ${
+          escapeHtml(
+            item.category
+          )
+        }
+
+      </div>
+
+
+      <h3>
+
+        ${
+          escapeHtml(
+            item.name
+          )
+        }
+
+      </h3>
+
+
+      <p class="menu-description">
+
+        ${
+          escapeHtml(
+            item.description
+            ||
+            "Chọn size và topping theo sở thích của bạn."
+          )
+        }
+
+      </p>
+
+
+      <div class="menu-card-footer">
+
+        <div class="price-box">
+
+          <span>
+            Giá từ
+          </span>
+
+          <strong>
+            ${
+              money(
+                minPrice
+              )
+            }
+          </strong>
+
+        </div>
+
+
+        <button
+          class="choose-button"
+          type="button"
+          onclick="
+            openOptions(
+              '${escapeAttr(
+                item.id
+              )}'
+            )
+          "
+        >
+          Chọn món
+        </button>
+
+      </div>
+
+    </article>
+
+  `;
+
+}
+
+
+// ==============================
+// OPEN MODAL
+// ==============================
 
 function openOptions(id) {
 
   configItem =
     MENU.find(
-      item => item.id === id
+      item =>
+        item.id === id
     );
+
+
+  if (
+    !configItem
+  ) {
+    return;
+  }
 
 
   $("optionItemName")
@@ -238,106 +748,219 @@ function openOptions(id) {
     configItem.name;
 
 
+  $("optionItemDescription")
+    .textContent =
+
+    configItem.description
+
+    ||
+
+    "Chọn size và topping phù hợp với bạn.";
+
+
+  // SIZE
+
   $("sizeOptions")
     .innerHTML =
 
     configItem.sizes
+
       .map(
-        (size, index) => `
+        (
+          size,
+          index
+        ) => `
 
-          <label class="choice">
+          <div class="size-choice">
 
-            <input
-              type="radio"
-              name="size"
-              value="${escapeHtml(size.id)}"
-              ${index === 0
-                ? "checked"
-                : ""}
-            >
+            <label>
 
-            <b>
-              ${escapeHtml(
-                size.name ||
-                size.id
-              )}
-            </b>
+              <input
+                type="radio"
+                name="size"
+                value="${
+                  escapeHtml(
+                    size.id
+                  )
+                }"
+                ${
+                  index === 0
+                  ?
+                  "checked"
+                  :
+                  ""
+                }
+              >
 
-            <br>
+              ${
+                escapeHtml(
+                  size.name
+                  ||
+                  size.id
+                )
+              }
 
-            ${money(size.price)}
+              <strong>
 
-          </label>
+                ${
+                  money(
+                    size.price
+                  )
+                }
+
+              </strong>
+
+            </label>
+
+          </div>
 
         `
       )
       .join("");
 
 
+  // TOPPING
+
   $("toppingOptions")
     .innerHTML =
 
-    configItem.toppings.length
+    configItem
+      .toppings
+      .length
 
-      ? configItem.toppings
-          .map(
-            topping => `
+    ?
 
-              <label class="topping">
+    configItem.toppings
+      .map(
+        topping => `
 
-                <span>
+          <div class="topping-choice">
 
-                  <input
-                    type="checkbox"
-                    name="tp"
-                    value="${escapeHtml(
-                      topping.id
-                    )}"
-                  >
+            <label>
 
-                  ${escapeHtml(
-                    topping.name
-                  )}
+              <input
+                type="checkbox"
+                name="topping"
+                value="${
+                  escapeHtml(
+                    topping.id
+                  )
+                }"
+              >
 
-                </span>
+              ${
+                escapeHtml(
+                  topping.name
+                )
+              }
 
-                <b>
-                  +${money(
-                    topping.price
-                  )}
-                </b>
+            </label>
 
-              </label>
 
-            `
-          )
-          .join("")
+            <strong>
 
-      : "<p>Không có topping.</p>";
+              +${
+                money(
+                  topping.price
+                )
+              }
+
+            </strong>
+
+          </div>
+
+        `
+      )
+      .join("")
+
+    :
+
+    `
+
+      <div class="empty-cart">
+
+        <strong>
+          Không có topping
+        </strong>
+
+        <span>
+          Món này hiện chưa có topping.
+        </span>
+
+      </div>
+
+    `;
 
 
   $("optionModal")
-    .hidden = false;
+    .hidden =
+    false;
+
+
+  document.body
+    .classList
+    .add(
+      "modal-open"
+    );
 
 
   document
     .querySelectorAll(
-      'input[name="size"], input[name="tp"]'
+      'input[name="size"], input[name="topping"]'
     )
-    .forEach(input => {
+    .forEach(
+      input => {
 
-      input.onchange =
-        calculateOptionTotal;
+        input.addEventListener(
+          "change",
+          updateOptionTotal
+        );
 
-    });
+      }
+    );
 
 
-  calculateOptionTotal();
+  updateOptionTotal();
 
 }
 
 
+// ==============================
+// CLOSE MODAL
+// ==============================
+
+function closeOptions() {
+
+  $("optionModal")
+    .hidden =
+    true;
+
+
+  document.body
+    .classList
+    .remove(
+      "modal-open"
+    );
+
+
+  configItem =
+    null;
+
+}
+
+
+// ==============================
+// GET CONFIG
+// ==============================
+
 function getSelectedConfig() {
+
+  if (
+    !configItem
+  ) {
+    return null;
+  }
+
 
   const sizeId =
     document
@@ -348,83 +971,125 @@ function getSelectedConfig() {
 
 
   const size =
-    configItem.sizes.find(
-      size =>
-        String(size.id) ===
-        String(sizeId)
-    );
+    configItem
+      .sizes
+      .find(
+        size =>
+          String(
+            size.id
+          )
+          ===
+          String(
+            sizeId
+          )
+      );
 
 
   const toppingIds =
     [
-      ...document.querySelectorAll(
-        'input[name="tp"]:checked'
-      )
-    ].map(
+      ...document
+        .querySelectorAll(
+          'input[name="topping"]:checked'
+        )
+    ]
+
+    .map(
       input =>
         input.value
     );
 
 
   const toppings =
-    configItem.toppings.filter(
-      topping =>
-        toppingIds.includes(
-          String(topping.id)
-        )
-    );
+    configItem
+      .toppings
+      .filter(
+        topping =>
+          toppingIds
+            .includes(
+              String(
+                topping.id
+              )
+            )
+      );
 
 
   const unitPrice =
 
-    Number(size?.price || 0)
+    Number(
+      size?.price || 0
+    )
 
     +
 
     toppings.reduce(
-      (total, topping) =>
-        total +
-        Number(topping.price || 0),
+      (
+        total,
+        topping
+      ) =>
+
+        total
+        +
+        Number(
+          topping.price
+          ||
+          0
+        ),
 
       0
     );
 
 
   return {
+
     size,
+
     toppings,
+
     unitPrice
+
   };
 
 }
 
 
-function calculateOptionTotal() {
+function updateOptionTotal() {
 
   const config =
     getSelectedConfig();
 
+
   $("optionTotal")
     .textContent =
-    money(config.unitPrice);
+    money(
+      config?.unitPrice
+      ||
+      0
+    );
 
 }
 
 
-function closeOptions() {
-
-  $("optionModal")
-    .hidden = true;
-
-  configItem = null;
-
-}
-
+// ==============================
+// ADD CART
+// ==============================
 
 function addConfiguredItem() {
 
   const config =
     getSelectedConfig();
+
+
+  if (
+    !config
+    ||
+    !config.size
+    ||
+    !configItem
+  ) {
+
+    return;
+
+  }
 
 
   const key = [
@@ -433,11 +1098,16 @@ function addConfiguredItem() {
 
     config.size.id,
 
-    ...config.toppings
-      .map(t => t.id)
+    ...config
+      .toppings
+      .map(
+        topping =>
+          topping.id
+      )
       .sort()
 
-  ].join("|");
+  ]
+  .join("|");
 
 
   const existing =
@@ -447,9 +1117,15 @@ function addConfiguredItem() {
     );
 
 
-  if (existing) {
+  if (
+    existing
+  ) {
 
-    existing.qty++;
+    existing.qty =
+      Math.min(
+        20,
+        existing.qty + 1
+      );
 
   } else {
 
@@ -467,21 +1143,29 @@ function addConfiguredItem() {
         config.size.id,
 
       sizeName:
-        config.size.name ||
+        config.size.name
+        ||
         config.size.id,
 
       toppingIds:
         config.toppings
-          .map(t => t.id),
+          .map(
+            topping =>
+              topping.id
+          ),
 
       toppingNames:
         config.toppings
-          .map(t => t.name),
+          .map(
+            topping =>
+              topping.name
+          ),
 
       unitPrice:
         config.unitPrice,
 
-      qty: 1
+      qty:
+        1
 
     });
 
@@ -495,19 +1179,32 @@ function addConfiguredItem() {
 }
 
 
+// ==============================
+// CART
+// ==============================
+
 function saveCart() {
 
   localStorage.setItem(
+
     "cartV5",
-    JSON.stringify(cart)
+
+    JSON.stringify(
+      cart
+    )
+
   );
+
 
   renderCart();
 
 }
 
 
-function changeQty(key, amount) {
+function changeQty(
+  key,
+  value
+) {
 
   const item =
     cart.find(
@@ -516,13 +1213,18 @@ function changeQty(key, amount) {
     );
 
 
-  if (!item) return;
+  if (!item) {
+    return;
+  }
 
 
-  item.qty += amount;
+  item.qty +=
+    value;
 
 
-  if (item.qty <= 0) {
+  if (
+    item.qty <= 0
+  ) {
 
     cart =
       cart.filter(
@@ -546,6 +1248,7 @@ function removeLine(key) {
         item.key !== key
     );
 
+
   saveCart();
 
 }
@@ -553,141 +1256,228 @@ function removeLine(key) {
 
 function renderCart() {
 
-  let total = 0;
+  const count =
+    cart.reduce(
+      (
+        total,
+        item
+      ) =>
+        total
+        +
+        Number(
+          item.qty
+          ||
+          0
+        ),
+      0
+    );
 
 
   $("cartCount")
     .textContent =
+    `${count} món`;
 
-    cart.reduce(
-      (sum, item) =>
-        sum + item.qty,
-      0
-    )
 
-    + " món";
+  if (
+    !cart.length
+  ) {
+
+    $("cartItems")
+      .innerHTML = `
+
+        <div class="empty-cart">
+
+          <div>
+            🧋
+          </div>
+
+          <strong>
+            Chưa có món nào
+          </strong>
+
+          <span>
+            Chọn một món từ menu để bắt đầu.
+          </span>
+
+        </div>
+
+      `;
+
+
+    $("total")
+      .textContent =
+      "0đ";
+
+
+    return;
+
+  }
+
+
+  let total =
+    0;
 
 
   $("cartItems")
     .innerHTML =
 
-    cart.length
+    cart.map(
+      item => {
 
-      ? cart.map(item => {
+        const subtotal =
 
-          const subtotal =
-            item.unitPrice *
-            item.qty;
+          Number(
+            item.unitPrice
+          )
+
+          *
+
+          Number(
+            item.qty
+          );
 
 
-          total += subtotal;
+        total +=
+          subtotal;
 
 
-          return `
+        const toppingText =
 
-            <div class="cart-line">
+          item.toppingNames
+          &&
+          item.toppingNames.length
 
-              <div class="line-top">
+          ?
 
-                <div>
+          " • "
+          +
+          item.toppingNames
+            .join(", ")
 
-                  <b>
-                    ${escapeHtml(
+          :
+
+          "";
+
+
+        return `
+
+          <div class="cart-line">
+
+
+            <div class="cart-line-top">
+
+              <div>
+
+                <div class="cart-name">
+
+                  ${
+                    escapeHtml(
                       item.name
-                    )}
-                  </b>
-
-                  <div class="meta">
-
-                    Size
-                    ${escapeHtml(
-                      item.sizeName
-                    )}
-
-                    ${
-                      item.toppingNames.length
-
-                        ? " • " +
-                          escapeHtml(
-                            item
-                              .toppingNames
-                              .join(", ")
-                          )
-
-                        : ""
-                    }
-
-                  </div>
+                    )
+                  }
 
                 </div>
 
 
+                <div class="cart-options">
+
+                  Size
+                  ${
+                    escapeHtml(
+                      item.sizeName
+                    )
+                  }
+
+                  ${
+                    escapeHtml(
+                      toppingText
+                    )
+                  }
+
+                </div>
+
+              </div>
+
+
+              <button
+                class="remove-button"
+                type="button"
+                onclick="
+                  removeLine(
+                    '${escapeAttr(
+                      item.key
+                    )}'
+                  )
+                "
+              >
+                Xóa
+              </button>
+
+            </div>
+
+
+            <div class="cart-line-bottom">
+
+              <div class="qty">
+
                 <button
-                  class="remove"
+                  type="button"
                   onclick="
-                    removeLine(
+                    changeQty(
                       '${escapeAttr(
                         item.key
-                      )}'
+                      )}',
+                      -1
                     )
                   "
                 >
-                  Xóa
+                  −
+                </button>
+
+
+                <strong>
+                  ${
+                    item.qty
+                  }
+                </strong>
+
+
+                <button
+                  type="button"
+                  onclick="
+                    changeQty(
+                      '${escapeAttr(
+                        item.key
+                      )}',
+                      1
+                    )
+                  "
+                >
+                  +
                 </button>
 
               </div>
 
 
-              <div class="line-bottom">
+              <strong>
 
-                <div class="qty">
+                ${
+                  money(
+                    subtotal
+                  )
+                }
 
-                  <button
-                    onclick="
-                      changeQty(
-                        '${escapeAttr(
-                          item.key
-                        )}',
-                        -1
-                      )
-                    "
-                  >
-                    −
-                  </button>
-
-                  <b>
-                    ${item.qty}
-                  </b>
-
-                  <button
-                    onclick="
-                      changeQty(
-                        '${escapeAttr(
-                          item.key
-                        )}',
-                        1
-                      )
-                    "
-                  >
-                    +
-                  </button>
-
-                </div>
-
-
-                <b>
-                  ${money(subtotal)}
-                </b>
-
-              </div>
+              </strong>
 
             </div>
 
-          `;
+          </div>
 
-        }).join("")
+        `;
 
-      : "<p>Chưa có món nào.</p>";
+      }
+    )
+    .join("");
 
 
   $("total")
@@ -697,22 +1487,64 @@ function renderCart() {
 }
 
 
+// ==============================
+// ĐẶT MÓN
+// ==============================
+
 async function submitOrder() {
 
   if (
-    submitting ||
-    !cart.length
+    submitting
   ) {
     return;
   }
 
 
+  if (
+    !cart.length
+  ) {
+
+    $("message")
+      .textContent =
+      "Bạn chưa chọn món.";
+
+    return;
+
+  }
+
+
+  const table =
+    $("tableNumber")
+      .value
+      .trim();
+
+
+  if (!table) {
+
+    $("message")
+      .textContent =
+      "Vui lòng nhập số bàn.";
+
+
+    $("tableNumber")
+      .focus();
+
+
+    return;
+
+  }
+
+
   try {
 
-    submitting = true;
+    submitting =
+      true;
+
 
     $("orderBtn")
-      .disabled = true;
+      .disabled =
+      true;
+
 
     $("message")
       .textContent =
@@ -722,21 +1554,24 @@ async function submitOrder() {
     const user =
       await ensureAuth();
 
+
     await user
       .getIdToken(true);
 
 
-    const response =
-      await createOrder({
+    await createOrder({
 
-        table:
-          $("tableNumber")
-            .value
-            .trim()
-            .slice(0, 20),
+      table:
+        table.slice(
+          0,
+          20
+        ),
 
-        items:
-          cart.map(item => ({
+
+      items:
+
+        cart.map(
+          item => ({
 
             menuId:
               item.menuId,
@@ -748,159 +1583,219 @@ async function submitOrder() {
               item.toppingIds,
 
             quantity:
-              item.qty
+              Number(
+                item.qty
+              )
 
-          })),
-
-        clientRequestId:
-          crypto.randomUUID
-
-            ? crypto.randomUUID()
-
-            : String(Date.now())
-
-      });
+          })
+        ),
 
 
-    cart = [];
+      clientRequestId:
+
+        crypto.randomUUID
+
+        ?
+
+        crypto.randomUUID()
+
+        :
+
+        Date.now()
+        +
+        "-"
+        +
+        Math.random()
+          .toString(36)
+          .slice(2)
+
+    });
+
+
+    cart =
+      [];
+
 
     saveCart();
 
 
     $("tableNumber")
-      .value = "";
+      .value =
+      "";
 
 
     $("message")
       .textContent =
+      "Đặt món thành công! Cảm ơn bạn ☕";
 
-      "Đặt món thành công! Mã đơn: "
-
-      +
-
-      response.data.orderId;
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      error
+    );
+
 
     $("message")
       .textContent =
 
-      error.message ||
+      error.message
+
+      ||
+
       "Không gửi được đơn.";
 
   } finally {
 
-    submitting = false;
+    submitting =
+      false;
+
 
     $("orderBtn")
-      .disabled = false;
+      .disabled =
+      false;
 
   }
 
 }
 
 
+// ==============================
+// ESCAPE
+// ==============================
+
 function escapeHtml(value) {
 
-  return String(value ?? "")
+  return String(
+    value ?? ""
+  )
 
-    .replaceAll(
-      "&",
-      "&amp;"
-    )
+  .replaceAll(
+    "&",
+    "&amp;"
+  )
 
-    .replaceAll(
-      "<",
-      "&lt;"
-    )
+  .replaceAll(
+    "<",
+    "&lt;"
+  )
 
-    .replaceAll(
-      ">",
-      "&gt;"
-    )
+  .replaceAll(
+    ">",
+    "&gt;"
+  )
 
-    .replaceAll(
-      '"',
-      "&quot;"
-    );
+  .replaceAll(
+    '"',
+    "&quot;"
+  )
+
+  .replaceAll(
+    "'",
+    "&#039;"
+  );
 
 }
 
 
 function escapeAttr(value) {
 
-  return String(value ?? "")
-    .replaceAll(
-      "'",
-      "\\'"
-    );
+  return String(
+    value ?? ""
+  )
+  .replaceAll(
+    "'",
+    "\\'"
+  );
 
 }
 
 
+// ==============================
+// EVENTS
+// ==============================
+
 $("menuSearch")
-  .oninput =
-  renderMenu;
+  .addEventListener(
+    "input",
+    renderMenu
+  );
 
 
 $("closeOptionModal")
-  .onclick =
-  closeOptions;
+  .addEventListener(
+    "click",
+    closeOptions
+  );
+
+
+$("optionModal")
+  .addEventListener(
+    "click",
+    event => {
+
+      if (
+        event.target
+        ===
+        $("optionModal")
+      ) {
+
+        closeOptions();
+
+      }
+
+    }
+  );
 
 
 $("addConfiguredItemBtn")
-  .onclick =
-  addConfiguredItem;
+  .addEventListener(
+    "click",
+    addConfiguredItem
+  );
 
 
 $("orderBtn")
-  .onclick =
-  submitOrder;
+  .addEventListener(
+    "click",
+    submitOrder
+  );
 
 
-ensureAuth()
-  .catch(console.error)
-  .finally(loadMenu);
- window.addEventListener(
+// ==============================
+// WELCOME
+// ==============================
+
+window.addEventListener(
   "load",
   () => {
 
     const welcome =
-      document.getElementById(
-        "welcomeScreen"
-      );
+      $("welcomeScreen");
 
 
-    if (!welcome) {
+    if (
+      !welcome
+    ) {
+
       return;
+
     }
 
-
-    /*
-      Splash chạy khoảng 2.7 giây.
-
-      Sau đó fade + trượt lên.
-    */
 
     setTimeout(
       () => {
 
         welcome
           .classList
-          .add("hide");
+          .add(
+            "hide"
+          );
 
       },
-      2700
+      2300
     );
 
-
-    /*
-      Sau animation
-      thì xóa hẳn splash
-      khỏi DOM.
-    */
 
     setTimeout(
       () => {
@@ -908,8 +1803,27 @@ ensureAuth()
         welcome.remove();
 
       },
-      3500
+      3100
     );
 
   }
 );
+
+
+// ==============================
+// START
+// ==============================
+
+ensureAuth()
+
+  .catch(
+    error =>
+      console.error(
+        "Anonymous Auth:",
+        error
+      )
+  )
+
+  .finally(
+    loadMenu
+  );
