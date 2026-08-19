@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#111111">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Cheng Coffee">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <title>Admin - Quán Nước</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <h1>Admin quán nước</h1>
+    <p>Menu, doanh thu và lịch sử</p>
+  </div>
+  <div class="top-actions">
+    <a href="index.html">← Menu khách</a>
+    <button id="logoutBtn" class="secondary" hidden>Đăng xuất</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="loginPanel" class="panel login-panel">
+    <h2>Đăng nhập Admin</h2>
+    <p>Nhập mật khẩu quản trị để tiếp tục.</p>
+    <form id="loginForm">
+      <label>Mật khẩu</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button class="primary" type="submit">Đăng nhập</button>
+    </form>
+    <p id="loginMessage"></p>
+  </section>
+
+  <div id="adminApp" hidden>
+    <section>
+      <div class="section-head">
+        <h2>Hôm nay</h2>
+        <button class="secondary" id="reloadAll">↻ Làm mới</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><span>Số cốc</span><strong id="todayCups">0</strong></div>
+        <div class="stat"><span>Doanh thu</span><strong id="todayRevenue">0đ</strong></div>
+      </div>
+    </section>
+
+
+
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2>Đơn hàng hôm nay</h2>
+          <p class="subtle">Hiển thị từng đơn theo thời gian đặt.</p>
+        </div>
+        <button id="reloadOrdersBtn" class="secondary" type="button">↻ Tải lại đơn</button>
+      </div>
+
+      <div id="ordersList" class="orders-list"></div>
+    </section>
+
+    <section class="panel" id="installPanel">
+      <h2>Cài Cheng Coffee như ứng dụng</h2>
+      <p class="subtle">Android: Chrome → Cài đặt ứng dụng. iPhone: Safari → Chia sẻ → Thêm vào Màn hình chính.</p>
+      <div class="push-actions">
+        <button id="installPwaBtn" class="primary" type="button" hidden>📲 Cài ứng dụng</button>
+      </div>
+      <p id="installMessage"></p>
+    </section>
+
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2>Thông báo đơn mới</h2>
+          <p class="subtle">Bật một lần trên điện thoại này để nhận thông báo Firebase.</p>
+        </div>
+        <span id="pushStatusBadge" class="status-badge">Chưa kiểm tra</span>
+      </div>
+      <div class="push-actions">
+        <button id="enablePushBtn" class="primary" type="button">🔔 Bật thông báo</button>
+        <button id="testPushBtn" class="secondary" type="button">Gửi thử thông báo</button>
+        <button id="disablePushBtn" class="secondary" type="button">Tắt trên thiết bị này</button>
+      </div>
+      <p id="pushMessage"></p>
+    </section>
+    <section class="panel">
+      <h2 id="formTitle">Thêm món mới</h2>
+      <form id="menuForm">
+        <div class="grid">
+          <div><label>Mã món</label><input id="itemId" required placeholder="CF03"></div>
+          <div><label>Tên món</label><input id="itemName" required placeholder="Cà phê đen"></div>
+          <div><label>Giá</label><input id="itemPrice" type="number" min="0" required placeholder="25000"></div>
+          <div class="check"><label><input id="itemActive" type="checkbox" checked> Đang bán</label></div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="saveBtn">Thêm món</button>
+          <button class="secondary" type="button" id="cancelBtn" hidden>Hủy sửa</button>
+        </div>
+      </form>
+      <p id="message"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Menu</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mã</th><th>Tên món</th><th>Giá</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+          <tbody id="menuTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+
+    <section class="panel">
+      <h2>Đổi mật khẩu Admin</h2>
+      <form id="changePasswordForm">
+        <div class="password-grid">
+          <div>
+            <label>Mật khẩu hiện tại</label>
+            <input id="currentPassword" type="password" autocomplete="current-password" required>
+          </div>
+          <div>
+            <label>Mật khẩu mới</label>
+            <input id="newPassword" type="password" autocomplete="new-password" required minlength="4">
+          </div>
+          <div>
+            <label>Nhập lại mật khẩu mới</label>
+            <input id="confirmPassword" type="password" autocomplete="new-password" required minlength="4">
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" type="submit">Đổi mật khẩu</button>
+        </div>
+      </form>
+      <p id="passwordMessage"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Lịch sử theo ngày</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Ngày</th><th>Số cốc</th><th>Doanh thu</th></tr></thead>
+          <tbody id="historyTable"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-messaging-compat.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

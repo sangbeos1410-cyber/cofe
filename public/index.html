@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#111111">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Cheng Coffee">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <title>Cheng Coffee</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="header">
+  <div>
+    <div class="brand">☕ CHENG COFFEE</div>
+    <div class="subtitle">Menu & đặt món</div>
+  </div>
+  <a href="admin.html" class="admin-link">Admin</a>
+</header>
+
+<main class="container">
+  <h2>Menu</h2>
+  <p id="menuStatus" class="muted">Đang tải menu...</p>
+  <div id="menu" class="menu-grid"></div>
+
+  <section class="cart">
+    <h2>Giỏ hàng</h2>
+    <div id="cartItems"></div>
+    <label>Số bàn</label>
+    <input id="tableNumber" placeholder="Ví dụ: 05">
+    <div class="total-row">
+      <span>Tổng tiền</span>
+      <strong id="total">0đ</strong>
+    </div>
+    <button id="orderBtn" class="primary">ĐẶT MÓN</button>
+    <p id="message" class="message"></p>
+  </section>
+</main>
+
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-functions-compat.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
