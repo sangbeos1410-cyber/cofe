@@ -2,21 +2,12 @@ let MENU = [];
 
 let cart =
   JSON.parse(
-    localStorage.getItem(
-      "cartV5"
-    )
-    ||
-    "[]"
+    localStorage.getItem("cartV6") || "[]"
   );
 
-let configItem =
-  null;
-
-let submitting =
-  false;
-
-let activeCategory =
-  "all";
+let configItem = null;
+let submitting = false;
+let activeCategory = "all";
 
 
 const $ = id =>
@@ -24,22 +15,18 @@ const $ = id =>
 
 
 const money = value =>
-  new Intl
-    .NumberFormat(
-      "vi-VN"
-    )
-    .format(
-      Number(value)
-      ||
-      0
-    )
-  +
-  "đ";
+  new Intl.NumberFormat(
+    "vi-VN"
+  ).format(
+    Number(value) || 0
+  ) + "đ";
 
 
-if (
-  !firebase.apps.length
-) {
+/* =====================================
+   FIREBASE
+===================================== */
+
+if (!firebase.apps.length) {
 
   firebase.initializeApp(
     self.FIREBASE_CONFIG
@@ -67,10 +54,9 @@ const functions =
 
 
 const createOrder =
-  functions
-    .httpsCallable(
-      "createOrder"
-    );
+  functions.httpsCallable(
+    "createOrder"
+  );
 
 
 auth.setPersistence(
@@ -81,20 +67,16 @@ auth.setPersistence(
 );
 
 
-// ==============================
-// AUTH KHÁCH
-// ==============================
+/* =====================================
+   AUTH KHÁCH
+===================================== */
 
 async function ensureAuth() {
 
-  if (
-    auth.currentUser
-  ) {
+  if (auth.currentUser) {
 
-    await auth
-      .currentUser
+    await auth.currentUser
       .getIdToken(true);
-
 
     return auth.currentUser;
 
@@ -102,13 +84,10 @@ async function ensureAuth() {
 
 
   const credential =
-    await auth
-      .signInAnonymously();
+    await auth.signInAnonymously();
 
 
-  if (
-    !credential.user
-  ) {
+  if (!credential.user) {
 
     throw new Error(
       "Không tạo được phiên khách."
@@ -117,8 +96,7 @@ async function ensureAuth() {
   }
 
 
-  await credential
-    .user
+  await credential.user
     .getIdToken(true);
 
 
@@ -127,18 +105,15 @@ async function ensureAuth() {
 }
 
 
-// ==============================
-// MENU DATA
-// ==============================
+/* =====================================
+   NORMALIZE MENU
+===================================== */
 
-function normalizeMenu(
-  doc
-) {
+function normalizeMenu(doc) {
 
   const item = {
 
-    id:
-      doc.id,
+    id: doc.id,
 
     ...doc.data()
 
@@ -147,8 +122,7 @@ function normalizeMenu(
 
   item.category =
     String(
-      item.category
-      ||
+      item.category ||
       "Khác"
     )
     .trim()
@@ -158,9 +132,7 @@ function normalizeMenu(
 
   item.sizes =
 
-    Array.isArray(
-      item.sizes
-    )
+    Array.isArray(item.sizes)
     &&
     item.sizes.length
 
@@ -172,20 +144,12 @@ function normalizeMenu(
 
     [
       {
-
-        id:
-          "M",
-
-        name:
-          "M",
-
+        id: "M",
+        name: "M",
         price:
           Number(
-            item.price
-            ||
-            0
+            item.price || 0
           )
-
       }
     ];
 
@@ -210,9 +174,9 @@ function normalizeMenu(
 }
 
 
-// ==============================
-// LOAD MENU
-// ==============================
+/* =====================================
+   LOAD MENU
+===================================== */
 
 function loadMenu() {
 
@@ -222,9 +186,7 @@ function loadMenu() {
 
 
   db
-    .collection(
-      "menu"
-    )
+    .collection("menu")
 
     .where(
       "active",
@@ -283,6 +245,7 @@ function loadMenu() {
       error => {
 
         console.error(
+          "Menu error:",
           error
         );
 
@@ -298,13 +261,14 @@ function loadMenu() {
 }
 
 
-// ==============================
-// CATEGORY
-// ==============================
+/* =====================================
+   CATEGORY
+===================================== */
 
 function getCategories() {
 
   return [
+
     ...new Set(
 
       MENU.map(
@@ -313,8 +277,8 @@ function getCategories() {
       )
 
     )
-  ]
 
+  ]
   .sort(
     (a, b) =>
       a.localeCompare(
@@ -337,24 +301,22 @@ function renderCategoryNav() {
 
     `
 
-    <button
-      class="
-        category-button
-        ${
-          activeCategory
-          ===
-          "all"
-          ?
-          "active"
-          :
-          ""
-        }
-      "
-      data-category="all"
-      type="button"
-    >
-      Tất cả
-    </button>
+      <button
+        class="
+          category-button
+          ${
+            activeCategory === "all"
+            ?
+            "active"
+            :
+            ""
+          }
+        "
+        data-category="all"
+        type="button"
+      >
+        Tất cả
+      </button>
 
     `
 
@@ -368,27 +330,19 @@ function renderCategoryNav() {
             class="
               category-button
               ${
-                activeCategory
-                ===
-                category
+                activeCategory === category
                 ?
                 "active"
                 :
                 ""
               }
             "
-            data-category="${
-              escapeHtml(
-                category
-              )
-            }"
+            data-category="${escapeHtml(
+              category
+            )}"
             type="button"
           >
-            ${
-              escapeHtml(
-                category
-              )
-            }
+            ${escapeHtml(category)}
           </button>
 
         `
@@ -408,8 +362,7 @@ function renderCategoryNav() {
           () => {
 
             activeCategory =
-              button.dataset
-                .category;
+              button.dataset.category;
 
 
             renderCategoryNav();
@@ -425,9 +378,9 @@ function renderCategoryNav() {
 }
 
 
-// ==============================
-// RENDER MENU
-// ==============================
+/* =====================================
+   RENDER MENU
+===================================== */
 
 function renderMenu() {
 
@@ -444,17 +397,11 @@ function renderMenu() {
 
         const searchText =
           [
-
             item.name,
-
             item.category,
-
             item.description
-
           ]
-
           .join(" ")
-
           .toLowerCase();
 
 
@@ -466,25 +413,21 @@ function renderMenu() {
 
 
   if (
-    activeCategory
-    !==
+    activeCategory !==
     "all"
   ) {
 
     filtered =
       filtered.filter(
         item =>
-          item.category
-          ===
+          item.category ===
           activeCategory
       );
 
   }
 
 
-  if (
-    !filtered.length
-  ) {
+  if (!filtered.length) {
 
     $("menu")
       .innerHTML = `
@@ -500,7 +443,8 @@ function renderMenu() {
           </strong>
 
           <span>
-            Thử chọn danh mục khác.
+            Thử chọn danh mục khác
+            hoặc đổi từ khóa tìm kiếm.
           </span>
 
         </div>
@@ -518,32 +462,22 @@ function renderMenu() {
   filtered.forEach(
     item => {
 
-      if (
-        !groups[
-          item.category
-        ]
-      ) {
+      if (!groups[item.category]) {
 
-        groups[
-          item.category
-        ] = [];
+        groups[item.category] = [];
 
       }
 
 
-      groups[
-        item.category
-      ]
-      .push(item);
+      groups[item.category]
+        .push(item);
 
     }
   );
 
 
   const categories =
-    Object
-      .keys(groups)
-
+    Object.keys(groups)
       .sort(
         (a, b) =>
           a.localeCompare(
@@ -556,76 +490,70 @@ function renderMenu() {
   $("menu")
     .innerHTML =
 
-    categories.map(
-      category => {
+    categories
+      .map(
+        category => {
 
-        const items =
-          groups[
-            category
-          ];
+          const items =
+            groups[category];
 
 
-        return `
+          return `
 
-          <section class="menu-category">
+            <section class="menu-category">
 
-            <div class="category-heading">
+              <div class="category-heading">
 
-              <div class="category-heading-left">
+                <div class="category-heading-left">
 
-                <div class="category-line">
+                  <div class="category-line">
+                  </div>
+
+                  <h2>
+                    ${escapeHtml(category)}
+                  </h2>
+
                 </div>
 
-                <h2>
-                  ${
-                    escapeHtml(
-                      category
-                    )
-                  }
-                </h2>
+
+                <span>
+                  ${items.length} món
+                </span>
 
               </div>
 
 
-              <span>
-                ${items.length} món
-              </span>
+              <div class="menu-grid">
 
-            </div>
-
-
-            <div class="menu-grid">
-
-              ${
-                items.map(
-                  item =>
-                    renderMenuCard(
-                      item
+                ${
+                  items
+                    .map(
+                      item =>
+                        renderMenuCard(
+                          item
+                        )
                     )
-                )
-                .join("")
-              }
+                    .join("")
+                }
 
-            </div>
+              </div>
 
-          </section>
+            </section>
 
-        `;
+          `;
 
-      }
-    )
-    .join("");
+        }
+      )
+      .join("");
 
 }
 
 
-// ==============================
-// CARD
-// ==============================
+/* =====================================
+   MENU CARD
+===================================== */
 
-function renderMenuCard(
-  item
-) {
+function renderMenuCard(item) {
 
   const minPrice =
     Math.min(
@@ -648,23 +576,17 @@ function renderMenuCard(
 
       <div class="menu-category-name">
 
-        ${
-          escapeHtml(
-            item.category
-          )
-        }
+        ${escapeHtml(
+          item.category
+        )}
 
       </div>
 
 
       <h3>
-
-        ${
-          escapeHtml(
-            item.name
-          )
-        }
-
+        ${escapeHtml(
+          item.name
+        )}
       </h3>
 
 
@@ -690,11 +612,7 @@ function renderMenuCard(
           </span>
 
           <strong>
-            ${
-              money(
-                minPrice
-              )
-            }
+            ${money(minPrice)}
           </strong>
 
         </div>
@@ -723,9 +641,9 @@ function renderMenuCard(
 }
 
 
-// ==============================
-// OPEN MODAL
-// ==============================
+/* =====================================
+   OPEN OPTIONS
+===================================== */
 
 function openOptions(id) {
 
@@ -736,9 +654,7 @@ function openOptions(id) {
     );
 
 
-  if (
-    !configItem
-  ) {
+  if (!configItem) {
     return;
   }
 
@@ -758,13 +674,17 @@ function openOptions(id) {
     "Chọn size và topping phù hợp với bạn.";
 
 
-  // SIZE
+  $("itemNote")
+    .value =
+    "";
+
+
+  /* SIZE */
 
   $("sizeOptions")
     .innerHTML =
 
     configItem.sizes
-
       .map(
         (
           size,
@@ -778,11 +698,9 @@ function openOptions(id) {
               <input
                 type="radio"
                 name="size"
-                value="${
-                  escapeHtml(
-                    size.id
-                  )
-                }"
+                value="${escapeHtml(
+                  size.id
+                )}"
                 ${
                   index === 0
                   ?
@@ -792,22 +710,15 @@ function openOptions(id) {
                 }
               >
 
-              ${
-                escapeHtml(
-                  size.name
-                  ||
-                  size.id
-                )
-              }
+              ${escapeHtml(
+                size.name ||
+                size.id
+              )}
 
               <strong>
-
-                ${
-                  money(
-                    size.price
-                  )
-                }
-
+                ${money(
+                  size.price
+                )}
               </strong>
 
             </label>
@@ -819,14 +730,12 @@ function openOptions(id) {
       .join("");
 
 
-  // TOPPING
+  /* TOPPING */
 
   $("toppingOptions")
     .innerHTML =
 
-    configItem
-      .toppings
-      .length
+    configItem.toppings.length
 
     ?
 
@@ -841,30 +750,22 @@ function openOptions(id) {
               <input
                 type="checkbox"
                 name="topping"
-                value="${
-                  escapeHtml(
-                    topping.id
-                  )
-                }"
+                value="${escapeHtml(
+                  topping.id
+                )}"
               >
 
-              ${
-                escapeHtml(
-                  topping.name
-                )
-              }
+              ${escapeHtml(
+                topping.name
+              )}
 
             </label>
 
 
             <strong>
-
-              +${
-                money(
-                  topping.price
-                )
-              }
-
+              +${money(
+                topping.price
+              )}
             </strong>
 
           </div>
@@ -925,9 +826,9 @@ function openOptions(id) {
 }
 
 
-// ==============================
-// CLOSE MODAL
-// ==============================
+/* =====================================
+   CLOSE OPTIONS
+===================================== */
 
 function closeOptions() {
 
@@ -949,15 +850,13 @@ function closeOptions() {
 }
 
 
-// ==============================
-// GET CONFIG
-// ==============================
+/* =====================================
+   SELECTED CONFIG
+===================================== */
 
 function getSelectedConfig() {
 
-  if (
-    !configItem
-  ) {
+  if (!configItem) {
     return null;
   }
 
@@ -971,28 +870,21 @@ function getSelectedConfig() {
 
 
   const size =
-    configItem
-      .sizes
+    configItem.sizes
       .find(
-        size =>
-          String(
-            size.id
-          )
+        item =>
+          String(item.id)
           ===
-          String(
-            sizeId
-          )
+          String(sizeId)
       );
 
 
   const toppingIds =
     [
-      ...document
-        .querySelectorAll(
-          'input[name="topping"]:checked'
-        )
+      ...document.querySelectorAll(
+        'input[name="topping"]:checked'
+      )
     ]
-
     .map(
       input =>
         input.value
@@ -1000,16 +892,14 @@ function getSelectedConfig() {
 
 
   const toppings =
-    configItem
-      .toppings
+    configItem.toppings
       .filter(
         topping =>
-          toppingIds
-            .includes(
-              String(
-                topping.id
-              )
+          toppingIds.includes(
+            String(
+              topping.id
             )
+          )
       );
 
 
@@ -1026,13 +916,10 @@ function getSelectedConfig() {
         total,
         topping
       ) =>
-
         total
         +
         Number(
-          topping.price
-          ||
-          0
+          topping.price || 0
         ),
 
       0
@@ -1052,6 +939,10 @@ function getSelectedConfig() {
 }
 
 
+/* =====================================
+   UPDATE MODAL TOTAL
+===================================== */
+
 function updateOptionTotal() {
 
   const config =
@@ -1069,9 +960,9 @@ function updateOptionTotal() {
 }
 
 
-// ==============================
-// ADD CART
-// ==============================
+/* =====================================
+   ADD TO CART
+===================================== */
 
 function addConfiguredItem() {
 
@@ -1086,11 +977,26 @@ function addConfiguredItem() {
     ||
     !configItem
   ) {
-
     return;
-
   }
 
+
+  const note =
+    String(
+      $("itemNote").value || ""
+    )
+    .trim()
+    .slice(
+      0,
+      160
+    );
+
+
+  /*
+    Note nằm trong key để:
+    cùng 1 món nhưng note khác
+    sẽ thành 2 dòng riêng.
+  */
 
   const key = [
 
@@ -1098,13 +1004,14 @@ function addConfiguredItem() {
 
     config.size.id,
 
-    ...config
-      .toppings
+    ...config.toppings
       .map(
         topping =>
           topping.id
       )
-      .sort()
+      .sort(),
+
+    note.toLowerCase()
 
   ]
   .join("|");
@@ -1117,9 +1024,7 @@ function addConfiguredItem() {
     );
 
 
-  if (
-    existing
-  ) {
+  if (existing) {
 
     existing.qty =
       Math.min(
@@ -1164,8 +1069,9 @@ function addConfiguredItem() {
       unitPrice:
         config.unitPrice,
 
-      qty:
-        1
+      note,
+
+      qty: 1
 
     });
 
@@ -1179,15 +1085,15 @@ function addConfiguredItem() {
 }
 
 
-// ==============================
-// CART
-// ==============================
+/* =====================================
+   SAVE CART
+===================================== */
 
 function saveCart() {
 
   localStorage.setItem(
 
-    "cartV5",
+    "cartV6",
 
     JSON.stringify(
       cart
@@ -1201,9 +1107,13 @@ function saveCart() {
 }
 
 
+/* =====================================
+   CHANGE QTY
+===================================== */
+
 function changeQty(
   key,
-  value
+  amount
 ) {
 
   const item =
@@ -1219,7 +1129,7 @@ function changeQty(
 
 
   item.qty +=
-    value;
+    amount;
 
 
   if (
@@ -1240,6 +1150,10 @@ function changeQty(
 }
 
 
+/* =====================================
+   REMOVE CART LINE
+===================================== */
+
 function removeLine(key) {
 
   cart =
@@ -1254,6 +1168,10 @@ function removeLine(key) {
 }
 
 
+/* =====================================
+   RENDER CART
+===================================== */
+
 function renderCart() {
 
   const count =
@@ -1265,10 +1183,9 @@ function renderCart() {
         total
         +
         Number(
-          item.qty
-          ||
-          0
+          item.qty || 0
         ),
+
       0
     );
 
@@ -1278,9 +1195,7 @@ function renderCart() {
     `${count} món`;
 
 
-  if (
-    !cart.length
-  ) {
+  if (!cart.length) {
 
     $("cartItems")
       .innerHTML = `
@@ -1314,170 +1229,183 @@ function renderCart() {
   }
 
 
-  let total =
-    0;
+  let total = 0;
 
 
   $("cartItems")
     .innerHTML =
 
-    cart.map(
-      item => {
+    cart
+      .map(
+        item => {
 
-        const subtotal =
+          const subtotal =
 
-          Number(
-            item.unitPrice
-          )
+            Number(
+              item.unitPrice
+            )
 
-          *
+            *
 
-          Number(
-            item.qty
-          );
-
-
-        total +=
-          subtotal;
+            Number(
+              item.qty
+            );
 
 
-        const toppingText =
-
-          item.toppingNames
-          &&
-          item.toppingNames.length
-
-          ?
-
-          " • "
-          +
-          item.toppingNames
-            .join(", ")
-
-          :
-
-          "";
+          total +=
+            subtotal;
 
 
-        return `
+          const toppingText =
 
-          <div class="cart-line">
+            item.toppingNames
+            &&
+            item.toppingNames.length
+
+            ?
+
+            " • "
+            +
+            item.toppingNames
+              .join(", ")
+
+            :
+
+            "";
 
 
-            <div class="cart-line-top">
+          return `
 
-              <div>
+            <div class="cart-line">
 
-                <div class="cart-name">
+              <div class="cart-line-top">
 
-                  ${
-                    escapeHtml(
+                <div>
+
+                  <div class="cart-name">
+
+                    ${escapeHtml(
                       item.name
-                    )
-                  }
+                    )}
 
-                </div>
+                  </div>
 
 
-                <div class="cart-options">
+                  <div class="cart-options">
 
-                  Size
-                  ${
-                    escapeHtml(
+                    Size
+                    ${escapeHtml(
                       item.sizeName
-                    )
-                  }
+                    )}
+
+                    ${escapeHtml(
+                      toppingText
+                    )}
+
+                  </div>
+
 
                   ${
-                    escapeHtml(
-                      toppingText
-                    )
+                    item.note
+
+                    ?
+
+                    `
+
+                      <div class="cart-note">
+
+                        Ghi chú:
+                        ${escapeHtml(
+                          item.note
+                        )}
+
+                      </div>
+
+                    `
+
+                    :
+
+                    ""
                   }
 
                 </div>
+
+
+                <button
+                  class="remove-button"
+                  type="button"
+                  onclick="
+                    removeLine(
+                      '${escapeAttr(
+                        item.key
+                      )}'
+                    )
+                  "
+                >
+                  Xóa
+                </button>
 
               </div>
 
 
-              <button
-                class="remove-button"
-                type="button"
-                onclick="
-                  removeLine(
-                    '${escapeAttr(
-                      item.key
-                    )}'
-                  )
-                "
-              >
-                Xóa
-              </button>
+              <div class="cart-line-bottom">
 
-            </div>
+                <div class="qty">
+
+                  <button
+                    type="button"
+                    onclick="
+                      changeQty(
+                        '${escapeAttr(
+                          item.key
+                        )}',
+                        -1
+                      )
+                    "
+                  >
+                    −
+                  </button>
 
 
-            <div class="cart-line-bottom">
+                  <strong>
+                    ${item.qty}
+                  </strong>
 
-              <div class="qty">
 
-                <button
-                  type="button"
-                  onclick="
-                    changeQty(
-                      '${escapeAttr(
-                        item.key
-                      )}',
-                      -1
-                    )
-                  "
-                >
-                  −
-                </button>
+                  <button
+                    type="button"
+                    onclick="
+                      changeQty(
+                        '${escapeAttr(
+                          item.key
+                        )}',
+                        1
+                      )
+                    "
+                  >
+                    +
+                  </button>
+
+                </div>
 
 
                 <strong>
-                  ${
-                    item.qty
-                  }
+
+                  ${money(
+                    subtotal
+                  )}
+
                 </strong>
-
-
-                <button
-                  type="button"
-                  onclick="
-                    changeQty(
-                      '${escapeAttr(
-                        item.key
-                      )}',
-                      1
-                    )
-                  "
-                >
-                  +
-                </button>
 
               </div>
 
-
-              <strong>
-
-                ${
-                  money(
-                    subtotal
-                  )
-                }
-
-              </strong>
-
             </div>
 
-          </div>
+          `;
 
-        `;
-
-      }
-    )
-    .join("");
+        }
+      )
+      .join("");
 
 
   $("total")
@@ -1487,22 +1415,18 @@ function renderCart() {
 }
 
 
-// ==============================
-// ĐẶT MÓN
-// ==============================
+/* =====================================
+   SUBMIT ORDER
+===================================== */
 
 async function submitOrder() {
 
-  if (
-    submitting
-  ) {
+  if (submitting) {
     return;
   }
 
 
-  if (
-    !cart.length
-  ) {
+  if (!cart.length) {
 
     $("message")
       .textContent =
@@ -1535,6 +1459,17 @@ async function submitOrder() {
   }
 
 
+  const orderNote =
+    String(
+      $("orderNote").value || ""
+    )
+    .trim()
+    .slice(
+      0,
+      240
+    );
+
+
   try {
 
     submitting =
@@ -1559,61 +1494,73 @@ async function submitOrder() {
       .getIdToken(true);
 
 
-    await createOrder({
+    const response =
+      await createOrder({
 
-      table:
-        table.slice(
-          0,
-          20
-        ),
-
-
-      items:
-
-        cart.map(
-          item => ({
-
-            menuId:
-              item.menuId,
-
-            sizeId:
-              item.sizeId,
-
-            toppingIds:
-              item.toppingIds,
-
-            quantity:
-              Number(
-                item.qty
-              )
-
-          })
-        ),
+        table:
+          table.slice(
+            0,
+            20
+          ),
 
 
-      clientRequestId:
-
-        crypto.randomUUID
-
-        ?
-
-        crypto.randomUUID()
-
-        :
-
-        Date.now()
-        +
-        "-"
-        +
-        Math.random()
-          .toString(36)
-          .slice(2)
-
-    });
+        orderNote,
 
 
-    cart =
-      [];
+        items:
+
+          cart.map(
+            item => ({
+
+              menuId:
+                item.menuId,
+
+              sizeId:
+                item.sizeId,
+
+              toppingIds:
+                item.toppingIds,
+
+              quantity:
+                Number(
+                  item.qty
+                ),
+
+              note:
+                String(
+                  item.note || ""
+                )
+                .slice(
+                  0,
+                  160
+                )
+
+            })
+          ),
+
+
+        clientRequestId:
+
+          crypto.randomUUID
+
+          ?
+
+          crypto.randomUUID()
+
+          :
+
+          Date.now()
+          +
+          "-"
+          +
+          Math.random()
+            .toString(36)
+            .slice(2)
+
+      });
+
+
+    cart = [];
 
 
     saveCart();
@@ -1624,14 +1571,25 @@ async function submitOrder() {
       "";
 
 
+    $("orderNote")
+      .value =
+      "";
+
+
     $("message")
       .textContent =
       "Đặt món thành công! Cảm ơn bạn ☕";
 
 
+    console.log(
+      "Order:",
+      response.data
+    );
+
   } catch (error) {
 
     console.error(
+      "Create order:",
       error
     );
 
@@ -1660,9 +1618,193 @@ async function submitOrder() {
 }
 
 
-// ==============================
-// ESCAPE
-// ==============================
+/* =====================================
+   STORE CONTACT
+===================================== */
+
+function safeHttpUrl(value) {
+
+  const url =
+    String(
+      value || ""
+    )
+    .trim();
+
+
+  if (
+    /^https?:\/\//i
+      .test(url)
+  ) {
+
+    return url;
+
+  }
+
+
+  return "";
+
+}
+
+
+function loadStoreContact() {
+
+  $("footerYear")
+    .textContent =
+    String(
+      new Date()
+        .getFullYear()
+    );
+
+
+  db
+    .collection(
+      "storeSettings"
+    )
+
+    .doc(
+      "contact"
+    )
+
+    .onSnapshot(
+
+      doc => {
+
+        if (!doc.exists) {
+          return;
+        }
+
+
+        const data =
+          doc.data() || {};
+
+
+        $("footerName")
+          .textContent =
+
+          data.name
+
+          ||
+
+          "CHENG COFFEE";
+
+
+        $("footerTagline")
+          .textContent =
+
+          data.tagline
+
+          ||
+
+          "Một chút cà phê, một chút bình yên.";
+
+
+        $("footerAddress")
+          .textContent =
+
+          data.address
+
+          ||
+
+          "Đang cập nhật";
+
+
+        $("footerHours")
+          .textContent =
+
+          data.openingHours
+
+          ||
+
+          "Đang cập nhật";
+
+
+        const phone =
+          String(
+            data.phone || ""
+          )
+          .trim();
+
+
+        $("footerPhone")
+          .textContent =
+
+          phone
+
+          ||
+
+          "Đang cập nhật";
+
+
+        $("footerPhone")
+          .href =
+
+          phone
+
+          ?
+
+          "tel:"
+          +
+          phone.replace(
+            /[^\d+]/g,
+            ""
+          )
+
+          :
+
+          "#";
+
+
+        const facebook =
+          safeHttpUrl(
+            data.facebook
+          );
+
+
+        const zalo =
+          safeHttpUrl(
+            data.zalo
+          );
+
+
+        $("footerFacebook")
+          .hidden =
+          !facebook;
+
+
+        $("footerFacebook")
+          .href =
+          facebook || "#";
+
+
+        $("footerZalo")
+          .hidden =
+          !zalo;
+
+
+        $("footerZalo")
+          .href =
+          zalo || "#";
+
+      },
+
+
+      error => {
+
+        console.error(
+          "Store contact:",
+          error
+        );
+
+      }
+
+    );
+
+}
+
+
+/* =====================================
+   ESCAPE
+===================================== */
 
 function escapeHtml(value) {
 
@@ -1711,9 +1853,9 @@ function escapeAttr(value) {
 }
 
 
-// ==============================
-// EVENTS
-// ==============================
+/* =====================================
+   EVENTS
+===================================== */
 
 $("menuSearch")
   .addEventListener(
@@ -1735,8 +1877,7 @@ $("optionModal")
     event => {
 
       if (
-        event.target
-        ===
+        event.target ===
         $("optionModal")
       ) {
 
@@ -1762,9 +1903,9 @@ $("orderBtn")
   );
 
 
-// ==============================
-// WELCOME
-// ==============================
+/* =====================================
+   WELCOME SCREEN
+===================================== */
 
 window.addEventListener(
   "load",
@@ -1774,12 +1915,8 @@ window.addEventListener(
       $("welcomeScreen");
 
 
-    if (
-      !welcome
-    ) {
-
+    if (!welcome) {
       return;
-
     }
 
 
@@ -1810,9 +1947,9 @@ window.addEventListener(
 );
 
 
-// ==============================
-// START
-// ==============================
+/* =====================================
+   START
+===================================== */
 
 ensureAuth()
 
@@ -1825,5 +1962,11 @@ ensureAuth()
   )
 
   .finally(
-    loadMenu
+    () => {
+
+      loadMenu();
+
+      loadStoreContact();
+
+    }
   );

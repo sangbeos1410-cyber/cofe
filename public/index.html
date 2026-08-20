@@ -51,9 +51,9 @@
 <body>
 
 
-<!-- =========================
+<!-- =====================================
      MÀN HÌNH CHÀO
-========================= -->
+===================================== -->
 
 <div
   id="welcomeScreen"
@@ -102,9 +102,9 @@
 </div>
 
 
-<!-- =========================
+<!-- =====================================
      HEADER
-========================= -->
+===================================== -->
 
 <header class="hero">
 
@@ -142,14 +142,16 @@
 </header>
 
 
-<!-- =========================
+<!-- =====================================
      MAIN
-========================= -->
+===================================== -->
 
 <main class="main-layout">
 
 
-  <!-- MENU -->
+  <!-- ===================================
+       MENU
+  =================================== -->
 
   <section class="menu-area">
 
@@ -210,7 +212,7 @@
     </div>
 
 
-    <!-- MÓN -->
+    <!-- DANH SÁCH MÓN -->
 
     <div id="menu"></div>
 
@@ -218,9 +220,9 @@
   </section>
 
 
-  <!-- =========================
+  <!-- ===================================
        GIỎ HÀNG
-  ========================= -->
+  =================================== -->
 
   <aside class="cart-area">
 
@@ -279,6 +281,8 @@
       <div class="divider"></div>
 
 
+      <!-- SỐ BÀN -->
+
       <div class="table-field">
 
         <label for="tableNumber">
@@ -290,6 +294,28 @@
           maxlength="20"
           placeholder="Ví dụ: 05"
         >
+
+      </div>
+
+
+      <!-- GHI CHÚ CHUNG CHO ĐƠN -->
+
+      <div class="order-note-field">
+
+        <label for="orderNote">
+          Ghi chú cho đơn
+        </label>
+
+        <textarea
+          id="orderNote"
+          maxlength="240"
+          rows="3"
+          placeholder="Ví dụ: mang ra sau 10 phút..."
+        ></textarea>
+
+        <small>
+          Tối đa 240 ký tự
+        </small>
 
       </div>
 
@@ -330,9 +356,9 @@
 </main>
 
 
-<!-- =========================
-     MODAL SIZE + TOPPING
-========================= -->
+<!-- =====================================
+     MODAL CHỌN SIZE + TOPPING + GHI CHÚ
+===================================== -->
 
 <div
   id="optionModal"
@@ -347,6 +373,7 @@
       id="closeOptionModal"
       class="dialog-close"
       type="button"
+      aria-label="Đóng"
     >
       ×
     </button>
@@ -416,6 +443,41 @@
     </section>
 
 
+    <!-- GHI CHÚ RIÊNG CHO MÓN -->
+
+    <section class="option-section">
+
+      <div class="option-title">
+
+        <h3>
+          Ghi chú cho món
+        </h3>
+
+        <span>
+          Tùy chọn
+        </span>
+
+      </div>
+
+
+      <textarea
+        id="itemNote"
+        class="item-note-input"
+        maxlength="160"
+        rows="3"
+        placeholder="Ví dụ: ít đá, 30% đường, không sữa..."
+      ></textarea>
+
+
+      <small class="input-help">
+        Tối đa 160 ký tự
+      </small>
+
+    </section>
+
+
+    <!-- FOOTER MODAL -->
+
     <div class="dialog-footer">
 
       <div>
@@ -447,6 +509,124 @@
 </div>
 
 
+<!-- =====================================
+     THÔNG TIN LIÊN HỆ
+===================================== -->
+
+<footer class="store-footer">
+
+  <div class="store-footer-inner">
+
+
+    <div class="footer-about">
+
+      <div
+        id="footerName"
+        class="footer-brand"
+      >
+        CHENG COFFEE
+      </div>
+
+
+      <p id="footerTagline">
+        Một chút cà phê,
+        một chút bình yên.
+      </p>
+
+    </div>
+
+
+    <div class="contact-grid">
+
+
+      <div class="contact-item">
+
+        <span>
+          Địa chỉ
+        </span>
+
+        <strong id="footerAddress">
+          Đang cập nhật
+        </strong>
+
+      </div>
+
+
+      <div class="contact-item">
+
+        <span>
+          Điện thoại
+        </span>
+
+        <a
+          id="footerPhone"
+          href="#"
+        >
+          Đang cập nhật
+        </a>
+
+      </div>
+
+
+      <div class="contact-item">
+
+        <span>
+          Giờ mở cửa
+        </span>
+
+        <strong id="footerHours">
+          Đang cập nhật
+        </strong>
+
+      </div>
+
+
+      <div class="footer-links">
+
+        <a
+          id="footerFacebook"
+          href="#"
+          target="_blank"
+          rel="noopener"
+          hidden
+        >
+          Facebook
+        </a>
+
+
+        <a
+          id="footerZalo"
+          href="#"
+          target="_blank"
+          rel="noopener"
+          hidden
+        >
+          Zalo
+        </a>
+
+      </div>
+
+
+    </div>
+
+  </div>
+
+
+  <div class="footer-copy">
+
+    ©
+    <span id="footerYear"></span>
+    Cheng Coffee
+
+  </div>
+
+</footer>
+
+
+<!-- =====================================
+     FIREBASE
+===================================== -->
+
 <script src="firebase-config.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
@@ -457,8 +637,10 @@
 
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-functions-compat.js"></script>
 
+
 <script src="app.js"></script>
 
 
 </body>
+
 </html>

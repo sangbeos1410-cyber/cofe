@@ -27,14 +27,14 @@ service cloud.firestore {
 
     match /menu/{id} {
 
-      // Khách chỉ được đọc món đang bán.
-      // Admin được đọc toàn bộ menu.
+      // Khách chỉ đọc món đang bán.
+      // Admin đọc toàn bộ.
       allow read:
         if resource.data.active == true
         || isAdmin();
 
 
-      // Chỉ Admin được thêm / sửa menu.
+      // Chỉ Admin được tạo hoặc sửa menu.
       allow create, update:
         if isAdmin()
 
@@ -53,6 +53,7 @@ service cloud.firestore {
         && request.resource.data.name.size() <= 100
 
         && request.resource.data.category is string
+        && request.resource.data.category.size() > 0
         && request.resource.data.category.size() <= 80
 
         && request.resource.data.description is string
@@ -73,6 +74,7 @@ service cloud.firestore {
       // Chỉ Admin được xóa món.
       allow delete:
         if isAdmin();
+
     }
 
 
@@ -82,18 +84,18 @@ service cloud.firestore {
 
     match /orders/{id} {
 
-      // Chỉ Admin được xem đơn.
+      // Chỉ Admin đọc được đơn.
       allow read:
         if isAdmin();
 
 
-      // Client không được tạo order trực tiếp.
+      // Client không được tự tạo đơn.
       // Cloud Function dùng Admin SDK để tạo.
       allow create:
         if false;
 
 
-      // Admin chỉ được đổi trạng thái đơn.
+      // Admin chỉ được thay đổi trạng thái đơn.
       allow update:
         if isAdmin()
 
@@ -116,9 +118,10 @@ service cloud.firestore {
           == request.time;
 
 
-      // Không cho client xóa order.
+      // Không cho client xóa đơn.
       allow delete:
         if false;
+
     }
 
 
@@ -128,7 +131,7 @@ service cloud.firestore {
 
     match /dailyStats/{id} {
 
-      // Chỉ Admin xem doanh thu / số cốc / số đơn.
+      // Chỉ Admin xem thống kê.
       allow read:
         if isAdmin();
 
@@ -136,21 +139,21 @@ service cloud.firestore {
       // Chỉ Cloud Function ghi.
       allow write:
         if false;
+
     }
 
 
     // =====================================
-    // ADMIN DEVICES / FCM TOKEN
+    // ADMIN DEVICES
     // =====================================
 
     match /adminDevices/{id} {
 
-      // Chỉ Admin được đọc device token.
+      // Admin có thể đọc để quản lý thiết bị.
       allow read:
         if isAdmin();
 
 
-      // Admin đăng ký / cập nhật thiết bị nhận thông báo.
       allow create, update:
         if isAdmin()
 
@@ -173,9 +176,71 @@ service cloud.firestore {
           == request.time;
 
 
-      // Admin có thể tắt / xóa token thiết bị.
       allow delete:
         if isAdmin();
+
+    }
+
+
+    // =====================================
+    // STORE SETTINGS / CONTACT
+    // =====================================
+
+    match /storeSettings/{id} {
+
+      // Khách được đọc thông tin liên hệ
+      // để hiển thị ở cuối trang.
+      allow read:
+        if id == "contact";
+
+
+      // Chỉ Admin được tạo / sửa.
+      allow create, update:
+        if isAdmin()
+
+        && id == "contact"
+
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'phone',
+          'openingHours',
+          'address',
+          'facebook',
+          'zalo',
+          'tagline',
+          'updatedAt'
+        ])
+
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
+
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() <= 30
+
+        && request.resource.data.openingHours is string
+        && request.resource.data.openingHours.size() <= 100
+
+        && request.resource.data.address is string
+        && request.resource.data.address.size() <= 200
+
+        && request.resource.data.facebook is string
+        && request.resource.data.facebook.size() <= 300
+
+        && request.resource.data.zalo is string
+        && request.resource.data.zalo.size() <= 300
+
+        && request.resource.data.tagline is string
+        && request.resource.data.tagline.size() <= 180
+
+        && request.resource.data.updatedAt
+          == request.time;
+
+
+      // Nếu sau này muốn xóa thông tin quán.
+      allow delete:
+        if isAdmin();
+
     }
 
 
@@ -185,20 +250,23 @@ service cloud.firestore {
 
     match /requestIds/{id} {
 
-      // Chỉ Cloud Function dùng để chống đơn trùng.
+      // Chỉ Cloud Function dùng
+      // để chống gửi trùng đơn.
       allow read, write:
         if false;
+
     }
 
 
     // =====================================
-    // MẶC ĐỊNH KHÓA TOÀN BỘ
+    // MẶC ĐỊNH KHÓA TẤT CẢ
     // =====================================
 
     match /{document=**} {
 
       allow read, write:
         if false;
+
     }
 
   }

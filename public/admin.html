@@ -1,16 +1,12 @@
 <!doctype html>
 <html lang="vi">
+
 <head>
   <meta charset="utf-8">
 
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
-
-  <link
-    rel="manifest"
-    href="/manifest.json"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
   >
 
   <meta
@@ -23,7 +19,27 @@
     content="yes"
   >
 
-  <title>Admin Cheng Coffee</title>
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="black-translucent"
+  >
+
+  <meta
+    name="apple-mobile-web-app-title"
+    content="Cheng Coffee Admin"
+  >
+
+  <link
+    rel="manifest"
+    href="/manifest.json"
+  >
+
+  <link
+    rel="apple-touch-icon"
+    href="/icon-192.png"
+  >
+
+  <title>Admin - Cheng Coffee</title>
 
   <link
     rel="stylesheet"
@@ -31,20 +47,38 @@
   >
 </head>
 
+
 <body>
 
-<header class="topbar">
+
+<!-- =====================================
+     HEADER
+===================================== -->
+
+<header class="admin-topbar">
 
   <div>
-    <small>CHENG COFFEE</small>
-    <h1>Admin Dashboard</h1>
+
+    <div class="brand-small">
+      CHENG COFFEE
+    </div>
+
+    <h1>
+      Admin Dashboard
+    </h1>
+
   </div>
+
 
   <div class="top-actions">
 
-    <a href="index.html">
+    <a
+      href="index.html"
+      class="customer-link"
+    >
       Menu khách
     </a>
+
 
     <button
       id="logoutBtn"
@@ -60,9 +94,12 @@
 </header>
 
 
-<main class="wrap">
+<main class="admin-wrap">
 
-  <!-- ĐĂNG NHẬP -->
+
+  <!-- ===================================
+       LOGIN
+  =================================== -->
 
   <section
     id="loginPanel"
@@ -71,13 +108,25 @@
 
     <div class="panel login-card">
 
+      <div class="login-icon">
+        ☕
+      </div>
+
+
+      <div class="brand-small dark">
+        CHENG COFFEE
+      </div>
+
+
       <h2>
         Đăng nhập Admin
       </h2>
 
+
       <p class="muted">
-        Chỉ cần nhập mật khẩu Admin.
+        Nhập mật khẩu để quản lý đơn hàng và menu.
       </p>
+
 
       <form id="loginForm">
 
@@ -85,15 +134,18 @@
           Mật khẩu
         </label>
 
+
         <input
           id="password"
           type="password"
           autocomplete="current-password"
+          placeholder="Nhập mật khẩu"
           required
         >
 
+
         <button
-          class="primary"
+          class="primary full"
           type="submit"
         >
           Đăng nhập
@@ -101,107 +153,160 @@
 
       </form>
 
-      <p id="loginMessage"></p>
+
+      <p
+        id="loginMessage"
+        class="form-message"
+      ></p>
 
     </div>
 
   </section>
 
 
-  <!-- ADMIN -->
+  <!-- ===================================
+       ADMIN APP
+  =================================== -->
 
   <div
     id="adminApp"
     hidden
   >
 
-    <!-- TAB -->
 
-    <nav class="tabs">
+    <!-- =================================
+         NAV TABS
+    ================================= -->
+
+    <nav class="admin-tabs">
 
       <button
-        class="tab active"
+        class="tab-button active"
         data-tab="stats"
         type="button"
       >
-        📊 Thống kê doanh số
+        <span>📊</span>
+        Thống kê doanh số
       </button>
 
+
       <button
-        class="tab"
+        class="tab-button"
         data-tab="orders"
         type="button"
       >
-        🧾 Món khách đã gọi
+        <span>🧾</span>
+        Món khách đã gọi
       </button>
 
+
       <button
-        class="tab"
+        class="tab-button"
         data-tab="menu"
         type="button"
       >
-        ☕ Điều chỉnh menu
+        <span>☕</span>
+        Điều chỉnh menu
       </button>
 
+
       <button
-        class="tab"
+        class="tab-button"
+        data-tab="store"
+        type="button"
+      >
+        <span>🏪</span>
+        Thông tin quán
+      </button>
+
+
+      <button
+        class="tab-button"
         data-tab="settings"
         type="button"
       >
-        ⚙️ Cài đặt
+        <span>⚙️</span>
+        Cài đặt
       </button>
 
     </nav>
 
 
-    <!-- ====================== -->
-    <!-- THỐNG KÊ -->
-    <!-- ====================== -->
+    <!-- =================================
+         THỐNG KÊ
+    ================================= -->
 
     <section
       id="tab-stats"
       class="tab-page active"
     >
 
+
       <div class="stats-grid">
 
+
         <article class="stat-card">
 
-          <span>
-            Số đơn hôm nay
-          </span>
+          <div class="stat-icon">
+            🧾
+          </div>
 
-          <strong id="todayOrders">
-            0
-          </strong>
+          <div>
+
+            <span>
+              Số đơn hôm nay
+            </span>
+
+            <strong id="todayOrders">
+              0
+            </strong>
+
+          </div>
 
         </article>
 
 
         <article class="stat-card">
 
-          <span>
-            Số cốc hôm nay
-          </span>
+          <div class="stat-icon">
+            🥤
+          </div>
 
-          <strong id="todayCups">
-            0
-          </strong>
+          <div>
+
+            <span>
+              Số cốc hôm nay
+            </span>
+
+            <strong id="todayCups">
+              0
+            </strong>
+
+          </div>
 
         </article>
 
 
         <article class="stat-card">
 
-          <span>
-            Doanh thu hôm nay
-          </span>
+          <div class="stat-icon">
+            💰
+          </div>
 
-          <strong id="todayRevenue">
-            0đ
-          </strong>
+          <div>
+
+            <span>
+              Doanh thu hôm nay
+            </span>
+
+            <strong id="todayRevenue">
+              0đ
+            </strong>
+
+          </div>
 
         </article>
+
 
       </div>
 
@@ -212,12 +317,16 @@
 
           <div>
 
+            <div class="section-label">
+              THỐNG KÊ
+            </div>
+
             <h2>
               Lịch sử doanh thu
             </h2>
 
             <p class="muted">
-              Hiển thị 31 ngày gần nhất.
+              31 ngày gần nhất.
             </p>
 
           </div>
@@ -253,7 +362,18 @@
 
             </thead>
 
-            <tbody id="historyTable"></tbody>
+
+            <tbody id="historyTable">
+
+              <tr>
+
+                <td colspan="4">
+                  Đang tải...
+                </td>
+
+              </tr>
+
+            </tbody>
 
           </table>
 
@@ -261,12 +381,13 @@
 
       </section>
 
+
     </section>
 
 
-    <!-- ====================== -->
-    <!-- ĐƠN HÀNG -->
-    <!-- ====================== -->
+    <!-- =================================
+         ĐƠN HÀNG
+    ================================= -->
 
     <section
       id="tab-orders"
@@ -275,22 +396,28 @@
 
       <section class="panel">
 
+
         <div class="section-head">
 
           <div>
+
+            <div class="section-label">
+              REALTIME
+            </div>
 
             <h2>
               Đơn hàng hôm nay
             </h2>
 
             <p class="muted">
-              Đơn mới tự xuất hiện realtime.
+              Đơn mới sẽ tự xuất hiện.
             </p>
 
           </div>
 
-          <span class="badge">
-            Realtime
+
+          <span class="status-pill online">
+            ● Đang theo dõi
           </span>
 
         </div>
@@ -300,7 +427,11 @@
           id="ordersList"
           class="orders-list"
         >
-          Đang tải đơn...
+
+          <div class="empty-admin">
+            Đang tải đơn hàng...
+          </div>
+
         </div>
 
       </section>
@@ -308,24 +439,45 @@
     </section>
 
 
-    <!-- ====================== -->
-    <!-- MENU -->
-    <!-- ====================== -->
+    <!-- =================================
+         MENU
+    ================================= -->
 
     <section
       id="tab-menu"
       class="tab-page"
     >
 
+
       <section class="panel">
 
-        <h2 id="formTitle">
-          Thêm món mới
-        </h2>
+
+        <div class="section-head">
+
+          <div>
+
+            <div class="section-label">
+              MENU
+            </div>
+
+            <h2 id="formTitle">
+              Thêm món mới
+            </h2>
+
+            <p class="muted">
+              Quản lý danh mục, size và topping.
+            </p>
+
+          </div>
+
+        </div>
+
 
         <form id="menuForm">
 
+
           <div class="form-grid">
+
 
             <div>
 
@@ -335,6 +487,7 @@
 
               <input
                 id="itemId"
+                maxlength="30"
                 placeholder="CF01"
                 required
               >
@@ -350,6 +503,7 @@
 
               <input
                 id="itemName"
+                maxlength="100"
                 placeholder="Cà phê sữa"
                 required
               >
@@ -365,7 +519,9 @@
 
               <input
                 id="itemCategory"
+                maxlength="80"
                 placeholder="Cà phê"
+                required
               >
 
             </div>
@@ -379,21 +535,39 @@
 
               <input
                 id="itemDescription"
+                maxlength="300"
                 placeholder="Cà phê sữa truyền thống"
               >
 
             </div>
 
+
           </div>
 
 
+          <!-- SIZE -->
+
           <div class="config-box">
 
-            <h3>
-              Giá theo size
-            </h3>
+            <div class="config-title">
 
-            <div class="size-grid">
+              <div>
+
+                <h3>
+                  Giá theo size
+                </h3>
+
+                <p>
+                  Size không bán có thể để trống.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div class="size-admin-grid">
+
 
               <div>
 
@@ -405,6 +579,7 @@
                   id="sizeS"
                   type="number"
                   min="0"
+                  step="1000"
                   placeholder="18000"
                 >
 
@@ -421,6 +596,7 @@
                   id="sizeM"
                   type="number"
                   min="0"
+                  step="1000"
                   placeholder="20000"
                 >
 
@@ -437,41 +613,50 @@
                   id="sizeL"
                   type="number"
                   min="0"
+                  step="1000"
                   placeholder="25000"
                 >
 
               </div>
 
-            </div>
 
-            <p class="muted">
-              Size nào không bán thì để trống.
-            </p>
+            </div>
 
           </div>
 
 
+          <!-- TOPPING -->
+
           <div class="config-box">
 
-            <h3>
-              Topping
-            </h3>
+            <div class="config-title">
 
-            <p class="muted">
-              Mỗi dòng nhập theo dạng:
-              Tên topping | Giá
-            </p>
+              <div>
+
+                <h3>
+                  Topping
+                </h3>
+
+                <p>
+                  Mỗi dòng:
+                  Tên topping | Giá
+                </p>
+
+              </div>
+
+            </div>
+
 
             <textarea
               id="toppingsText"
               rows="6"
-              placeholder="Trân châu đen | 5000&#10;Thạch cà phê | 5000&#10;Kem cheese | 10000"
+              placeholder="Trân châu đen | 5000&#10;Thạch cà phê | 5000&#10;Kem muối | 10000"
             ></textarea>
 
           </div>
 
 
-          <label class="checkbox-label">
+          <label class="checkbox-row">
 
             <input
               id="itemActive"
@@ -479,7 +664,9 @@
               checked
             >
 
-            Đang bán
+            <span>
+              Đang bán
+            </span>
 
           </label>
 
@@ -494,6 +681,7 @@
               Thêm món
             </button>
 
+
             <button
               id="cancelBtn"
               class="secondary"
@@ -505,18 +693,38 @@
 
           </div>
 
-          <p id="message"></p>
+
+          <p
+            id="message"
+            class="form-message"
+          ></p>
+
 
         </form>
 
       </section>
 
 
+      <!-- MENU LIST -->
+
       <section class="panel">
 
-        <h2>
-          Danh sách menu
-        </h2>
+        <div class="section-head">
+
+          <div>
+
+            <h2>
+              Danh sách menu
+            </h2>
+
+            <p class="muted">
+              Các thay đổi cập nhật realtime.
+            </p>
+
+          </div>
+
+        </div>
+
 
         <div class="table-wrap">
 
@@ -532,6 +740,10 @@
 
                 <th>
                   Tên món
+                </th>
+
+                <th>
+                  Danh mục
                 </th>
 
                 <th>
@@ -554,7 +766,18 @@
 
             </thead>
 
-            <tbody id="menuTable"></tbody>
+
+            <tbody id="menuTable">
+
+              <tr>
+
+                <td colspan="7">
+                  Đang tải menu...
+                </td>
+
+              </tr>
+
+            </tbody>
 
           </table>
 
@@ -562,17 +785,203 @@
 
       </section>
 
+
     </section>
 
 
-    <!-- ====================== -->
-    <!-- CÀI ĐẶT -->
-    <!-- ====================== -->
+    <!-- =================================
+         THÔNG TIN QUÁN
+    ================================= -->
+
+    <section
+      id="tab-store"
+      class="tab-page"
+    >
+
+      <section class="panel">
+
+
+        <div class="section-head">
+
+          <div>
+
+            <div class="section-label">
+              THÔNG TIN QUÁN
+            </div>
+
+            <h2>
+              Thông tin liên hệ
+            </h2>
+
+            <p class="muted">
+              Những thông tin này sẽ hiển thị ở cuối trang menu khách.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <form id="storeForm">
+
+
+          <div class="store-form-grid">
+
+
+            <div>
+
+              <label for="storeName">
+                Tên quán
+              </label>
+
+              <input
+                id="storeName"
+                maxlength="100"
+                placeholder="CHENG COFFEE"
+                required
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="storePhone">
+                Số điện thoại
+              </label>
+
+              <input
+                id="storePhone"
+                maxlength="30"
+                placeholder="09xx xxx xxx"
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="storeHours">
+                Giờ mở cửa
+              </label>
+
+              <input
+                id="storeHours"
+                maxlength="100"
+                placeholder="07:00 - 22:00"
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="storeAddress">
+                Địa chỉ
+              </label>
+
+              <input
+                id="storeAddress"
+                maxlength="200"
+                placeholder="Địa chỉ quán"
+              >
+
+            </div>
+
+
+          </div>
+
+
+          <div class="store-form-grid">
+
+
+            <div>
+
+              <label for="storeFacebook">
+                Facebook
+              </label>
+
+              <input
+                id="storeFacebook"
+                type="url"
+                maxlength="300"
+                placeholder="https://facebook.com/..."
+              >
+
+            </div>
+
+
+            <div>
+
+              <label for="storeZalo">
+                Zalo
+              </label>
+
+              <input
+                id="storeZalo"
+                type="url"
+                maxlength="300"
+                placeholder="https://zalo.me/..."
+              >
+
+            </div>
+
+
+          </div>
+
+
+          <div class="store-tagline-field">
+
+            <label for="storeTagline">
+              Câu giới thiệu
+            </label>
+
+            <textarea
+              id="storeTagline"
+              maxlength="180"
+              rows="3"
+              placeholder="Một chút cà phê, một chút bình yên."
+            ></textarea>
+
+          </div>
+
+
+          <div class="actions">
+
+            <button
+              class="primary"
+              type="submit"
+            >
+              Lưu thông tin quán
+            </button>
+
+          </div>
+
+
+          <p
+            id="storeMessage"
+            class="form-message"
+          ></p>
+
+
+        </form>
+
+      </section>
+
+    </section>
+
+
+    <!-- =================================
+         SETTINGS
+    ================================= -->
 
     <section
       id="tab-settings"
       class="tab-page"
     >
+
+
+      <!-- PUSH -->
 
       <section class="panel">
 
@@ -580,19 +989,24 @@
 
           <div>
 
+            <div class="section-label">
+              THÔNG BÁO
+            </div>
+
             <h2>
-              🔔 Thông báo đơn mới
+              Thông báo đơn mới
             </h2>
 
             <p class="muted">
-              Nhận thông báo khi khách đặt món.
+              Nhận Firebase Push khi khách đặt nước.
             </p>
 
           </div>
 
+
           <span
             id="pushStatusBadge"
-            class="badge"
+            class="status-pill"
           >
             Chưa bật
           </span>
@@ -607,8 +1021,9 @@
             class="primary"
             type="button"
           >
-            Bật thông báo
+            🔔 Bật thông báo
           </button>
+
 
           <button
             id="testPushBtn"
@@ -617,6 +1032,7 @@
           >
             Gửi thử
           </button>
+
 
           <button
             id="disablePushBtn"
@@ -628,30 +1044,52 @@
 
         </div>
 
-        <p id="pushMessage"></p>
+
+        <p
+          id="pushMessage"
+          class="form-message"
+        ></p>
 
       </section>
 
 
+      <!-- PASSWORD -->
+
       <section class="panel">
 
-        <h2>
-          Đổi mật khẩu Admin
-        </h2>
+        <div class="section-head">
+
+          <div>
+
+            <div class="section-label">
+              BẢO MẬT
+            </div>
+
+            <h2>
+              Đổi mật khẩu Admin
+            </h2>
+
+          </div>
+
+        </div>
+
 
         <form id="changePasswordForm">
 
+
           <div class="password-grid">
+
 
             <div>
 
-              <label>
+              <label for="currentPassword">
                 Mật khẩu hiện tại
               </label>
 
               <input
                 id="currentPassword"
                 type="password"
+                autocomplete="current-password"
                 required
               >
 
@@ -660,13 +1098,14 @@
 
             <div>
 
-              <label>
+              <label for="newPassword">
                 Mật khẩu mới
               </label>
 
               <input
                 id="newPassword"
                 type="password"
+                autocomplete="new-password"
                 minlength="8"
                 required
               >
@@ -676,41 +1115,58 @@
 
             <div>
 
-              <label>
-                Nhập lại mật khẩu
+              <label for="confirmPassword">
+                Nhập lại mật khẩu mới
               </label>
 
               <input
                 id="confirmPassword"
                 type="password"
+                autocomplete="new-password"
                 minlength="8"
                 required
               >
 
             </div>
 
+
           </div>
 
 
-          <button
-            class="primary"
-            type="submit"
-          >
-            Đổi mật khẩu
-          </button>
+          <div class="actions">
+
+            <button
+              class="primary"
+              type="submit"
+            >
+              Đổi mật khẩu
+            </button>
+
+          </div>
+
+
+          <p
+            id="passwordMessage"
+            class="form-message"
+          ></p>
+
 
         </form>
 
-        <p id="passwordMessage"></p>
-
       </section>
 
+
     </section>
+
 
   </div>
 
 </main>
 
+
+<!-- =====================================
+     FIREBASE
+===================================== -->
 
 <script src="firebase-config.js"></script>
 
@@ -724,7 +1180,10 @@
 
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-messaging-compat.js"></script>
 
+
 <script src="admin.js"></script>
 
+
 </body>
+
 </html>
