@@ -51,9 +51,9 @@
 <body>
 
 
-<!-- =====================================
-     MÀN HÌNH CHÀO
-===================================== -->
+<!-- =====================================================
+     SPLASH MỞ ĐẦU
+===================================================== -->
 
 <div
   id="welcomeScreen"
@@ -61,7 +61,6 @@
 >
 
   <div class="welcome-light light-one"></div>
-
   <div class="welcome-light light-two"></div>
 
 
@@ -102,9 +101,83 @@
 </div>
 
 
-<!-- =====================================
+<!-- =====================================================
+     MÀN HÌNH ĐẶT MÓN THÀNH CÔNG
+===================================================== -->
+
+<div
+  id="successScreen"
+  class="success-screen"
+  hidden
+>
+
+  <div class="success-light success-light-one"></div>
+  <div class="success-light success-light-two"></div>
+
+
+  <div class="success-content">
+
+    <div class="success-icon">
+      ✓
+    </div>
+
+
+    <div class="success-brand">
+      CHENG COFFEE
+    </div>
+
+
+    <h1>
+      Đặt món thành công
+    </h1>
+
+
+    <p class="success-thank">
+      Cảm ơn quý khách
+    </p>
+
+
+    <p class="success-description">
+      Cheng Coffee đã nhận được đơn của bạn.
+      Chúng tôi sẽ chuẩn bị trong thời gian sớm nhất.
+    </p>
+
+
+    <div class="success-order-box">
+
+      <span>
+        Mã đơn
+      </span>
+
+      <strong id="successOrderId">
+        ---
+      </strong>
+
+    </div>
+
+
+    <div
+      id="successPaymentHint"
+      class="success-payment-hint"
+    ></div>
+
+
+    <button
+      id="backToMenuBtn"
+      class="success-button"
+      type="button"
+    >
+      Về menu
+    </button>
+
+  </div>
+
+</div>
+
+
+<!-- =====================================================
      HEADER
-===================================== -->
+===================================================== -->
 
 <header class="hero">
 
@@ -124,7 +197,7 @@
 
       <p>
         Chọn món, size và topping.
-        Đơn của bạn sẽ được gửi trực tiếp đến quầy.
+        Dùng tại quán hoặc giao tận nơi đều được.
       </p>
 
     </div>
@@ -142,16 +215,16 @@
 </header>
 
 
-<!-- =====================================
+<!-- =====================================================
      MAIN
-===================================== -->
+===================================================== -->
 
 <main class="main-layout">
 
 
-  <!-- ===================================
+  <!-- ===================================================
        MENU
-  =================================== -->
+  =================================================== -->
 
   <section class="menu-area">
 
@@ -220,9 +293,9 @@
   </section>
 
 
-  <!-- ===================================
+  <!-- ===================================================
        GIỎ HÀNG
-  =================================== -->
+  =================================================== -->
 
   <aside class="cart-area">
 
@@ -281,26 +354,203 @@
       <div class="divider"></div>
 
 
-      <!-- SỐ BÀN -->
+      <!-- =================================================
+           HÌNH THỨC NHẬN MÓN
+      ================================================= -->
 
-      <div class="table-field">
+      <section class="checkout-section">
 
-        <label for="tableNumber">
-          Số bàn
-        </label>
+        <div class="checkout-title">
 
-        <input
-          id="tableNumber"
-          maxlength="20"
-          placeholder="Ví dụ: 05"
-        >
+          <div>
+
+            <span class="checkout-label">
+              HÌNH THỨC NHẬN MÓN
+            </span>
+
+            <h3>
+              Bạn muốn nhận món thế nào?
+            </h3>
+
+          </div>
+
+        </div>
+
+
+        <div class="fulfillment-options">
+
+
+          <label class="fulfillment-card">
+
+            <input
+              type="radio"
+              name="fulfillmentType"
+              value="dine_in"
+              checked
+            >
+
+            <div class="fulfillment-icon">
+              ☕
+            </div>
+
+            <div>
+
+              <strong>
+                Uống tại quán
+              </strong>
+
+              <span>
+                Nhập số bàn của bạn
+              </span>
+
+            </div>
+
+          </label>
+
+
+          <label class="fulfillment-card">
+
+            <input
+              type="radio"
+              name="fulfillmentType"
+              value="delivery"
+            >
+
+            <div class="fulfillment-icon">
+              🛵
+            </div>
+
+            <div>
+
+              <strong>
+                Giao tận nơi
+              </strong>
+
+              <span>
+                Ship đến địa chỉ của bạn
+              </span>
+
+            </div>
+
+          </label>
+
+
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           UỐNG TẠI QUÁN
+      ================================================= -->
+
+      <div
+        id="dineInFields"
+        class="checkout-fields"
+      >
+
+        <div class="field-group">
+
+          <label for="tableNumber">
+            Số bàn
+          </label>
+
+          <input
+            id="tableNumber"
+            maxlength="20"
+            placeholder="Ví dụ: 05"
+          >
+
+        </div>
 
       </div>
 
 
-      <!-- GHI CHÚ CHUNG CHO ĐƠN -->
+      <!-- =================================================
+           GIAO TẬN NƠI
+      ================================================= -->
 
-      <div class="order-note-field">
+      <div
+        id="deliveryFields"
+        class="checkout-fields"
+        hidden
+      >
+
+
+        <div class="field-group">
+
+          <label for="customerName">
+            Họ và tên
+          </label>
+
+          <input
+            id="customerName"
+            maxlength="100"
+            autocomplete="name"
+            placeholder="Nguyễn Văn A"
+          >
+
+        </div>
+
+
+        <div class="field-group">
+
+          <label for="customerPhone">
+            Số điện thoại
+          </label>
+
+          <input
+            id="customerPhone"
+            maxlength="20"
+            inputmode="tel"
+            autocomplete="tel"
+            placeholder="09xxxxxxxx"
+          >
+
+        </div>
+
+
+        <div class="field-group">
+
+          <label for="customerAddress">
+            Địa chỉ nhận hàng
+          </label>
+
+          <textarea
+            id="customerAddress"
+            maxlength="300"
+            rows="3"
+            autocomplete="street-address"
+            placeholder="Số nhà, tên đường, phường/xã..."
+          ></textarea>
+
+        </div>
+
+
+        <div class="field-group">
+
+          <label for="deliveryNote">
+            Ghi chú giao hàng
+          </label>
+
+          <textarea
+            id="deliveryNote"
+            maxlength="200"
+            rows="2"
+            placeholder="Ví dụ: gọi trước khi tới..."
+          ></textarea>
+
+        </div>
+
+
+      </div>
+
+
+      <!-- =================================================
+           GHI CHÚ CHUNG
+      ================================================= -->
+
+      <div class="field-group order-note-group">
 
         <label for="orderNote">
           Ghi chú cho đơn
@@ -310,7 +560,7 @@
           id="orderNote"
           maxlength="240"
           rows="3"
-          placeholder="Ví dụ: mang ra sau 10 phút..."
+          placeholder="Ví dụ: làm tất cả ít ngọt..."
         ></textarea>
 
         <small>
@@ -319,6 +569,221 @@
 
       </div>
 
+
+      <div class="divider"></div>
+
+
+      <!-- =================================================
+           PHƯƠNG THỨC THANH TOÁN
+      ================================================= -->
+
+      <section class="checkout-section">
+
+        <div class="checkout-title">
+
+          <div>
+
+            <span class="checkout-label">
+              THANH TOÁN
+            </span>
+
+            <h3>
+              Phương thức thanh toán
+            </h3>
+
+          </div>
+
+        </div>
+
+
+        <div class="payment-options">
+
+
+          <label class="payment-card">
+
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="cash"
+              checked
+            >
+
+            <div class="payment-icon">
+              💵
+            </div>
+
+            <div>
+
+              <strong>
+                Tiền mặt
+              </strong>
+
+              <span>
+                Thanh toán khi nhận món
+              </span>
+
+            </div>
+
+          </label>
+
+
+          <label class="payment-card">
+
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="bank_transfer"
+            >
+
+            <div class="payment-icon">
+              🏦
+            </div>
+
+            <div>
+
+              <strong>
+                Chuyển khoản
+              </strong>
+
+              <span>
+                Quét QR ngân hàng
+              </span>
+
+            </div>
+
+          </label>
+
+
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           BANK TRANSFER
+      ================================================= -->
+
+      <div
+        id="bankTransferPanel"
+        class="bank-transfer-panel"
+        hidden
+      >
+
+        <div class="bank-title">
+
+          <span>
+            THANH TOÁN CHUYỂN KHOẢN
+          </span>
+
+          <h3>
+            Quét mã QR
+          </h3>
+
+        </div>
+
+
+        <div class="bank-layout">
+
+
+          <div class="bank-qr-box">
+
+            <img
+              id="bankQrImage"
+              src=""
+              alt="QR chuyển khoản Cheng Coffee"
+              hidden
+            >
+
+
+            <div
+              id="bankQrPlaceholder"
+              class="bank-qr-placeholder"
+            >
+              QR ngân hàng
+            </div>
+
+          </div>
+
+
+          <div class="bank-details">
+
+
+            <div class="bank-detail">
+
+              <span>
+                Ngân hàng
+              </span>
+
+              <strong id="bankName">
+                Đang cập nhật
+              </strong>
+
+            </div>
+
+
+            <div class="bank-detail">
+
+              <span>
+                Chủ tài khoản
+              </span>
+
+              <strong id="bankAccountName">
+                Đang cập nhật
+              </strong>
+
+            </div>
+
+
+            <div class="bank-detail">
+
+              <span>
+                Số tài khoản
+              </span>
+
+              <strong id="bankAccountNumber">
+                Đang cập nhật
+              </strong>
+
+            </div>
+
+
+            <div class="bank-detail">
+
+              <span>
+                Hướng dẫn
+              </span>
+
+              <strong id="bankInstructions">
+                Vui lòng chuyển đúng số tiền của đơn.
+              </strong>
+
+            </div>
+
+
+          </div>
+
+        </div>
+
+
+        <div class="bank-warning">
+
+          <strong>
+            Lưu ý:
+          </strong>
+
+          Sau khi chuyển khoản,
+          bạn vẫn cần bấm
+          <b>ĐẶT MÓN</b>
+          để gửi đơn cho Cheng Coffee.
+
+        </div>
+
+      </div>
+
+
+      <!-- =================================================
+           TOTAL
+      ================================================= -->
 
       <div class="total-row">
 
@@ -356,9 +821,9 @@
 </main>
 
 
-<!-- =====================================
-     MODAL CHỌN SIZE + TOPPING + GHI CHÚ
-===================================== -->
+<!-- =====================================================
+     MODAL SIZE + TOPPING
+===================================================== -->
 
 <div
   id="optionModal"
@@ -443,7 +908,7 @@
     </section>
 
 
-    <!-- GHI CHÚ RIÊNG CHO MÓN -->
+    <!-- NOTE -->
 
     <section class="option-section">
 
@@ -476,7 +941,7 @@
     </section>
 
 
-    <!-- FOOTER MODAL -->
+    <!-- FOOTER -->
 
     <div class="dialog-footer">
 
@@ -509,9 +974,9 @@
 </div>
 
 
-<!-- =====================================
-     THÔNG TIN LIÊN HỆ
-===================================== -->
+<!-- =====================================================
+     FOOTER THÔNG TIN QUÁN
+===================================================== -->
 
 <footer class="store-footer">
 
@@ -623,9 +1088,9 @@
 </footer>
 
 
-<!-- =====================================
+<!-- =====================================================
      FIREBASE
-===================================== -->
+===================================================== -->
 
 <script src="firebase-config.js"></script>
 
@@ -636,7 +1101,6 @@
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore-compat.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-functions-compat.js"></script>
-
 
 <script src="app.js"></script>
 

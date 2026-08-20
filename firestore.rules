@@ -27,14 +27,14 @@ service cloud.firestore {
 
     match /menu/{id} {
 
-      // Khách chỉ đọc món đang bán.
-      // Admin đọc toàn bộ.
+      // Khách chỉ xem món đang bán.
+      // Admin xem toàn bộ.
       allow read:
         if resource.data.active == true
         || isAdmin();
 
 
-      // Chỉ Admin được tạo hoặc sửa menu.
+      // Chỉ Admin được tạo/sửa menu.
       allow create, update:
         if isAdmin()
 
@@ -71,7 +71,6 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
 
 
-      // Chỉ Admin được xóa món.
       allow delete:
         if isAdmin();
 
@@ -84,18 +83,29 @@ service cloud.firestore {
 
     match /orders/{id} {
 
-      // Chỉ Admin đọc được đơn.
+      // Chỉ Admin đọc đơn.
       allow read:
         if isAdmin();
 
 
-      // Client không được tự tạo đơn.
-      // Cloud Function dùng Admin SDK để tạo.
+      // Client không tự ghi order.
+      // Cloud Function dùng Admin SDK tạo order.
       allow create:
         if false;
 
 
-      // Admin chỉ được thay đổi trạng thái đơn.
+      /*
+        Admin được đổi:
+        - trạng thái đơn
+        - trạng thái thanh toán
+
+        Không được sửa:
+        - giá
+        - món
+        - thông tin khách
+        - địa chỉ
+        - tổng tiền
+      */
       allow update:
         if isAdmin()
 
@@ -104,6 +114,7 @@ service cloud.firestore {
           .affectedKeys()
           .hasOnly([
             'status',
+            'paymentStatus',
             'updatedAt'
           ])
 
@@ -112,6 +123,12 @@ service cloud.firestore {
             'new',
             'preparing',
             'done'
+          ]
+
+        && request.resource.data.paymentStatus
+          in [
+            'pending',
+            'paid'
           ]
 
         && request.resource.data.updatedAt
@@ -144,12 +161,11 @@ service cloud.firestore {
 
 
     // =====================================
-    // ADMIN DEVICES
+    // ADMIN DEVICES / FCM
     // =====================================
 
     match /adminDevices/{id} {
 
-      // Admin có thể đọc để quản lý thiết bị.
       allow read:
         if isAdmin();
 
@@ -183,22 +199,18 @@ service cloud.firestore {
 
 
     // =====================================
-    // STORE SETTINGS / CONTACT
+    // STORE SETTINGS - CONTACT
     // =====================================
 
-    match /storeSettings/{id} {
+    match /storeSettings/contact {
 
-      // Khách được đọc thông tin liên hệ
-      // để hiển thị ở cuối trang.
+      // Public read để trang khách hiển thị footer.
       allow read:
-        if id == "contact";
+        if true;
 
 
-      // Chỉ Admin được tạo / sửa.
       allow create, update:
         if isAdmin()
-
-        && id == "contact"
 
         && request.resource.data.keys().hasOnly([
           'name',
@@ -237,7 +249,63 @@ service cloud.firestore {
           == request.time;
 
 
-      // Nếu sau này muốn xóa thông tin quán.
+      allow delete:
+        if isAdmin();
+
+    }
+
+
+    // =====================================
+    // STORE SETTINGS - PAYMENT
+    // =====================================
+
+    match /storeSettings/payment {
+
+      /*
+        Public read vì khách cần xem:
+        - ngân hàng
+        - số tài khoản
+        - QR
+        - hướng dẫn
+
+        Không nên lưu bất kỳ secret nào ở đây.
+      */
+      allow read:
+        if true;
+
+
+      // Chỉ Admin được sửa thanh toán.
+      allow create, update:
+        if isAdmin()
+
+        && request.resource.data.keys().hasOnly([
+          'bankName',
+          'accountName',
+          'accountNumber',
+          'qrImageUrl',
+          'instructions',
+          'updatedAt'
+        ])
+
+        && request.resource.data.bankName is string
+        && request.resource.data.bankName.size() <= 100
+
+        && request.resource.data.accountName is string
+        && request.resource.data.accountName.size() <= 120
+
+        && request.resource.data.accountNumber is string
+        && request.resource.data.accountNumber.size() <= 50
+
+        && request.resource.data.qrImageUrl is string
+        && request.resource.data.qrImageUrl.size() <= 500
+
+        && request.resource.data.instructions is string
+        && request.resource.data.instructions.size() <= 300
+
+        && request.resource.data.updatedAt
+          == request.time;
+
+
       allow delete:
         if isAdmin();
 
@@ -250,8 +318,7 @@ service cloud.firestore {
 
     match /requestIds/{id} {
 
-      // Chỉ Cloud Function dùng
-      // để chống gửi trùng đơn.
+      // Chỉ Cloud Function dùng chống gửi trùng.
       allow read, write:
         if false;
 
@@ -259,7 +326,7 @@ service cloud.firestore {
 
 
     // =====================================
-    // MẶC ĐỊNH KHÓA TẤT CẢ
+    // KHÓA MẶC ĐỊNH
     // =====================================
 
     match /{document=**} {

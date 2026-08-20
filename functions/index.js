@@ -28,9 +28,9 @@ const crypto =
   require("crypto");
 
 
-/* =====================================
+/* =========================================================
    FIREBASE ADMIN
-===================================== */
+========================================================= */
 
 initializeApp();
 
@@ -42,17 +42,13 @@ const REGION =
   "asia-southeast1";
 
 
-/*
-  Email Admin của bạn.
-  Không điền mật khẩu ở đây.
-*/
 const ADMIN_EMAIL =
   "sangbeos1410@gmail.com";
 
 
-/* =====================================
+/* =========================================================
    ADMIN CHECK
-===================================== */
+========================================================= */
 
 function isAdmin(req) {
 
@@ -60,24 +56,23 @@ function isAdmin(req) {
     &&
     String(
       req.auth.token.email || ""
-    )
-    .toLowerCase()
+    ).toLowerCase()
     ===
     ADMIN_EMAIL.toLowerCase();
 
 }
 
 
-/* =====================================
-   DATE VIETNAM
-===================================== */
+/* =========================================================
+   DATE VN
+========================================================= */
 
 function dateKeyVN(
   date = new Date()
 ) {
 
-  return new Intl
-    .DateTimeFormat(
+  const parts =
+    new Intl.DateTimeFormat(
       "en-CA",
       {
         timeZone:
@@ -93,16 +88,43 @@ function dateKeyVN(
           "2-digit"
       }
     )
-    .format(date);
+    .formatToParts(date);
+
+
+  const map = {};
+
+
+  for (const part of parts) {
+
+    map[part.type] =
+      part.value;
+
+  }
+
+
+  return (
+    map.year
+    +
+    "-"
+    +
+    map.month
+    +
+    "-"
+    +
+    map.day
+  );
 
 }
 
 
-/* =====================================
-   CLEAN TABLE
-===================================== */
+/* =========================================================
+   CLEAN HELPERS
+========================================================= */
 
-function cleanTable(value) {
+function cleanText(
+  value,
+  maxLength
+) {
 
   return String(
     value || ""
@@ -110,51 +132,107 @@ function cleanTable(value) {
   .trim()
   .slice(
     0,
+    maxLength
+  );
+
+}
+
+
+function cleanTable(value) {
+
+  return cleanText(
+    value,
     20
   );
 
 }
 
 
-/* =====================================
-   CLEAN NOTE
-===================================== */
+function cleanItemNote(value) {
 
-function cleanItemNote(
-  value
-) {
-
-  return String(
-    value || ""
-  )
-  .trim()
-  .slice(
-    0,
+  return cleanText(
+    value,
     160
   );
 
 }
 
 
-function cleanOrderNote(
-  value
-) {
+function cleanOrderNote(value) {
 
-  return String(
-    value || ""
-  )
-  .trim()
-  .slice(
-    0,
+  return cleanText(
+    value,
     240
   );
 
 }
 
 
-/* =====================================
+function cleanDeliveryNote(value) {
+
+  return cleanText(
+    value,
+    200
+  );
+
+}
+
+
+function cleanCustomerName(value) {
+
+  return cleanText(
+    value,
+    100
+  );
+
+}
+
+
+function cleanPhone(value) {
+
+  return cleanText(
+    value,
+    20
+  );
+
+}
+
+
+function cleanAddress(value) {
+
+  return cleanText(
+    value,
+    300
+  );
+
+}
+
+
+/* =========================================================
+   PHONE VALIDATION
+========================================================= */
+
+function isValidPhone(value) {
+
+  const phone =
+    String(
+      value || ""
+    )
+    .replace(
+      /[\s.-]/g,
+      ""
+    );
+
+
+  return /^\+?\d{8,15}$/
+    .test(phone);
+
+}
+
+
+/* =========================================================
    CREATE ORDER
-===================================== */
+========================================================= */
 
 exports.createOrder =
   onCall(
@@ -164,22 +242,11 @@ exports.createOrder =
       region:
         REGION,
 
-
-      /*
-        Hiện tại để false
-        vì App Check của website
-        chưa cấu hình hoàn chỉnh.
-
-        Sau này App Check chạy ổn
-        mới đổi lại true.
-      */
       enforceAppCheck:
         false,
 
-
       timeoutSeconds:
-        15,
-
+        20,
 
       memory:
         "256MiB"
@@ -194,9 +261,7 @@ exports.createOrder =
          AUTH
       ----------------------------- */
 
-      if (
-        !req.auth
-      ) {
+      if (!req.auth) {
 
         throw new HttpsError(
           "unauthenticated",
@@ -208,11 +273,19 @@ exports.createOrder =
 
       const {
 
+        fulfillmentType,
+
         table,
 
-        items,
+        customer,
+
+        deliveryNote,
+
+        paymentMethod,
 
         orderNote,
+
+        items,
 
         clientRequestId
 
@@ -221,43 +294,196 @@ exports.createOrder =
 
 
       /* -----------------------------
-         TABLE
+         FULFILLMENT
       ----------------------------- */
 
-      const safeTable =
-        cleanTable(table);
+      const safeFulfillmentType =
+        fulfillmentType ===
+          "delivery"
+        ?
+        "delivery"
+        :
+        fulfillmentType ===
+          "dine_in"
+        ?
+        "dine_in"
+        :
+        null;
 
 
-      if (
-        !safeTable
-      ) {
+      if (!safeFulfillmentType) {
 
         throw new HttpsError(
           "invalid-argument",
-          "Vui lòng nhập số bàn."
+          "Hình thức nhận món không hợp lệ."
         );
 
       }
 
 
       /* -----------------------------
-         REQUEST ID
+         PAYMENT METHOD
       ----------------------------- */
 
-      if (
-        typeof clientRequestId
-        !==
-        "string"
-        ||
-        clientRequestId.length < 8
-        ||
-        clientRequestId.length > 120
-      ) {
+      const safePaymentMethod =
+        paymentMethod ===
+          "bank_transfer"
+        ?
+        "bank_transfer"
+        :
+        paymentMethod ===
+          "cash"
+        ?
+        "cash"
+        :
+        null;
+
+
+      if (!safePaymentMethod) {
 
         throw new HttpsError(
           "invalid-argument",
-          "Mã yêu cầu không hợp lệ."
+          "Phương thức thanh toán không hợp lệ."
         );
+
+      }
+
+
+      /* -----------------------------
+         DINE IN
+      ----------------------------- */
+
+      let safeTable =
+        "";
+
+
+      let safeCustomer = {
+
+        name:
+          "",
+
+        phone:
+          "",
+
+        address:
+          ""
+
+      };
+
+
+      let safeDeliveryNote =
+        "";
+
+
+      if (
+        safeFulfillmentType ===
+        "dine_in"
+      ) {
+
+        safeTable =
+          cleanTable(
+            table
+          );
+
+
+        if (!safeTable) {
+
+          throw new HttpsError(
+            "invalid-argument",
+            "Vui lòng nhập số bàn."
+          );
+
+        }
+
+      }
+
+
+      /* -----------------------------
+         DELIVERY
+      ----------------------------- */
+
+      if (
+        safeFulfillmentType ===
+        "delivery"
+      ) {
+
+        if (
+          !customer
+          ||
+          typeof customer !==
+          "object"
+        ) {
+
+          throw new HttpsError(
+            "invalid-argument",
+            "Thông tin người nhận không hợp lệ."
+          );
+
+        }
+
+
+        safeCustomer = {
+
+          name:
+            cleanCustomerName(
+              customer.name
+            ),
+
+          phone:
+            cleanPhone(
+              customer.phone
+            ),
+
+          address:
+            cleanAddress(
+              customer.address
+            )
+
+        };
+
+
+        safeDeliveryNote =
+          cleanDeliveryNote(
+            deliveryNote
+          );
+
+
+        if (
+          !safeCustomer.name
+        ) {
+
+          throw new HttpsError(
+            "invalid-argument",
+            "Vui lòng nhập tên người nhận."
+          );
+
+        }
+
+
+        if (
+          !isValidPhone(
+            safeCustomer.phone
+          )
+        ) {
+
+          throw new HttpsError(
+            "invalid-argument",
+            "Số điện thoại không hợp lệ."
+          );
+
+        }
+
+
+        if (
+          !safeCustomer.address
+        ) {
+
+          throw new HttpsError(
+            "invalid-argument",
+            "Vui lòng nhập địa chỉ giao hàng."
+          );
+
+        }
 
       }
 
@@ -268,10 +494,10 @@ exports.createOrder =
 
       if (
         typeof orderNote !==
-        "undefined"
+          "undefined"
         &&
         typeof orderNote !==
-        "string"
+          "string"
       ) {
 
         throw new HttpsError(
@@ -303,6 +529,27 @@ exports.createOrder =
 
 
       /* -----------------------------
+         REQUEST ID
+      ----------------------------- */
+
+      if (
+        typeof clientRequestId !==
+          "string"
+        ||
+        clientRequestId.length < 8
+        ||
+        clientRequestId.length > 120
+      ) {
+
+        throw new HttpsError(
+          "invalid-argument",
+          "Mã yêu cầu không hợp lệ."
+        );
+
+      }
+
+
+      /* -----------------------------
          ITEMS
       ----------------------------- */
 
@@ -327,11 +574,9 @@ exports.createOrder =
         of items
       ) {
 
-
         if (
-          typeof item.menuId
-          !==
-          "string"
+          typeof item.menuId !==
+            "string"
           ||
           !/^[A-Za-z0-9_-]{1,30}$/
             .test(
@@ -348,9 +593,8 @@ exports.createOrder =
 
 
         if (
-          typeof item.sizeId
-          !==
-          "string"
+          typeof item.sizeId !==
+            "string"
           ||
           item.sizeId.length > 20
         ) {
@@ -399,10 +643,10 @@ exports.createOrder =
 
         if (
           typeof item.note !==
-          "undefined"
+            "undefined"
           &&
           typeof item.note !==
-          "string"
+            "string"
         ) {
 
           throw new HttpsError(
@@ -429,9 +673,9 @@ exports.createOrder =
       }
 
 
-      /* =================================
-         CHỐNG ĐẶT TRÙNG ĐƠN
-      ================================= */
+      /* =====================================================
+         CHỐNG GỬI TRÙNG
+      ===================================================== */
 
       const requestHash =
         crypto
@@ -482,9 +726,9 @@ exports.createOrder =
           );
 
 
-      /* =================================
+      /* =====================================================
          TRANSACTION
-      ================================= */
+      ===================================================== */
 
       const result =
         await db
@@ -494,7 +738,7 @@ exports.createOrder =
 
 
               /* -------------------------
-                 KIỂM TRA REQUEST CŨ
+                 REQUEST CŨ
               ------------------------- */
 
               const previousRequest =
@@ -508,7 +752,7 @@ exports.createOrder =
                 previousRequest.exists
               ) {
 
-                const data =
+                const oldData =
                   previousRequest
                     .data();
 
@@ -516,10 +760,10 @@ exports.createOrder =
                 return {
 
                   orderId:
-                    data.orderId,
+                    oldData.orderId,
 
                   total:
-                    data.total || 0,
+                    oldData.total || 0,
 
                   deduplicated:
                     true
@@ -530,7 +774,7 @@ exports.createOrder =
 
 
               /* -------------------------
-                 ĐỌC MENU
+                 LOAD MENU
               ------------------------- */
 
               const menuIds =
@@ -550,7 +794,7 @@ exports.createOrder =
                 await Promise.all(
 
                   menuIds.map(
-                    id =>
+                    menuId =>
 
                       transaction.get(
 
@@ -558,7 +802,9 @@ exports.createOrder =
                           .collection(
                             "menu"
                           )
-                          .doc(id)
+                          .doc(
+                            menuId
+                          )
 
                       )
 
@@ -571,383 +817,340 @@ exports.createOrder =
                 new Map();
 
 
-              menuSnapshots
-                .forEach(
-                  snapshot => {
+              for (
+                const snapshot
+                of menuSnapshots
+              ) {
+
+                if (
+                  !snapshot.exists
+                ) {
+
+                  throw new HttpsError(
+                    "failed-precondition",
+                    "Có món không tồn tại."
+                  );
+
+                }
 
 
-                    if (
-                      !snapshot.exists
-                    ) {
-
-                      throw new HttpsError(
-                        "failed-precondition",
-                        "Có món không tồn tại."
-                      );
-
-                    }
+                const menuItem =
+                  snapshot.data();
 
 
-                    const menuData =
-                      snapshot.data();
+                if (
+                  menuItem.active !==
+                  true
+                ) {
+
+                  throw new HttpsError(
+                    "failed-precondition",
+                    `Món "${menuItem.name || snapshot.id}" đã ngừng bán.`
+                  );
+
+                }
 
 
-                    if (
-                      menuData.active !==
-                      true
-                    ) {
-
-                      throw new HttpsError(
-                        "failed-precondition",
-                        "Có món đã ngừng bán."
-                      );
-
-                    }
-
-
-                    menuMap.set(
-                      snapshot.id,
-                      menuData
-                    );
-
-                  }
+                menuMap.set(
+                  snapshot.id,
+                  menuItem
                 );
+
+              }
 
 
               /* -------------------------
                  TÍNH GIÁ SERVER
               ------------------------- */
 
-              let total = 0;
+              let total =
+                0;
 
-              let cups = 0;
+
+              let cups =
+                0;
 
 
               const safeItems =
-                items.map(
-                  item => {
+                [];
 
 
-                    const menuItem =
-                      menuMap.get(
-                        item.menuId
-                      );
+              for (
+                const item
+                of items
+              ) {
+
+                const menuItem =
+                  menuMap.get(
+                    item.menuId
+                  );
 
 
-                    if (
-                      !menuItem
-                    ) {
+                if (!menuItem) {
 
-                      throw new HttpsError(
-                        "failed-precondition",
-                        "Không tìm thấy món."
-                      );
+                  throw new HttpsError(
+                    "failed-precondition",
+                    "Không tìm thấy món."
+                  );
 
-                    }
+                }
 
 
-                    const sizes =
-                      Array.isArray(
-                        menuItem.sizes
+                const sizes =
+                  Array.isArray(
+                    menuItem.sizes
+                  )
+                  ?
+                  menuItem.sizes
+                  :
+                  [];
+
+
+                const toppings =
+                  Array.isArray(
+                    menuItem.toppings
+                  )
+                  ?
+                  menuItem.toppings
+                  :
+                  [];
+
+
+                /* SIZE */
+
+                const selectedSize =
+                  sizes.find(
+                    size =>
+
+                      String(
+                        size.id
                       )
 
-                      ?
+                      ===
 
-                      menuItem.sizes
-
-                      :
-
-                      [];
-
-
-                    const toppings =
-                      Array.isArray(
-                        menuItem.toppings
+                      String(
+                        item.sizeId
                       )
-
-                      ?
-
-                      menuItem.toppings
-
-                      :
-
-                      [];
+                  );
 
 
-                    /* SIZE */
+                if (
+                  !selectedSize
+                ) {
 
-                    const selectedSize =
-                      sizes.find(
-                        size =>
+                  throw new HttpsError(
+                    "failed-precondition",
+                    `Size của "${menuItem.name}" không còn bán.`
+                  );
 
-                          String(
-                            size.id
-                          )
-
-                          ===
-
-                          String(
-                            item.sizeId
-                          )
-                      );
+                }
 
 
-                    if (
-                      !selectedSize
-                    ) {
-
-                      throw new HttpsError(
-                        "failed-precondition",
-                        `Size của "${menuItem.name}" không còn bán.`
-                      );
-
-                    }
+                const sizePrice =
+                  Number(
+                    selectedSize.price
+                  );
 
 
-                    const sizePrice =
-                      Number(
-                        selectedSize.price
-                      );
+                if (
+                  !Number.isFinite(
+                    sizePrice
+                  )
+                  ||
+                  sizePrice < 0
+                ) {
+
+                  throw new HttpsError(
+                    "failed-precondition",
+                    "Giá size không hợp lệ."
+                  );
+
+                }
 
 
-                    if (
-                      !Number.isFinite(
-                        sizePrice
-                      )
-                      ||
-                      sizePrice < 0
-                    ) {
+                /* TOPPING */
 
-                      throw new HttpsError(
-                        "failed-precondition",
-                        "Giá size không hợp lệ."
-                      );
+                const uniqueToppingIds =
+                  [
+                    ...new Set(
 
-                    }
-
-
-                    /* TOPPING */
-
-                    const uniqueToppingIds =
-                      [
-                        ...new Set(
-
-                          item
-                            .toppingIds
-                            .map(
-                              String
-                            )
-
+                      item.toppingIds
+                        .map(
+                          String
                         )
-                      ];
+
+                    )
+                  ];
 
 
-                    const selectedToppings =
-                      [];
+                const selectedToppings =
+                  [];
 
 
-                    for (
-                      const toppingId
-                      of uniqueToppingIds
-                    ) {
+                for (
+                  const toppingId
+                  of uniqueToppingIds
+                ) {
 
+                  const topping =
+                    toppings.find(
+                      value =>
 
-                      const topping =
-                        toppings.find(
-                          topping =>
-
-                            String(
-                              topping.id
-                            )
-
-                            ===
-
-                            toppingId
-                        );
-
-
-                      if (
-                        !topping
-                      ) {
-
-                        throw new HttpsError(
-                          "failed-precondition",
-                          `Có topping của "${menuItem.name}" không còn bán.`
-                        );
-
-                      }
-
-
-                      const toppingPrice =
-                        Number(
-                          topping.price
-                        );
-
-
-                      if (
-                        !Number.isFinite(
-                          toppingPrice
-                        )
-                        ||
-                        toppingPrice < 0
-                      ) {
-
-                        throw new HttpsError(
-                          "failed-precondition",
-                          "Giá topping không hợp lệ."
-                        );
-
-                      }
-
-
-                      selectedToppings
-                        .push({
-
-                          id:
-                            String(
-                              topping.id
-                            )
-                            .slice(
-                              0,
-                              40
-                            ),
-
-                          name:
-                            String(
-                              topping.name || ""
-                            )
-                            .slice(
-                              0,
-                              80
-                            ),
-
-                          price:
-                            toppingPrice
-
-                        });
-
-                    }
-
-
-                    /* TÍNH GIÁ */
-
-                    const toppingsPrice =
-                      selectedToppings
-                        .reduce(
-                          (
-                            sum,
-                            topping
-                          ) =>
-
-                            sum
-                            +
-                            topping.price,
-
-                          0
-                        );
-
-
-                    const unitPrice =
-                      sizePrice
-                      +
-                      toppingsPrice;
-
-
-                    const quantity =
-                      item.quantity;
-
-
-                    const subtotal =
-                      unitPrice
-                      *
-                      quantity;
-
-
-                    total +=
-                      subtotal;
-
-
-                    cups +=
-                      quantity;
-
-
-                    return {
-
-                      menuId:
-                        item.menuId,
-
-
-                      name:
                         String(
-                          menuItem.name || ""
+                          value.id
                         )
-                        .slice(
-                          0,
-                          100
+
+                        ===
+
+                        toppingId
+                    );
+
+
+                  if (
+                    !topping
+                  ) {
+
+                    throw new HttpsError(
+                      "failed-precondition",
+                      `Có topping của "${menuItem.name}" không còn bán.`
+                    );
+
+                  }
+
+
+                  const toppingPrice =
+                    Number(
+                      topping.price
+                    );
+
+
+                  if (
+                    !Number.isFinite(
+                      toppingPrice
+                    )
+                    ||
+                    toppingPrice < 0
+                  ) {
+
+                    throw new HttpsError(
+                      "failed-precondition",
+                      "Giá topping không hợp lệ."
+                    );
+
+                  }
+
+
+                  selectedToppings
+                    .push({
+
+                      id:
+                        cleanText(
+                          topping.id,
+                          40
                         ),
 
-
-                      category:
-                        String(
-                          menuItem.category || ""
-                        )
-                        .slice(
-                          0,
+                      name:
+                        cleanText(
+                          topping.name,
                           80
                         ),
 
+                      price:
+                        toppingPrice
 
-                      sizeId:
-                        String(
-                          selectedSize.id
-                        )
-                        .slice(
-                          0,
-                          20
-                        ),
+                    });
+
+                }
 
 
-                      sizeName:
-                        String(
-                          selectedSize.name
-                          ||
-                          selectedSize.id
-                        )
-                        .slice(
-                          0,
-                          30
-                        ),
+                const toppingTotal =
+                  selectedToppings
+                    .reduce(
+                      (
+                        sum,
+                        topping
+                      ) =>
+                        sum +
+                        topping.price,
+                      0
+                    );
 
 
-                      sizePrice,
+                const unitPrice =
+                  sizePrice +
+                  toppingTotal;
 
 
-                      toppings:
-                        selectedToppings,
+                const quantity =
+                  item.quantity;
 
 
-                      unitPrice,
+                const subtotal =
+                  unitPrice *
+                  quantity;
 
 
-                      quantity,
+                total +=
+                  subtotal;
 
 
-                      note:
-                        cleanItemNote(
-                          item.note
-                        ),
+                cups +=
+                  quantity;
 
 
-                      subtotal
+                safeItems.push({
 
-                    };
+                  menuId:
+                    item.menuId,
 
-                  }
-                );
+                  name:
+                    cleanText(
+                      menuItem.name,
+                      100
+                    ),
+
+                  category:
+                    cleanText(
+                      menuItem.category,
+                      80
+                    ),
+
+                  sizeId:
+                    cleanText(
+                      selectedSize.id,
+                      20
+                    ),
+
+                  sizeName:
+                    cleanText(
+                      selectedSize.name ||
+                      selectedSize.id,
+                      30
+                    ),
+
+                  sizePrice,
+
+                  toppings:
+                    selectedToppings,
+
+                  unitPrice,
+
+                  quantity,
+
+                  note:
+                    cleanItemNote(
+                      item.note
+                    ),
+
+                  subtotal
+
+                });
+
+              }
 
 
               /* -------------------------
-                 TOTAL VALIDATION
+                 LIMIT TOTAL
               ------------------------- */
 
               if (
@@ -987,6 +1190,15 @@ exports.createOrder =
                   .serverTimestamp();
 
 
+              /*
+                Tiền mặt / chuyển khoản
+                ban đầu đều để pending.
+                Admin xác nhận sau.
+              */
+              const paymentStatus =
+                "pending";
+
+
               /* -------------------------
                  CREATE ORDER
               ------------------------- */
@@ -997,38 +1209,43 @@ exports.createOrder =
 
                 {
 
+                  fulfillmentType:
+                    safeFulfillmentType,
+
                   table:
                     safeTable,
 
+                  customer:
+                    safeCustomer,
+
+                  deliveryNote:
+                    safeDeliveryNote,
+
+                  paymentMethod:
+                    safePaymentMethod,
+
+                  paymentStatus,
 
                   items:
                     safeItems,
 
-
                   total,
 
-
                   cups,
-
 
                   status:
                     "new",
 
-
                   dateKey,
-
 
                   orderNote:
                     safeOrderNote,
 
-
                   customerUid:
                     req.auth.uid,
 
-
                   createdAt:
                     now,
-
 
                   updatedAt:
                     now
@@ -1051,11 +1268,9 @@ exports.createOrder =
                   date:
                     dateKey,
 
-
                   orders:
                     FieldValue
                       .increment(1),
-
 
                   cups:
                     FieldValue
@@ -1063,13 +1278,11 @@ exports.createOrder =
                         cups
                       ),
 
-
                   revenue:
                     FieldValue
                       .increment(
                         total
                       ),
-
 
                   updatedAt:
                     now
@@ -1085,7 +1298,7 @@ exports.createOrder =
 
 
               /* -------------------------
-                 SAVE REQUEST ID
+                 REQUEST ID
               ------------------------- */
 
               transaction.create(
@@ -1097,9 +1310,7 @@ exports.createOrder =
                   orderId:
                     orderRef.id,
 
-
                   total,
-
 
                   createdAt:
                     now
@@ -1114,21 +1325,30 @@ exports.createOrder =
                 orderId:
                   orderRef.id,
 
-
                 total,
 
+                fulfillmentType:
+                  safeFulfillmentType,
 
                 table:
                   safeTable,
 
+                customer:
+                  safeCustomer,
+
+                deliveryNote:
+                  safeDeliveryNote,
+
+                paymentMethod:
+                  safePaymentMethod,
+
+                paymentStatus,
 
                 orderNote:
                   safeOrderNote,
 
-
                 items:
                   safeItems,
-
 
                 deduplicated:
                   false
@@ -1140,9 +1360,9 @@ exports.createOrder =
           );
 
 
-      /* =================================
-         PUSH NOTIFICATION
-      ================================= */
+      /* =====================================================
+         PUSH ADMIN
+      ===================================================== */
 
       if (
         !result.deduplicated
@@ -1157,13 +1377,8 @@ exports.createOrder =
 
         } catch (error) {
 
-          /*
-            Push lỗi không được
-            làm mất đơn hàng.
-          */
-
           console.error(
-            "Push notification error:",
+            "Push notification:",
             error
           );
 
@@ -1177,10 +1392,8 @@ exports.createOrder =
         orderId:
           result.orderId,
 
-
         total:
           result.total,
-
 
         deduplicated:
           !!result.deduplicated
@@ -1192,15 +1405,14 @@ exports.createOrder =
   );
 
 
-/* =====================================
-   SEND ORDER PUSH
-===================================== */
+/* =========================================================
+   PUSH ORDER
+========================================================= */
 
 async function sendOrderNotification(
   orderId,
   order
 ) {
-
 
   const devices =
     await db
@@ -1253,33 +1465,21 @@ async function sendOrderNotification(
     (
       order.items || []
     )
-
     .map(
       item => {
-
 
         let text =
 
           item.quantity
-
           +
-
           " × "
-
           +
-
           item.name
-
           +
-
           " ("
-
           +
-
           item.sizeName
-
           +
-
           ")";
 
 
@@ -1328,21 +1528,76 @@ async function sendOrderNotification(
 
       }
     )
-
     .join(", ")
-
     .slice(
       0,
-      500
+      450
     );
 
 
-  let body = "";
+  let title =
+    "🔔 ĐƠN MỚI";
+
+
+  let body =
+    "";
 
 
   if (
-    order.table
+    order.fulfillmentType ===
+    "delivery"
   ) {
+
+    title +=
+      " - 🛵 Giao tận nơi";
+
+
+    body +=
+
+      (
+        order.customer?.name
+        ||
+        "Khách"
+      )
+
+      +
+
+      " • "
+
+      +
+
+      (
+        order.customer?.phone
+        ||
+        ""
+      )
+
+      +
+
+      " • "
+
+      +
+
+      (
+        order.customer?.address
+        ||
+        ""
+      )
+
+      +
+
+      " • ";
+
+  } else {
+
+    title +=
+      " - ☕ Bàn "
+      +
+      (
+        order.table ||
+        "?"
+      );
+
 
     body +=
 
@@ -1350,7 +1605,10 @@ async function sendOrderNotification(
 
       +
 
-      order.table
+      (
+        order.table ||
+        "?"
+      )
 
       +
 
@@ -1361,6 +1619,22 @@ async function sendOrderNotification(
 
   body +=
     itemText;
+
+
+  body +=
+
+    " • "
+
+    +
+
+    (
+      order.paymentMethod ===
+      "bank_transfer"
+      ?
+      "Chuyển khoản"
+      :
+      "Tiền mặt"
+    );
 
 
   if (
@@ -1384,13 +1658,12 @@ async function sendOrderNotification(
 
     +
 
-    new Intl
-      .NumberFormat(
-        "vi-VN"
-      )
-      .format(
-        order.total || 0
-      )
+    new Intl.NumberFormat(
+      "vi-VN"
+    )
+    .format(
+      order.total || 0
+    )
 
     +
 
@@ -1414,44 +1687,21 @@ async function sendOrderNotification(
               item.token
           ),
 
-
         data: {
 
-          title:
-
-            "🔔 ĐƠN MỚI"
-
-            +
-
-            (
-              order.table
-
-              ?
-
-              " - Bàn "
-              +
-              order.table
-
-              :
-
-              ""
-            ),
-
+          title,
 
           body,
-
 
           orderId:
             String(
               orderId
             ),
 
-
           url:
             "/admin.html"
 
         },
-
 
         webpush: {
 
@@ -1467,28 +1717,27 @@ async function sendOrderNotification(
       });
 
 
-  /* =================================
+  /* -------------------------
      XÓA TOKEN HẾT HẠN
-  ================================= */
+  ------------------------- */
 
   const batch =
     db.batch();
 
 
-  let hasInvalidToken =
+  let dirty =
     false;
 
 
   response.responses
     .forEach(
       (
-        result,
+        item,
         index
       ) => {
 
-
         if (
-          result.success
+          item.success
         ) {
 
           return;
@@ -1497,16 +1746,15 @@ async function sendOrderNotification(
 
 
         const code =
-          result.error
-            ?.code;
+          item.error?.code;
 
 
         if (
           code ===
-          "messaging/registration-token-not-registered"
+            "messaging/registration-token-not-registered"
           ||
           code ===
-          "messaging/invalid-registration-token"
+            "messaging/invalid-registration-token"
         ) {
 
           batch.delete(
@@ -1516,7 +1764,7 @@ async function sendOrderNotification(
           );
 
 
-          hasInvalidToken =
+          dirty =
             true;
 
         }
@@ -1525,9 +1773,7 @@ async function sendOrderNotification(
     );
 
 
-  if (
-    hasInvalidToken
-  ) {
+  if (dirty) {
 
     await batch.commit();
 
@@ -1536,9 +1782,9 @@ async function sendOrderNotification(
 }
 
 
-/* =====================================
+/* =========================================================
    TEST ADMIN PUSH
-===================================== */
+========================================================= */
 
 exports.testAdminPush =
   onCall(
@@ -1548,18 +1794,11 @@ exports.testAdminPush =
       region:
         REGION,
 
-
-      /*
-        Cũng để false trong giai đoạn
-        chưa hoàn thiện App Check.
-      */
       enforceAppCheck:
         false,
 
-
       timeoutSeconds:
         10,
-
 
       memory:
         "256MiB"
@@ -1568,7 +1807,6 @@ exports.testAdminPush =
 
 
     async req => {
-
 
       if (
         !isAdmin(req)
@@ -1618,26 +1856,21 @@ exports.testAdminPush =
 
           tokens,
 
-
           data: {
 
             title:
               "🔔 Cheng Coffee",
 
-
             body:
               "Thông báo Firebase đang hoạt động bình thường.",
 
-
             orderId:
               "TEST",
-
 
             url:
               "/admin.html"
 
           },
-
 
           webpush: {
 

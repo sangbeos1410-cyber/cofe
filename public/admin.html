@@ -24,21 +24,6 @@
     content="black-translucent"
   >
 
-  <meta
-    name="apple-mobile-web-app-title"
-    content="Cheng Coffee Admin"
-  >
-
-  <link
-    rel="manifest"
-    href="/manifest.json"
-  >
-
-  <link
-    rel="apple-touch-icon"
-    href="/icon-192.png"
-  >
-
   <title>Admin - Cheng Coffee</title>
 
   <link
@@ -47,13 +32,8 @@
   >
 </head>
 
-
 <body>
 
-
-<!-- =====================================
-     HEADER
-===================================== -->
 
 <header class="admin-topbar">
 
@@ -79,7 +59,6 @@
       Menu khách
     </a>
 
-
     <button
       id="logoutBtn"
       class="secondary"
@@ -97,9 +76,9 @@
 <main class="admin-wrap">
 
 
-  <!-- ===================================
+  <!-- ===============================
        LOGIN
-  =================================== -->
+  ================================ -->
 
   <section
     id="loginPanel"
@@ -112,21 +91,17 @@
         ☕
       </div>
 
-
       <div class="brand-small dark">
         CHENG COFFEE
       </div>
-
 
       <h2>
         Đăng nhập Admin
       </h2>
 
-
       <p class="muted">
-        Nhập mật khẩu để quản lý đơn hàng và menu.
+        Nhập mật khẩu để quản lý Cheng Coffee.
       </p>
-
 
       <form id="loginForm">
 
@@ -134,15 +109,12 @@
           Mật khẩu
         </label>
 
-
         <input
           id="password"
           type="password"
           autocomplete="current-password"
-          placeholder="Nhập mật khẩu"
           required
         >
-
 
         <button
           class="primary full"
@@ -152,7 +124,6 @@
         </button>
 
       </form>
-
 
       <p
         id="loginMessage"
@@ -164,9 +135,9 @@
   </section>
 
 
-  <!-- ===================================
+  <!-- ===============================
        ADMIN APP
-  =================================== -->
+  ================================ -->
 
   <div
     id="adminApp"
@@ -174,9 +145,7 @@
   >
 
 
-    <!-- =================================
-         NAV TABS
-    ================================= -->
+    <!-- TABS -->
 
     <nav class="admin-tabs">
 
@@ -185,128 +154,91 @@
         data-tab="stats"
         type="button"
       >
-        <span>📊</span>
-        Thống kê doanh số
+        📊 Thống kê
       </button>
-
 
       <button
         class="tab-button"
         data-tab="orders"
         type="button"
       >
-        <span>🧾</span>
-        Món khách đã gọi
+        🧾 Đơn hàng
       </button>
-
 
       <button
         class="tab-button"
         data-tab="menu"
         type="button"
       >
-        <span>☕</span>
-        Điều chỉnh menu
+        ☕ Menu
       </button>
-
 
       <button
         class="tab-button"
         data-tab="store"
         type="button"
       >
-        <span>🏪</span>
-        Thông tin quán
+        🏪 Thông tin quán
       </button>
 
+      <button
+        class="tab-button"
+        data-tab="payment"
+        type="button"
+      >
+        💳 Thanh toán
+      </button>
 
       <button
         class="tab-button"
         data-tab="settings"
         type="button"
       >
-        <span>⚙️</span>
-        Cài đặt
+        ⚙️ Cài đặt
       </button>
 
     </nav>
 
 
-    <!-- =================================
-         THỐNG KÊ
-    ================================= -->
+    <!-- ===============================
+         STATS
+    ================================ -->
 
     <section
       id="tab-stats"
       class="tab-page active"
     >
 
-
       <div class="stats-grid">
 
-
         <article class="stat-card">
-
-          <div class="stat-icon">
-            🧾
-          </div>
+          <div class="stat-icon">🧾</div>
 
           <div>
-
-            <span>
-              Số đơn hôm nay
-            </span>
-
-            <strong id="todayOrders">
-              0
-            </strong>
-
+            <span>Đơn hôm nay</span>
+            <strong id="todayOrders">0</strong>
           </div>
-
         </article>
 
 
         <article class="stat-card">
-
-          <div class="stat-icon">
-            🥤
-          </div>
+          <div class="stat-icon">🥤</div>
 
           <div>
-
-            <span>
-              Số cốc hôm nay
-            </span>
-
-            <strong id="todayCups">
-              0
-            </strong>
-
+            <span>Số cốc hôm nay</span>
+            <strong id="todayCups">0</strong>
           </div>
-
         </article>
 
 
         <article class="stat-card">
-
-          <div class="stat-icon">
-            💰
-          </div>
+          <div class="stat-icon">💰</div>
 
           <div>
-
-            <span>
-              Doanh thu hôm nay
-            </span>
-
-            <strong id="todayRevenue">
-              0đ
-            </strong>
-
+            <span>Doanh thu hôm nay</span>
+            <strong id="todayRevenue">0đ</strong>
           </div>
-
         </article>
-
 
       </div>
 
@@ -316,7 +248,6 @@
         <div class="section-head">
 
           <div>
-
             <div class="section-label">
               THỐNG KÊ
             </div>
@@ -328,7 +259,6 @@
             <p class="muted">
               31 ngày gần nhất.
             </p>
-
           </div>
 
         </div>
@@ -339,40 +269,20 @@
           <table>
 
             <thead>
-
               <tr>
-
-                <th>
-                  Ngày
-                </th>
-
-                <th>
-                  Số đơn
-                </th>
-
-                <th>
-                  Số cốc
-                </th>
-
-                <th>
-                  Doanh thu
-                </th>
-
+                <th>Ngày</th>
+                <th>Số đơn</th>
+                <th>Số cốc</th>
+                <th>Doanh thu</th>
               </tr>
-
             </thead>
 
-
             <tbody id="historyTable">
-
               <tr>
-
                 <td colspan="4">
                   Đang tải...
                 </td>
-
               </tr>
-
             </tbody>
 
           </table>
@@ -381,13 +291,12 @@
 
       </section>
 
-
     </section>
 
 
-    <!-- =================================
-         ĐƠN HÀNG
-    ================================= -->
+    <!-- ===============================
+         ORDERS
+    ================================ -->
 
     <section
       id="tab-orders"
@@ -396,11 +305,9 @@
 
       <section class="panel">
 
-
         <div class="section-head">
 
           <div>
-
             <div class="section-label">
               REALTIME
             </div>
@@ -410,11 +317,9 @@
             </h2>
 
             <p class="muted">
-              Đơn mới sẽ tự xuất hiện.
+              Hiển thị tại quán, giao tận nơi và trạng thái thanh toán.
             </p>
-
           </div>
-
 
           <span class="status-pill online">
             ● Đang theo dõi
@@ -427,11 +332,9 @@
           id="ordersList"
           class="orders-list"
         >
-
           <div class="empty-admin">
-            Đang tải đơn hàng...
+            Đang tải đơn...
           </div>
-
         </div>
 
       </section>
@@ -439,23 +342,20 @@
     </section>
 
 
-    <!-- =================================
+    <!-- ===============================
          MENU
-    ================================= -->
+    ================================ -->
 
     <section
       id="tab-menu"
       class="tab-page"
     >
 
-
       <section class="panel">
-
 
         <div class="section-head">
 
           <div>
-
             <div class="section-label">
               MENU
             </div>
@@ -463,11 +363,6 @@
             <h2 id="formTitle">
               Thêm món mới
             </h2>
-
-            <p class="muted">
-              Quản lý danh mục, size và topping.
-            </p>
-
           </div>
 
         </div>
@@ -478,9 +373,7 @@
 
           <div class="form-grid">
 
-
             <div>
-
               <label for="itemId">
                 Mã món
               </label>
@@ -491,12 +384,10 @@
                 placeholder="CF01"
                 required
               >
-
             </div>
 
 
             <div>
-
               <label for="itemName">
                 Tên món
               </label>
@@ -507,12 +398,10 @@
                 placeholder="Cà phê sữa"
                 required
               >
-
             </div>
 
 
             <div>
-
               <label for="itemCategory">
                 Danh mục
               </label>
@@ -523,12 +412,10 @@
                 placeholder="Cà phê"
                 required
               >
-
             </div>
 
 
             <div>
-
               <label for="itemDescription">
                 Mô tả
               </label>
@@ -538,39 +425,20 @@
                 maxlength="300"
                 placeholder="Cà phê sữa truyền thống"
               >
-
             </div>
-
 
           </div>
 
 
-          <!-- SIZE -->
-
           <div class="config-box">
 
-            <div class="config-title">
-
-              <div>
-
-                <h3>
-                  Giá theo size
-                </h3>
-
-                <p>
-                  Size không bán có thể để trống.
-                </p>
-
-              </div>
-
-            </div>
-
+            <h3>
+              Giá theo size
+            </h3>
 
             <div class="size-admin-grid">
 
-
               <div>
-
                 <label for="sizeS">
                   Size S
                 </label>
@@ -582,12 +450,10 @@
                   step="1000"
                   placeholder="18000"
                 >
-
               </div>
 
 
               <div>
-
                 <label for="sizeM">
                   Size M
                 </label>
@@ -599,12 +465,10 @@
                   step="1000"
                   placeholder="20000"
                 >
-
               </div>
 
 
               <div>
-
                 <label for="sizeL">
                   Size L
                 </label>
@@ -616,41 +480,27 @@
                   step="1000"
                   placeholder="25000"
                 >
-
               </div>
-
 
             </div>
 
           </div>
 
 
-          <!-- TOPPING -->
-
           <div class="config-box">
 
-            <div class="config-title">
+            <h3>
+              Topping
+            </h3>
 
-              <div>
-
-                <h3>
-                  Topping
-                </h3>
-
-                <p>
-                  Mỗi dòng:
-                  Tên topping | Giá
-                </p>
-
-              </div>
-
-            </div>
-
+            <p class="muted">
+              Mỗi dòng: Tên topping | Giá
+            </p>
 
             <textarea
               id="toppingsText"
               rows="6"
-              placeholder="Trân châu đen | 5000&#10;Thạch cà phê | 5000&#10;Kem muối | 10000"
+              placeholder="Kem muối | 10000&#10;Trân châu | 5000"
             ></textarea>
 
           </div>
@@ -681,7 +531,6 @@
               Thêm món
             </button>
 
-
             <button
               id="cancelBtn"
               class="secondary"
@@ -699,31 +548,16 @@
             class="form-message"
           ></p>
 
-
         </form>
 
       </section>
 
 
-      <!-- MENU LIST -->
-
       <section class="panel">
 
-        <div class="section-head">
-
-          <div>
-
-            <h2>
-              Danh sách menu
-            </h2>
-
-            <p class="muted">
-              Các thay đổi cập nhật realtime.
-            </p>
-
-          </div>
-
-        </div>
+        <h2>
+          Danh sách menu
+        </h2>
 
 
         <div class="table-wrap">
@@ -733,48 +567,23 @@
             <thead>
 
               <tr>
-
-                <th>
-                  Mã
-                </th>
-
-                <th>
-                  Tên món
-                </th>
-
-                <th>
-                  Danh mục
-                </th>
-
-                <th>
-                  Size
-                </th>
-
-                <th>
-                  Topping
-                </th>
-
-                <th>
-                  Trạng thái
-                </th>
-
-                <th>
-                  Thao tác
-                </th>
-
+                <th>Mã</th>
+                <th>Tên món</th>
+                <th>Danh mục</th>
+                <th>Size</th>
+                <th>Topping</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
               </tr>
 
             </thead>
 
-
             <tbody id="menuTable">
 
               <tr>
-
                 <td colspan="7">
-                  Đang tải menu...
+                  Đang tải...
                 </td>
-
               </tr>
 
             </tbody>
@@ -785,13 +594,12 @@
 
       </section>
 
-
     </section>
 
 
-    <!-- =================================
-         THÔNG TIN QUÁN
-    ================================= -->
+    <!-- ===============================
+         STORE INFO
+    ================================ -->
 
     <section
       id="tab-store"
@@ -799,7 +607,6 @@
     >
 
       <section class="panel">
-
 
         <div class="section-head">
 
@@ -814,7 +621,7 @@
             </h2>
 
             <p class="muted">
-              Những thông tin này sẽ hiển thị ở cuối trang menu khách.
+              Hiển thị ở cuối trang khách.
             </p>
 
           </div>
@@ -829,7 +636,6 @@
 
 
             <div>
-
               <label for="storeName">
                 Tên quán
               </label>
@@ -837,30 +643,24 @@
               <input
                 id="storeName"
                 maxlength="100"
-                placeholder="CHENG COFFEE"
                 required
               >
-
             </div>
 
 
             <div>
-
               <label for="storePhone">
-                Số điện thoại
+                Điện thoại
               </label>
 
               <input
                 id="storePhone"
                 maxlength="30"
-                placeholder="09xx xxx xxx"
               >
-
             </div>
 
 
             <div>
-
               <label for="storeHours">
                 Giờ mở cửa
               </label>
@@ -870,12 +670,10 @@
                 maxlength="100"
                 placeholder="07:00 - 22:00"
               >
-
             </div>
 
 
             <div>
-
               <label for="storeAddress">
                 Địa chỉ
               </label>
@@ -883,49 +681,38 @@
               <input
                 id="storeAddress"
                 maxlength="200"
-                placeholder="Địa chỉ quán"
               >
-
             </div>
-
 
           </div>
 
 
           <div class="store-form-grid">
 
-
             <div>
-
               <label for="storeFacebook">
-                Facebook
+                Facebook URL
               </label>
 
               <input
                 id="storeFacebook"
-                type="url"
                 maxlength="300"
-                placeholder="https://facebook.com/..."
+                placeholder="https://..."
               >
-
             </div>
 
 
             <div>
-
               <label for="storeZalo">
-                Zalo
+                Zalo URL
               </label>
 
               <input
                 id="storeZalo"
-                type="url"
                 maxlength="300"
-                placeholder="https://zalo.me/..."
+                placeholder="https://..."
               >
-
             </div>
-
 
           </div>
 
@@ -940,7 +727,6 @@
               id="storeTagline"
               maxlength="180"
               rows="3"
-              placeholder="Một chút cà phê, một chút bình yên."
             ></textarea>
 
           </div>
@@ -963,6 +749,162 @@
             class="form-message"
           ></p>
 
+        </form>
+
+      </section>
+
+    </section>
+
+
+    <!-- ===============================
+         PAYMENT SETTINGS
+    ================================ -->
+
+    <section
+      id="tab-payment"
+      class="tab-page"
+    >
+
+      <section class="panel">
+
+        <div class="section-head">
+
+          <div>
+
+            <div class="section-label">
+              THANH TOÁN
+            </div>
+
+            <h2>
+              Tài khoản ngân hàng
+            </h2>
+
+            <p class="muted">
+              Khách sẽ thấy thông tin này khi chọn chuyển khoản.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <form id="paymentForm">
+
+
+          <div class="store-form-grid">
+
+
+            <div>
+              <label for="paymentBankName">
+                Tên ngân hàng
+              </label>
+
+              <input
+                id="paymentBankName"
+                maxlength="100"
+                placeholder="MB Bank"
+              >
+            </div>
+
+
+            <div>
+              <label for="paymentAccountName">
+                Chủ tài khoản
+              </label>
+
+              <input
+                id="paymentAccountName"
+                maxlength="120"
+                placeholder="NGUYEN VAN A"
+              >
+            </div>
+
+
+            <div>
+              <label for="paymentAccountNumber">
+                Số tài khoản
+              </label>
+
+              <input
+                id="paymentAccountNumber"
+                maxlength="50"
+                placeholder="123456789"
+              >
+            </div>
+
+
+            <div>
+              <label for="paymentQrImageUrl">
+                Link ảnh QR
+              </label>
+
+              <input
+                id="paymentQrImageUrl"
+                maxlength="500"
+                placeholder="https://..."
+              >
+            </div>
+
+          </div>
+
+
+          <div class="store-tagline-field">
+
+            <label for="paymentInstructions">
+              Hướng dẫn chuyển khoản
+            </label>
+
+            <textarea
+              id="paymentInstructions"
+              maxlength="300"
+              rows="3"
+              placeholder="Vui lòng chuyển đúng số tiền của đơn."
+            ></textarea>
+
+          </div>
+
+
+          <div
+            id="paymentQrPreviewWrap"
+            class="payment-preview"
+          >
+
+            <span>
+              Xem trước QR
+            </span>
+
+            <img
+              id="paymentQrPreview"
+              alt="QR ngân hàng"
+              hidden
+            >
+
+            <div
+              id="paymentQrPreviewEmpty"
+              class="payment-preview-empty"
+            >
+              Chưa có ảnh QR
+            </div>
+
+          </div>
+
+
+          <div class="actions">
+
+            <button
+              class="primary"
+              type="submit"
+            >
+              Lưu thanh toán
+            </button>
+
+          </div>
+
+
+          <p
+            id="paymentMessage"
+            class="form-message"
+          ></p>
 
         </form>
 
@@ -971,17 +913,15 @@
     </section>
 
 
-    <!-- =================================
+    <!-- ===============================
          SETTINGS
-    ================================= -->
+    ================================ -->
 
     <section
       id="tab-settings"
       class="tab-page"
     >
 
-
-      <!-- PUSH -->
 
       <section class="panel">
 
@@ -996,10 +936,6 @@
             <h2>
               Thông báo đơn mới
             </h2>
-
-            <p class="muted">
-              Nhận Firebase Push khi khách đặt nước.
-            </p>
 
           </div>
 
@@ -1021,9 +957,8 @@
             class="primary"
             type="button"
           >
-            🔔 Bật thông báo
+            Bật thông báo
           </button>
-
 
           <button
             id="testPushBtn"
@@ -1032,7 +967,6 @@
           >
             Gửi thử
           </button>
-
 
           <button
             id="disablePushBtn"
@@ -1053,25 +987,11 @@
       </section>
 
 
-      <!-- PASSWORD -->
-
       <section class="panel">
 
-        <div class="section-head">
-
-          <div>
-
-            <div class="section-label">
-              BẢO MẬT
-            </div>
-
-            <h2>
-              Đổi mật khẩu Admin
-            </h2>
-
-          </div>
-
-        </div>
+        <h2>
+          Đổi mật khẩu Admin
+        </h2>
 
 
         <form id="changePasswordForm">
@@ -1081,7 +1001,6 @@
 
 
             <div>
-
               <label for="currentPassword">
                 Mật khẩu hiện tại
               </label>
@@ -1089,15 +1008,12 @@
               <input
                 id="currentPassword"
                 type="password"
-                autocomplete="current-password"
                 required
               >
-
             </div>
 
 
             <div>
-
               <label for="newPassword">
                 Mật khẩu mới
               </label>
@@ -1105,28 +1021,23 @@
               <input
                 id="newPassword"
                 type="password"
-                autocomplete="new-password"
                 minlength="8"
                 required
               >
-
             </div>
 
 
             <div>
-
               <label for="confirmPassword">
-                Nhập lại mật khẩu mới
+                Nhập lại mật khẩu
               </label>
 
               <input
                 id="confirmPassword"
                 type="password"
-                autocomplete="new-password"
                 minlength="8"
                 required
               >
-
             </div>
 
 
@@ -1150,7 +1061,6 @@
             class="form-message"
           ></p>
 
-
         </form>
 
       </section>
@@ -1164,10 +1074,6 @@
 </main>
 
 
-<!-- =====================================
-     FIREBASE
-===================================== -->
-
 <script src="firebase-config.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
@@ -1180,10 +1086,8 @@
 
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-messaging-compat.js"></script>
 
-
 <script src="admin.js"></script>
 
 
 </body>
-
 </html>

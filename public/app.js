@@ -2,12 +2,20 @@ let MENU = [];
 
 let cart =
   JSON.parse(
-    localStorage.getItem("cartV6") || "[]"
+    localStorage.getItem("cartV7") || "[]"
   );
 
 let configItem = null;
 let submitting = false;
 let activeCategory = "all";
+
+let paymentSettings = {
+  bankName: "",
+  accountName: "",
+  accountNumber: "",
+  qrImageUrl: "",
+  instructions: ""
+};
 
 
 const $ = id =>
@@ -22,16 +30,14 @@ const money = value =>
   ) + "đ";
 
 
-/* =====================================
+/* =========================================================
    FIREBASE
-===================================== */
+========================================================= */
 
 if (!firebase.apps.length) {
-
   firebase.initializeApp(
     self.FIREBASE_CONFIG
   );
-
 }
 
 
@@ -47,8 +53,7 @@ const functions =
   firebase
     .app()
     .functions(
-      self.FIREBASE_FUNCTIONS_REGION
-      ||
+      self.FIREBASE_FUNCTIONS_REGION ||
       "asia-southeast1"
     );
 
@@ -67,144 +72,91 @@ auth.setPersistence(
 );
 
 
-/* =====================================
+/* =========================================================
    AUTH KHÁCH
-===================================== */
+========================================================= */
 
 async function ensureAuth() {
-
   if (auth.currentUser) {
-
     await auth.currentUser
       .getIdToken(true);
 
     return auth.currentUser;
-
   }
-
 
   const credential =
     await auth.signInAnonymously();
 
-
   if (!credential.user) {
-
     throw new Error(
       "Không tạo được phiên khách."
     );
-
   }
-
 
   await credential.user
     .getIdToken(true);
 
-
   return credential.user;
-
 }
 
 
-/* =====================================
+/* =========================================================
    NORMALIZE MENU
-===================================== */
+========================================================= */
 
 function normalizeMenu(doc) {
-
   const item = {
-
     id: doc.id,
-
     ...doc.data()
-
   };
-
 
   item.category =
     String(
-      item.category ||
-      "Khác"
-    )
-    .trim()
-    ||
-    "Khác";
-
+      item.category || "Khác"
+    ).trim() || "Khác";
 
   item.sizes =
-
-    Array.isArray(item.sizes)
-    &&
+    Array.isArray(item.sizes) &&
     item.sizes.length
-
-    ?
-
-    item.sizes
-
-    :
-
-    [
-      {
-        id: "M",
-        name: "M",
-        price:
-          Number(
-            item.price || 0
-          )
-      }
-    ];
-
+      ? item.sizes
+      : [
+          {
+            id: "M",
+            name: "M",
+            price:
+              Number(item.price || 0)
+          }
+        ];
 
   item.toppings =
-
-    Array.isArray(
-      item.toppings
-    )
-
-    ?
-
-    item.toppings
-
-    :
-
-    [];
-
+    Array.isArray(item.toppings)
+      ? item.toppings
+      : [];
 
   return item;
-
 }
 
 
-/* =====================================
+/* =========================================================
    LOAD MENU
-===================================== */
+========================================================= */
 
 function loadMenu() {
-
-  $("menuStatus")
-    .textContent =
+  $("menuStatus").textContent =
     "Đang tải menu...";
-
 
   db
     .collection("menu")
-
     .where(
       "active",
       "==",
       true
     )
-
     .onSnapshot(
-
       snapshot => {
-
         MENU =
           snapshot.docs
-
-            .map(
-              normalizeMenu
-            )
-
+            .map(normalizeMenu)
             .sort(
               (a, b) =>
                 String(
@@ -218,66 +170,41 @@ function loadMenu() {
                 )
             );
 
-
-        $("menuStatus")
-          .textContent =
-
+        $("menuStatus").textContent =
           MENU.length
-
-          ?
-
-          `${MENU.length} món đang phục vụ`
-
-          :
-
-          "Chưa có món đang bán";
-
+            ? `${MENU.length} món đang phục vụ`
+            : "Chưa có món đang bán";
 
         renderCategoryNav();
-
         renderMenu();
-
         renderCart();
-
       },
 
-
       error => {
-
         console.error(
           "Menu error:",
           error
         );
 
-
-        $("menuStatus")
-          .textContent =
+        $("menuStatus").textContent =
           "Không tải được menu.";
-
       }
-
     );
-
 }
 
 
-/* =====================================
+/* =========================================================
    CATEGORY
-===================================== */
+========================================================= */
 
 function getCategories() {
-
   return [
-
     ...new Set(
-
       MENU.map(
         item =>
           item.category
       )
-
     )
-
   ]
   .sort(
     (a, b) =>
@@ -286,30 +213,22 @@ function getCategories() {
         "vi"
       )
   );
-
 }
 
 
 function renderCategoryNav() {
-
   const categories =
     getCategories();
 
-
-  $("categoryNav")
-    .innerHTML =
-
+  $("categoryNav").innerHTML =
     `
-
       <button
         class="
           category-button
           ${
             activeCategory === "all"
-            ?
-            "active"
-            :
-            ""
+              ? "active"
+              : ""
           }
         "
         data-category="all"
@@ -317,24 +236,18 @@ function renderCategoryNav() {
       >
         Tất cả
       </button>
-
     `
-
     +
-
     categories
       .map(
         category => `
-
           <button
             class="
               category-button
               ${
                 activeCategory === category
-                ?
-                "active"
-                :
-                ""
+                  ? "active"
+                  : ""
               }
             "
             data-category="${escapeHtml(
@@ -344,11 +257,9 @@ function renderCategoryNav() {
           >
             ${escapeHtml(category)}
           </button>
-
         `
       )
       .join("");
-
 
   $("categoryNav")
     .querySelectorAll(
@@ -356,45 +267,35 @@ function renderCategoryNav() {
     )
     .forEach(
       button => {
-
         button.addEventListener(
           "click",
           () => {
-
             activeCategory =
               button.dataset.category;
 
-
             renderCategoryNav();
-
             renderMenu();
-
           }
         );
-
       }
     );
-
 }
 
 
-/* =====================================
+/* =========================================================
    RENDER MENU
-===================================== */
+========================================================= */
 
 function renderMenu() {
-
   const query =
     $("menuSearch")
       .value
       .trim()
       .toLowerCase();
 
-
   let filtered =
     MENU.filter(
       item => {
-
         const searchText =
           [
             item.name,
@@ -404,77 +305,53 @@ function renderMenu() {
           .join(" ")
           .toLowerCase();
 
-
         return searchText
           .includes(query);
-
       }
     );
 
-
   if (
-    activeCategory !==
-    "all"
+    activeCategory !== "all"
   ) {
-
     filtered =
       filtered.filter(
         item =>
           item.category ===
           activeCategory
       );
-
   }
-
 
   if (!filtered.length) {
+    $("menu").innerHTML = `
+      <div class="empty-cart">
+        <div>☕</div>
 
-    $("menu")
-      .innerHTML = `
+        <strong>
+          Không tìm thấy món
+        </strong>
 
-        <div class="empty-cart">
-
-          <div>
-            ☕
-          </div>
-
-          <strong>
-            Không tìm thấy món
-          </strong>
-
-          <span>
-            Thử chọn danh mục khác
-            hoặc đổi từ khóa tìm kiếm.
-          </span>
-
-        </div>
-
-      `;
+        <span>
+          Thử chọn danh mục khác
+          hoặc đổi từ khóa tìm kiếm.
+        </span>
+      </div>
+    `;
 
     return;
-
   }
-
 
   const groups = {};
 
-
   filtered.forEach(
     item => {
-
       if (!groups[item.category]) {
-
         groups[item.category] = [];
-
       }
-
 
       groups[item.category]
         .push(item);
-
     }
   );
-
 
   const categories =
     Object.keys(groups)
@@ -486,28 +363,21 @@ function renderMenu() {
           )
       );
 
-
-  $("menu")
-    .innerHTML =
-
+  $("menu").innerHTML =
     categories
       .map(
         category => {
-
           const items =
             groups[category];
 
-
           return `
-
             <section class="menu-category">
 
               <div class="category-heading">
 
                 <div class="category-heading-left">
 
-                  <div class="category-line">
-                  </div>
+                  <div class="category-line"></div>
 
                   <h2>
                     ${escapeHtml(category)}
@@ -515,13 +385,11 @@ function renderMenu() {
 
                 </div>
 
-
                 <span>
                   ${items.length} món
                 </span>
 
               </div>
-
 
               <div class="menu-grid">
 
@@ -539,49 +407,36 @@ function renderMenu() {
               </div>
 
             </section>
-
           `;
-
         }
       )
       .join("");
-
 }
 
 
-/* =====================================
+/* =========================================================
    MENU CARD
-===================================== */
+========================================================= */
 
 function renderMenuCard(item) {
-
   const minPrice =
     Math.min(
-
       ...item.sizes.map(
         size =>
           Number(
             size.price
-          )
-          ||
-          0
+          ) || 0
       )
-
     );
 
-
   return `
-
     <article class="menu-card">
 
       <div class="menu-category-name">
-
         ${escapeHtml(
           item.category
         )}
-
       </div>
-
 
       <h3>
         ${escapeHtml(
@@ -589,19 +444,12 @@ function renderMenuCard(item) {
         )}
       </h3>
 
-
       <p class="menu-description">
-
-        ${
-          escapeHtml(
-            item.description
-            ||
-            "Chọn size và topping theo sở thích của bạn."
-          )
-        }
-
+        ${escapeHtml(
+          item.description ||
+          "Chọn size và topping theo sở thích của bạn."
+        )}
       </p>
-
 
       <div class="menu-card-footer">
 
@@ -616,7 +464,6 @@ function renderMenuCard(item) {
           </strong>
 
         </div>
-
 
         <button
           class="choose-button"
@@ -635,62 +482,42 @@ function renderMenuCard(item) {
       </div>
 
     </article>
-
   `;
-
 }
 
 
-/* =====================================
+/* =========================================================
    OPEN OPTIONS
-===================================== */
+========================================================= */
 
 function openOptions(id) {
-
   configItem =
     MENU.find(
       item =>
         item.id === id
     );
 
-
   if (!configItem) {
     return;
   }
 
-
-  $("optionItemName")
-    .textContent =
+  $("optionItemName").textContent =
     configItem.name;
-
 
   $("optionItemDescription")
     .textContent =
-
-    configItem.description
-
-    ||
-
+    configItem.description ||
     "Chọn size và topping phù hợp với bạn.";
 
+  $("itemNote").value = "";
 
-  $("itemNote")
-    .value =
-    "";
-
-
-  /* SIZE */
-
-  $("sizeOptions")
-    .innerHTML =
-
+  $("sizeOptions").innerHTML =
     configItem.sizes
       .map(
         (
           size,
           index
         ) => `
-
           <div class="size-choice">
 
             <label>
@@ -703,10 +530,8 @@ function openOptions(id) {
                 )}"
                 ${
                   index === 0
-                  ?
-                  "checked"
-                  :
-                  ""
+                    ? "checked"
+                    : ""
                 }
               >
 
@@ -724,79 +549,59 @@ function openOptions(id) {
             </label>
 
           </div>
-
         `
       )
       .join("");
 
-
-  /* TOPPING */
-
-  $("toppingOptions")
-    .innerHTML =
-
+  $("toppingOptions").innerHTML =
     configItem.toppings.length
+      ? configItem.toppings
+          .map(
+            topping => `
+              <div class="topping-choice">
 
-    ?
+                <label>
 
-    configItem.toppings
-      .map(
-        topping => `
+                  <input
+                    type="checkbox"
+                    name="topping"
+                    value="${escapeHtml(
+                      topping.id
+                    )}"
+                  >
 
-          <div class="topping-choice">
+                  ${escapeHtml(
+                    topping.name
+                  )}
 
-            <label>
+                </label>
 
-              <input
-                type="checkbox"
-                name="topping"
-                value="${escapeHtml(
-                  topping.id
-                )}"
-              >
+                <strong>
+                  +${money(
+                    topping.price
+                  )}
+                </strong>
 
-              ${escapeHtml(
-                topping.name
-              )}
+              </div>
+            `
+          )
+          .join("")
+      : `
+        <div class="empty-cart">
 
-            </label>
+          <strong>
+            Không có topping
+          </strong>
 
+          <span>
+            Món này hiện chưa có topping.
+          </span>
 
-            <strong>
-              +${money(
-                topping.price
-              )}
-            </strong>
+        </div>
+      `;
 
-          </div>
-
-        `
-      )
-      .join("")
-
-    :
-
-    `
-
-      <div class="empty-cart">
-
-        <strong>
-          Không có topping
-        </strong>
-
-        <span>
-          Món này hiện chưa có topping.
-        </span>
-
-      </div>
-
-    `;
-
-
-  $("optionModal")
-    .hidden =
+  $("optionModal").hidden =
     false;
-
 
   document.body
     .classList
@@ -804,38 +609,30 @@ function openOptions(id) {
       "modal-open"
     );
 
-
   document
     .querySelectorAll(
       'input[name="size"], input[name="topping"]'
     )
     .forEach(
       input => {
-
         input.addEventListener(
           "change",
           updateOptionTotal
         );
-
       }
     );
 
-
   updateOptionTotal();
-
 }
 
 
-/* =====================================
+/* =========================================================
    CLOSE OPTIONS
-===================================== */
+========================================================= */
 
 function closeOptions() {
-
-  $("optionModal")
-    .hidden =
+  $("optionModal").hidden =
     true;
-
 
   document.body
     .classList
@@ -843,23 +640,18 @@ function closeOptions() {
       "modal-open"
     );
 
-
-  configItem =
-    null;
-
+  configItem = null;
 }
 
 
-/* =====================================
+/* =========================================================
    SELECTED CONFIG
-===================================== */
+========================================================= */
 
 function getSelectedConfig() {
-
   if (!configItem) {
     return null;
   }
-
 
   const sizeId =
     document
@@ -868,16 +660,13 @@ function getSelectedConfig() {
       )
       ?.value;
 
-
   const size =
     configItem.sizes
       .find(
         item =>
-          String(item.id)
-          ===
+          String(item.id) ===
           String(sizeId)
       );
-
 
   const toppingIds =
     [
@@ -890,7 +679,6 @@ function getSelectedConfig() {
         input.value
     );
 
-
   const toppings =
     configItem.toppings
       .filter(
@@ -902,84 +690,61 @@ function getSelectedConfig() {
           )
       );
 
-
   const unitPrice =
-
     Number(
       size?.price || 0
     )
-
     +
-
     toppings.reduce(
       (
         total,
         topping
       ) =>
-        total
-        +
+        total +
         Number(
           topping.price || 0
         ),
-
       0
     );
-
 
   return {
-
     size,
-
     toppings,
-
     unitPrice
-
   };
-
 }
 
 
-/* =====================================
-   UPDATE MODAL TOTAL
-===================================== */
+/* =========================================================
+   OPTION TOTAL
+========================================================= */
 
 function updateOptionTotal() {
-
   const config =
     getSelectedConfig();
 
-
-  $("optionTotal")
-    .textContent =
+  $("optionTotal").textContent =
     money(
-      config?.unitPrice
-      ||
-      0
+      config?.unitPrice || 0
     );
-
 }
 
 
-/* =====================================
-   ADD TO CART
-===================================== */
+/* =========================================================
+   ADD CART
+========================================================= */
 
 function addConfiguredItem() {
-
   const config =
     getSelectedConfig();
 
-
   if (
-    !config
-    ||
-    !config.size
-    ||
+    !config ||
+    !config.size ||
     !configItem
   ) {
     return;
   }
-
 
   const note =
     String(
@@ -991,31 +756,17 @@ function addConfiguredItem() {
       160
     );
 
-
-  /*
-    Note nằm trong key để:
-    cùng 1 món nhưng note khác
-    sẽ thành 2 dòng riêng.
-  */
-
   const key = [
-
     configItem.id,
-
     config.size.id,
-
     ...config.toppings
       .map(
         topping =>
           topping.id
       )
       .sort(),
-
     note.toLowerCase()
-
-  ]
-  .join("|");
-
+  ].join("|");
 
   const existing =
     cart.find(
@@ -1023,19 +774,14 @@ function addConfiguredItem() {
         item.key === key
     );
 
-
   if (existing) {
-
     existing.qty =
       Math.min(
         20,
         existing.qty + 1
       );
-
   } else {
-
     cart.push({
-
       key,
 
       menuId:
@@ -1048,8 +794,7 @@ function addConfiguredItem() {
         config.size.id,
 
       sizeName:
-        config.size.name
-        ||
+        config.size.name ||
         config.size.id,
 
       toppingIds:
@@ -1072,210 +817,139 @@ function addConfiguredItem() {
       note,
 
       qty: 1
-
     });
-
   }
 
-
   saveCart();
-
   closeOptions();
-
 }
 
 
-/* =====================================
-   SAVE CART
-===================================== */
+/* =========================================================
+   CART
+========================================================= */
 
 function saveCart() {
-
   localStorage.setItem(
-
-    "cartV6",
-
+    "cartV7",
     JSON.stringify(
       cart
     )
-
   );
 
-
   renderCart();
-
 }
 
-
-/* =====================================
-   CHANGE QTY
-===================================== */
 
 function changeQty(
   key,
   amount
 ) {
-
   const item =
     cart.find(
       item =>
         item.key === key
     );
 
-
   if (!item) {
     return;
   }
 
-
-  item.qty +=
-    amount;
-
+  item.qty += amount;
 
   if (
     item.qty <= 0
   ) {
-
     cart =
       cart.filter(
         item =>
           item.key !== key
       );
-
   }
 
-
   saveCart();
-
 }
 
 
-/* =====================================
-   REMOVE CART LINE
-===================================== */
-
 function removeLine(key) {
-
   cart =
     cart.filter(
       item =>
         item.key !== key
     );
 
-
   saveCart();
-
 }
 
 
-/* =====================================
-   RENDER CART
-===================================== */
-
 function renderCart() {
-
   const count =
     cart.reduce(
       (
         total,
         item
       ) =>
-        total
-        +
+        total +
         Number(
           item.qty || 0
         ),
-
       0
     );
 
-
-  $("cartCount")
-    .textContent =
+  $("cartCount").textContent =
     `${count} món`;
 
-
   if (!cart.length) {
+    $("cartItems").innerHTML = `
+      <div class="empty-cart">
 
-    $("cartItems")
-      .innerHTML = `
-
-        <div class="empty-cart">
-
-          <div>
-            🧋
-          </div>
-
-          <strong>
-            Chưa có món nào
-          </strong>
-
-          <span>
-            Chọn một món từ menu để bắt đầu.
-          </span>
-
+        <div>
+          🧋
         </div>
 
-      `;
+        <strong>
+          Chưa có món nào
+        </strong>
 
+        <span>
+          Chọn một món từ menu để bắt đầu.
+        </span>
 
-    $("total")
-      .textContent =
+      </div>
+    `;
+
+    $("total").textContent =
       "0đ";
 
-
     return;
-
   }
-
 
   let total = 0;
 
-
-  $("cartItems")
-    .innerHTML =
-
+  $("cartItems").innerHTML =
     cart
       .map(
         item => {
-
           const subtotal =
-
             Number(
               item.unitPrice
             )
-
             *
-
             Number(
               item.qty
             );
 
-
-          total +=
-            subtotal;
-
+          total += subtotal;
 
           const toppingText =
-
-            item.toppingNames
-            &&
+            item.toppingNames &&
             item.toppingNames.length
-
-            ?
-
-            " • "
-            +
-            item.toppingNames
-              .join(", ")
-
-            :
-
-            "";
-
+              ? " • " +
+                item.toppingNames
+                  .join(", ")
+              : "";
 
           return `
-
             <div class="cart-line">
 
               <div class="cart-line-top">
@@ -1283,13 +957,10 @@ function renderCart() {
                 <div>
 
                   <div class="cart-name">
-
                     ${escapeHtml(
                       item.name
                     )}
-
                   </div>
-
 
                   <div class="cart-options">
 
@@ -1304,32 +975,22 @@ function renderCart() {
 
                   </div>
 
-
                   ${
                     item.note
+                      ? `
+                        <div class="cart-note">
 
-                    ?
+                          Ghi chú:
+                          ${escapeHtml(
+                            item.note
+                          )}
 
-                    `
-
-                      <div class="cart-note">
-
-                        Ghi chú:
-                        ${escapeHtml(
-                          item.note
-                        )}
-
-                      </div>
-
-                    `
-
-                    :
-
-                    ""
+                        </div>
+                      `
+                      : ""
                   }
 
                 </div>
-
 
                 <button
                   class="remove-button"
@@ -1346,7 +1007,6 @@ function renderCart() {
                 </button>
 
               </div>
-
 
               <div class="cart-line-bottom">
 
@@ -1366,11 +1026,9 @@ function renderCart() {
                     −
                   </button>
 
-
                   <strong>
                     ${item.qty}
                   </strong>
-
 
                   <button
                     type="button"
@@ -1388,76 +1046,193 @@ function renderCart() {
 
                 </div>
 
-
                 <strong>
-
                   ${money(
                     subtotal
                   )}
-
                 </strong>
 
               </div>
 
             </div>
-
           `;
-
         }
       )
       .join("");
 
-
-  $("total")
-    .textContent =
+  $("total").textContent =
     money(total);
-
 }
 
 
-/* =====================================
-   SUBMIT ORDER
-===================================== */
+/* =========================================================
+   FULFILLMENT
+========================================================= */
 
-async function submitOrder() {
+function getFulfillmentType() {
+  return (
+    document
+      .querySelector(
+        'input[name="fulfillmentType"]:checked'
+      )
+      ?.value
+    ||
+    "dine_in"
+  );
+}
 
-  if (submitting) {
-    return;
+
+function updateFulfillmentUI() {
+  const type =
+    getFulfillmentType();
+
+  const isDelivery =
+    type === "delivery";
+
+  $("dineInFields").hidden =
+    isDelivery;
+
+  $("deliveryFields").hidden =
+    !isDelivery;
+}
+
+
+/* =========================================================
+   PAYMENT
+========================================================= */
+
+function getPaymentMethod() {
+  return (
+    document
+      .querySelector(
+        'input[name="paymentMethod"]:checked'
+      )
+      ?.value
+    ||
+    "cash"
+  );
+}
+
+
+function updatePaymentUI() {
+  const method =
+    getPaymentMethod();
+
+  $("bankTransferPanel").hidden =
+    method !==
+    "bank_transfer";
+}
+
+
+/* =========================================================
+   PAYMENT SETTINGS
+========================================================= */
+
+function loadPaymentSettings() {
+  db
+    .collection(
+      "storeSettings"
+    )
+    .doc(
+      "payment"
+    )
+    .onSnapshot(
+      doc => {
+        const data =
+          doc.exists
+            ? doc.data() || {}
+            : {};
+
+        paymentSettings = {
+          bankName:
+            String(
+              data.bankName || ""
+            ),
+
+          accountName:
+            String(
+              data.accountName || ""
+            ),
+
+          accountNumber:
+            String(
+              data.accountNumber || ""
+            ),
+
+          qrImageUrl:
+            safeHttpUrl(
+              data.qrImageUrl
+            ),
+
+          instructions:
+            String(
+              data.instructions || ""
+            )
+        };
+
+        renderPaymentSettings();
+      },
+
+      error => {
+        console.error(
+          "Payment settings:",
+          error
+        );
+      }
+    );
+}
+
+
+function renderPaymentSettings() {
+  $("bankName").textContent =
+    paymentSettings.bankName ||
+    "Đang cập nhật";
+
+  $("bankAccountName").textContent =
+    paymentSettings.accountName ||
+    "Đang cập nhật";
+
+  $("bankAccountNumber").textContent =
+    paymentSettings.accountNumber ||
+    "Đang cập nhật";
+
+  $("bankInstructions").textContent =
+    paymentSettings.instructions ||
+    "Vui lòng chuyển đúng số tiền của đơn.";
+
+  if (
+    paymentSettings.qrImageUrl
+  ) {
+    $("bankQrImage").src =
+      paymentSettings.qrImageUrl;
+
+    $("bankQrImage").hidden =
+      false;
+
+    $("bankQrPlaceholder").hidden =
+      true;
+  } else {
+    $("bankQrImage").hidden =
+      true;
+
+    $("bankQrImage").src = "";
+
+    $("bankQrPlaceholder").hidden =
+      false;
   }
+}
 
 
-  if (!cart.length) {
+/* =========================================================
+   VALIDATE CHECKOUT
+========================================================= */
 
-    $("message")
-      .textContent =
-      "Bạn chưa chọn món.";
+function getCheckoutData() {
+  const fulfillmentType =
+    getFulfillmentType();
 
-    return;
-
-  }
-
-
-  const table =
-    $("tableNumber")
-      .value
-      .trim();
-
-
-  if (!table) {
-
-    $("message")
-      .textContent =
-      "Vui lòng nhập số bàn.";
-
-
-    $("tableNumber")
-      .focus();
-
-
-    return;
-
-  }
-
+  const paymentMethod =
+    getPaymentMethod();
 
   const orderNote =
     String(
@@ -1469,49 +1244,179 @@ async function submitOrder() {
       240
     );
 
+  const result = {
+    fulfillmentType,
+    paymentMethod,
+    orderNote,
+
+    table: "",
+
+    customer: {
+      name: "",
+      phone: "",
+      address: ""
+    },
+
+    deliveryNote: ""
+  };
+
+  if (
+    fulfillmentType ===
+    "dine_in"
+  ) {
+    result.table =
+      String(
+        $("tableNumber").value || ""
+      )
+      .trim()
+      .slice(
+        0,
+        20
+      );
+
+    if (!result.table) {
+      throw new Error(
+        "Vui lòng nhập số bàn."
+      );
+    }
+  }
+
+  if (
+    fulfillmentType ===
+    "delivery"
+  ) {
+    result.customer.name =
+      String(
+        $("customerName").value || ""
+      )
+      .trim()
+      .slice(
+        0,
+        100
+      );
+
+    result.customer.phone =
+      String(
+        $("customerPhone").value || ""
+      )
+      .trim()
+      .slice(
+        0,
+        20
+      );
+
+    result.customer.address =
+      String(
+        $("customerAddress").value || ""
+      )
+      .trim()
+      .slice(
+        0,
+        300
+      );
+
+    result.deliveryNote =
+      String(
+        $("deliveryNote").value || ""
+      )
+      .trim()
+      .slice(
+        0,
+        200
+      );
+
+    if (!result.customer.name) {
+      throw new Error(
+        "Vui lòng nhập họ tên người nhận."
+      );
+    }
+
+    if (
+      !isValidPhone(
+        result.customer.phone
+      )
+    ) {
+      throw new Error(
+        "Số điện thoại không hợp lệ."
+      );
+    }
+
+    if (!result.customer.address) {
+      throw new Error(
+        "Vui lòng nhập địa chỉ giao hàng."
+      );
+    }
+  }
+
+  return result;
+}
+
+
+/* =========================================================
+   SUBMIT ORDER
+========================================================= */
+
+async function submitOrder() {
+  if (submitting) {
+    return;
+  }
+
+  if (!cart.length) {
+    $("message").textContent =
+      "Bạn chưa chọn món.";
+
+    return;
+  }
+
+  let checkout;
 
   try {
+    checkout =
+      getCheckoutData();
+  } catch (error) {
+    $("message").textContent =
+      error.message;
 
-    submitting =
+    return;
+  }
+
+  try {
+    submitting = true;
+
+    $("orderBtn").disabled =
       true;
 
-
-    $("orderBtn")
-      .disabled =
-      true;
-
-
-    $("message")
-      .textContent =
+    $("message").textContent =
       "Đang gửi đơn...";
-
 
     const user =
       await ensureAuth();
 
-
-    await user
-      .getIdToken(true);
-
+    await user.getIdToken(true);
 
     const response =
       await createOrder({
+        fulfillmentType:
+          checkout.fulfillmentType,
 
         table:
-          table.slice(
-            0,
-            20
-          ),
+          checkout.table,
 
+        customer:
+          checkout.customer,
 
-        orderNote,
+        deliveryNote:
+          checkout.deliveryNote,
 
+        paymentMethod:
+          checkout.paymentMethod,
+
+        orderNote:
+          checkout.orderNote,
 
         items:
-
           cart.map(
             item => ({
-
               menuId:
                 item.menuId,
 
@@ -1534,189 +1439,188 @@ async function submitOrder() {
                   0,
                   160
                 )
-
             })
           ),
 
-
         clientRequestId:
-
           crypto.randomUUID
-
-          ?
-
-          crypto.randomUUID()
-
-          :
-
-          Date.now()
-          +
-          "-"
-          +
-          Math.random()
-            .toString(36)
-            .slice(2)
-
+            ? crypto.randomUUID()
+            : (
+                Date.now()
+                +
+                "-"
+                +
+                Math.random()
+                  .toString(36)
+                  .slice(2)
+              )
       });
 
+    const orderId =
+      response.data.orderId;
+
+    const usedPaymentMethod =
+      checkout.paymentMethod;
 
     cart = [];
 
-
     saveCart();
 
+    resetCheckoutForm();
 
-    $("tableNumber")
-      .value =
-      "";
-
-
-    $("orderNote")
-      .value =
-      "";
-
-
-    $("message")
-      .textContent =
-      "Đặt món thành công! Cảm ơn bạn ☕";
-
-
-    console.log(
-      "Order:",
-      response.data
+    showSuccessScreen(
+      orderId,
+      usedPaymentMethod
     );
-
   } catch (error) {
-
     console.error(
       "Create order:",
       error
     );
 
-
-    $("message")
-      .textContent =
-
-      error.message
-
-      ||
-
+    $("message").textContent =
+      error.message ||
       "Không gửi được đơn.";
-
   } finally {
+    submitting = false;
 
-    submitting =
+    $("orderBtn").disabled =
       false;
-
-
-    $("orderBtn")
-      .disabled =
-      false;
-
   }
-
 }
 
 
-/* =====================================
-   STORE CONTACT
-===================================== */
+/* =========================================================
+   RESET CHECKOUT
+========================================================= */
 
-function safeHttpUrl(value) {
+function resetCheckoutForm() {
+  $("tableNumber").value = "";
+  $("customerName").value = "";
+  $("customerPhone").value = "";
+  $("customerAddress").value = "";
+  $("deliveryNote").value = "";
+  $("orderNote").value = "";
 
-  const url =
-    String(
-      value || ""
-    )
-    .trim();
+  const dineIn =
+    document.querySelector(
+      'input[name="fulfillmentType"][value="dine_in"]'
+    );
 
+  if (dineIn) {
+    dineIn.checked = true;
+  }
+
+  const cash =
+    document.querySelector(
+      'input[name="paymentMethod"][value="cash"]'
+    );
+
+  if (cash) {
+    cash.checked = true;
+  }
+
+  updateFulfillmentUI();
+  updatePaymentUI();
+
+  $("message").textContent = "";
+}
+
+
+/* =========================================================
+   SUCCESS SCREEN
+========================================================= */
+
+function showSuccessScreen(
+  orderId,
+  paymentMethod
+) {
+  $("successOrderId").textContent =
+    orderId || "---";
 
   if (
-    /^https?:\/\//i
-      .test(url)
+    paymentMethod ===
+    "bank_transfer"
   ) {
-
-    return url;
-
+    $("successPaymentHint")
+      .textContent =
+      "Nếu bạn đã chuyển khoản, Cheng Coffee sẽ kiểm tra thanh toán trước khi xử lý đơn.";
+  } else {
+    $("successPaymentHint")
+      .textContent =
+      "Bạn có thể thanh toán tiền mặt khi nhận món.";
   }
 
+  $("successScreen").hidden =
+    false;
 
-  return "";
-
+  document.body
+    .classList
+    .add(
+      "modal-open"
+    );
 }
 
 
-function loadStoreContact() {
+function hideSuccessScreen() {
+  $("successScreen").hidden =
+    true;
 
-  $("footerYear")
-    .textContent =
+  document.body
+    .classList
+    .remove(
+      "modal-open"
+    );
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
+
+
+/* =========================================================
+   STORE CONTACT
+========================================================= */
+
+function loadStoreContact() {
+  $("footerYear").textContent =
     String(
       new Date()
         .getFullYear()
     );
 
-
   db
     .collection(
       "storeSettings"
     )
-
     .doc(
       "contact"
     )
-
     .onSnapshot(
-
       doc => {
-
         if (!doc.exists) {
           return;
         }
 
-
         const data =
           doc.data() || {};
 
-
-        $("footerName")
-          .textContent =
-
-          data.name
-
-          ||
-
+        $("footerName").textContent =
+          data.name ||
           "CHENG COFFEE";
 
-
-        $("footerTagline")
-          .textContent =
-
-          data.tagline
-
-          ||
-
+        $("footerTagline").textContent =
+          data.tagline ||
           "Một chút cà phê, một chút bình yên.";
 
-
-        $("footerAddress")
-          .textContent =
-
-          data.address
-
-          ||
-
+        $("footerAddress").textContent =
+          data.address ||
           "Đang cập nhật";
 
-
-        $("footerHours")
-          .textContent =
-
-          data.openingHours
-
-          ||
-
+        $("footerHours").textContent =
+          data.openingHours ||
           "Đang cập nhật";
-
 
         const phone =
           String(
@@ -1724,124 +1628,113 @@ function loadStoreContact() {
           )
           .trim();
 
-
-        $("footerPhone")
-          .textContent =
-
-          phone
-
-          ||
-
+        $("footerPhone").textContent =
+          phone ||
           "Đang cập nhật";
 
-
-        $("footerPhone")
-          .href =
-
+        $("footerPhone").href =
           phone
-
-          ?
-
-          "tel:"
-          +
-          phone.replace(
-            /[^\d+]/g,
-            ""
-          )
-
-          :
-
-          "#";
-
+            ? "tel:" +
+              phone.replace(
+                /[^\d+]/g,
+                ""
+              )
+            : "#";
 
         const facebook =
           safeHttpUrl(
             data.facebook
           );
 
-
         const zalo =
           safeHttpUrl(
             data.zalo
           );
 
-
-        $("footerFacebook")
-          .hidden =
+        $("footerFacebook").hidden =
           !facebook;
 
-
-        $("footerFacebook")
-          .href =
+        $("footerFacebook").href =
           facebook || "#";
 
-
-        $("footerZalo")
-          .hidden =
+        $("footerZalo").hidden =
           !zalo;
 
-
-        $("footerZalo")
-          .href =
+        $("footerZalo").href =
           zalo || "#";
-
       },
 
-
       error => {
-
         console.error(
           "Store contact:",
           error
         );
-
       }
-
     );
-
 }
 
 
-/* =====================================
-   ESCAPE
-===================================== */
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function safeHttpUrl(value) {
+  const url =
+    String(
+      value || ""
+    )
+    .trim();
+
+  return /^https?:\/\//i
+    .test(url)
+      ? url
+      : "";
+}
+
+
+function isValidPhone(value) {
+  const phone =
+    String(
+      value || ""
+    )
+    .replace(
+      /[\s.-]/g,
+      ""
+    );
+
+  return /^\+?\d{8,15}$/
+    .test(phone);
+}
+
 
 function escapeHtml(value) {
-
   return String(
     value ?? ""
   )
-
   .replaceAll(
     "&",
     "&amp;"
   )
-
   .replaceAll(
     "<",
     "&lt;"
   )
-
   .replaceAll(
     ">",
     "&gt;"
   )
-
   .replaceAll(
     '"',
     "&quot;"
   )
-
   .replaceAll(
     "'",
     "&#039;"
   );
-
 }
 
 
 function escapeAttr(value) {
-
   return String(
     value ?? ""
   )
@@ -1849,13 +1742,12 @@ function escapeAttr(value) {
     "'",
     "\\'"
   );
-
 }
 
 
-/* =====================================
+/* =========================================================
    EVENTS
-===================================== */
+========================================================= */
 
 $("menuSearch")
   .addEventListener(
@@ -1875,16 +1767,12 @@ $("optionModal")
   .addEventListener(
     "click",
     event => {
-
       if (
         event.target ===
         $("optionModal")
       ) {
-
         closeOptions();
-
       }
-
     }
   );
 
@@ -1903,56 +1791,84 @@ $("orderBtn")
   );
 
 
-/* =====================================
-   WELCOME SCREEN
-===================================== */
+$("backToMenuBtn")
+  .addEventListener(
+    "click",
+    hideSuccessScreen
+  );
+
+
+document
+  .querySelectorAll(
+    'input[name="fulfillmentType"]'
+  )
+  .forEach(
+    input => {
+      input.addEventListener(
+        "change",
+        updateFulfillmentUI
+      );
+    }
+  );
+
+
+document
+  .querySelectorAll(
+    'input[name="paymentMethod"]'
+  )
+  .forEach(
+    input => {
+      input.addEventListener(
+        "change",
+        updatePaymentUI
+      );
+    }
+  );
+
+
+/* =========================================================
+   WELCOME
+========================================================= */
 
 window.addEventListener(
   "load",
   () => {
-
     const welcome =
       $("welcomeScreen");
-
 
     if (!welcome) {
       return;
     }
 
-
     setTimeout(
       () => {
-
         welcome
           .classList
           .add(
             "hide"
           );
-
       },
       2300
     );
 
-
     setTimeout(
       () => {
-
         welcome.remove();
-
       },
       3100
     );
-
   }
 );
 
 
-/* =====================================
+/* =========================================================
    START
-===================================== */
+========================================================= */
+
+updateFulfillmentUI();
+updatePaymentUI();
 
 ensureAuth()
-
   .catch(
     error =>
       console.error(
@@ -1960,13 +1876,10 @@ ensureAuth()
         error
       )
   )
-
   .finally(
     () => {
-
       loadMenu();
-
       loadStoreContact();
-
+      loadPaymentSettings();
     }
   );

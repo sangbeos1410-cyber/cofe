@@ -1,22 +1,33 @@
 /* =========================================================
-   CHENG COFFEE - ADMIN.JS
+   CHENG COFFEE ADMIN - V7
 ========================================================= */
 
-const ADMIN_EMAIL = "sangbeos1410@gmail.com";
+const ADMIN_EMAIL =
+  "sangbeos1410@gmail.com";
 
-const $ = (id) => document.getElementById(id);
 
-const money = (value) =>
-  new Intl.NumberFormat("vi-VN").format(Number(value) || 0) + "đ";
+const $ = id =>
+  document.getElementById(id);
+
+
+const money = value =>
+  new Intl.NumberFormat(
+    "vi-VN"
+  ).format(
+    Number(value) || 0
+  ) + "đ";
+
 
 let MENU = [];
 let ORDERS = [];
 
 let editingId = null;
+
 let unsubscribeMenu = null;
 let unsubscribeOrders = null;
 let unsubscribeStats = null;
 let unsubscribeStore = null;
+let unsubscribePayment = null;
 
 
 /* =========================================================
@@ -24,164 +35,365 @@ let unsubscribeStore = null;
 ========================================================= */
 
 if (!firebase.apps.length) {
-  firebase.initializeApp(self.FIREBASE_CONFIG);
-}
 
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-const functions = firebase
-  .app()
-  .functions(
-    self.FIREBASE_FUNCTIONS_REGION ||
-    "asia-southeast1"
+  firebase.initializeApp(
+    self.FIREBASE_CONFIG
   );
 
+}
+
+
+const auth =
+  firebase.auth();
+
+
+const db =
+  firebase.firestore();
+
+
+const functions =
+  firebase
+    .app()
+    .functions(
+      self.FIREBASE_FUNCTIONS_REGION ||
+      "asia-southeast1"
+    );
+
+
 const testAdminPush =
-  functions.httpsCallable("testAdminPush");
+  functions.httpsCallable(
+    "testAdminPush"
+  );
 
-
-/* =========================================================
-   AUTH
-========================================================= */
 
 auth.setPersistence(
   firebase.auth.Auth.Persistence.LOCAL
-).catch(console.error);
+)
+.catch(
+  console.error
+);
 
+
+/* =========================================================
+   AUTH HELPERS
+========================================================= */
 
 function isAdminUser(user) {
+
   return (
-    !!user &&
-    String(user.email || "").toLowerCase() ===
-      ADMIN_EMAIL.toLowerCase()
+    !!user
+    &&
+    String(
+      user.email || ""
+    ).toLowerCase()
+    ===
+    ADMIN_EMAIL.toLowerCase()
   );
+
 }
 
 
-auth.onAuthStateChanged(async (user) => {
-  if (isAdminUser(user)) {
-    $("loginPanel").hidden = true;
-    $("adminApp").hidden = false;
-    $("logoutBtn").hidden = false;
+/* =========================================================
+   SHOW LOGIN / ADMIN
+========================================================= */
 
-    try {
-      await user.getIdToken(true);
-    } catch (error) {
-      console.error(error);
-    }
+function showLogin() {
 
-    startAdmin();
-  } else {
+  $("loginPanel").hidden =
+    false;
+
+  $("loginPanel").style.display =
+    "grid";
+
+
+  $("adminApp").hidden =
+    true;
+
+  $("adminApp").style.display =
+    "none";
+
+
+  $("logoutBtn").hidden =
+    true;
+
+  $("logoutBtn").style.display =
+    "none";
+
+}
+
+
+function showAdmin() {
+
+  $("loginPanel").hidden =
+    true;
+
+  $("loginPanel").style.display =
+    "none";
+
+
+  $("adminApp").hidden =
+    false;
+
+  $("adminApp").style.display =
+    "block";
+
+
+  $("logoutBtn").hidden =
+    false;
+
+  $("logoutBtn").style.display =
+    "inline-block";
+
+}
+
+
+/* =========================================================
+   AUTH STATE
+========================================================= */
+
+auth.onAuthStateChanged(
+  async user => {
+
     stopAdmin();
 
-    $("loginPanel").hidden = false;
-    $("adminApp").hidden = true;
-    $("logoutBtn").hidden = true;
+
+    if (
+      isAdminUser(user)
+    ) {
+
+      try {
+
+        await user
+          .getIdToken(true);
+
+      } catch (error) {
+
+        console.error(
+          "Refresh token:",
+          error
+        );
+
+      }
+
+
+      showAdmin();
+
+      startAdmin();
+
+    } else {
+
+      showLogin();
+
+    }
+
   }
-});
+);
 
 
 /* =========================================================
    LOGIN
 ========================================================= */
 
-$("loginForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
+$("loginForm")
+  .addEventListener(
+    "submit",
+    async event => {
 
-  const password = $("password").value;
+      event.preventDefault();
 
-  $("loginMessage").textContent =
-    "Đang đăng nhập...";
 
-  try {
-    const credential =
-      await auth.signInWithEmailAndPassword(
-        ADMIN_EMAIL,
-        password
-      );
+      const password =
+        $("password").value;
 
-    if (!isAdminUser(credential.user)) {
-      await auth.signOut();
 
-      throw new Error(
-        "Tài khoản này không có quyền Admin."
-      );
+      $("loginMessage")
+        .textContent =
+        "Đang đăng nhập...";
+
+
+      try {
+
+        const credential =
+          await auth
+            .signInWithEmailAndPassword(
+              ADMIN_EMAIL,
+              password
+            );
+
+
+        if (
+          !isAdminUser(
+            credential.user
+          )
+        ) {
+
+          await auth.signOut();
+
+
+          throw new Error(
+            "Tài khoản không có quyền Admin."
+          );
+
+        }
+
+
+        await credential.user
+          .getIdToken(true);
+
+
+        $("password").value =
+          "";
+
+
+        $("loginMessage")
+          .textContent =
+          "";
+
+
+        showAdmin();
+
+      } catch (error) {
+
+        console.error(
+          "Login:",
+          error
+        );
+
+
+        if (
+          error.code ===
+            "auth/invalid-credential"
+          ||
+          error.code ===
+            "auth/wrong-password"
+        ) {
+
+          $("loginMessage")
+            .textContent =
+            "Mật khẩu không đúng.";
+
+        } else if (
+          error.code ===
+          "auth/too-many-requests"
+        ) {
+
+          $("loginMessage")
+            .textContent =
+            "Bạn thử quá nhiều lần. Vui lòng chờ rồi thử lại.";
+
+        } else {
+
+          $("loginMessage")
+            .textContent =
+            error.message ||
+            "Không đăng nhập được.";
+
+        }
+
+      }
+
     }
-
-    await credential.user.getIdToken(true);
-
-    $("password").value = "";
-
-    $("loginMessage").textContent = "";
-  } catch (error) {
-    console.error("Login:", error);
-
-    let message = "Không đăng nhập được.";
-
-    if (
-      error.code === "auth/invalid-credential" ||
-      error.code === "auth/wrong-password"
-    ) {
-      message = "Mật khẩu không đúng.";
-    }
-
-    if (error.code === "auth/too-many-requests") {
-      message =
-        "Bạn thử quá nhiều lần. Vui lòng chờ rồi thử lại.";
-    }
-
-    $("loginMessage").textContent = message;
-  }
-});
-
-
-$("logoutBtn").addEventListener("click", async () => {
-  try {
-    await auth.signOut();
-  } catch (error) {
-    console.error(error);
-  }
-});
+  );
 
 
 /* =========================================================
-   START / STOP ADMIN
+   LOGOUT
+========================================================= */
+
+$("logoutBtn")
+  .addEventListener(
+    "click",
+    async () => {
+
+      try {
+
+        stopAdmin();
+
+        await auth.signOut();
+
+        showLogin();
+
+      } catch (error) {
+
+        console.error(
+          error
+        );
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   START / STOP
 ========================================================= */
 
 function startAdmin() {
+
   loadMenu();
+
   loadOrders();
+
   loadStats();
+
   loadStoreSettings();
 
+  loadPaymentSettings();
+
   updatePushUI();
+
 }
 
 
 function stopAdmin() {
-  if (unsubscribeMenu) {
-    unsubscribeMenu();
-    unsubscribeMenu = null;
-  }
 
-  if (unsubscribeOrders) {
-    unsubscribeOrders();
-    unsubscribeOrders = null;
-  }
+  const unsubscribers = [
 
-  if (unsubscribeStats) {
-    unsubscribeStats();
-    unsubscribeStats = null;
-  }
+    unsubscribeMenu,
 
-  if (unsubscribeStore) {
-    unsubscribeStore();
-    unsubscribeStore = null;
-  }
+    unsubscribeOrders,
+
+    unsubscribeStats,
+
+    unsubscribeStore,
+
+    unsubscribePayment
+
+  ];
+
+
+  unsubscribers
+    .forEach(
+      unsubscribe => {
+
+        if (
+          typeof unsubscribe ===
+          "function"
+        ) {
+
+          try {
+
+            unsubscribe();
+
+          } catch (_) {}
+
+        }
+
+      }
+    );
+
+
+  unsubscribeMenu = null;
+  unsubscribeOrders = null;
+  unsubscribeStats = null;
+  unsubscribeStore = null;
+  unsubscribePayment = null;
+
 
   MENU = [];
   ORDERS = [];
+
 }
 
 
@@ -190,355 +402,669 @@ function stopAdmin() {
 ========================================================= */
 
 document
-  .querySelectorAll(".tab-button")
-  .forEach((button) => {
-    button.addEventListener("click", () => {
-      const tab = button.dataset.tab;
+  .querySelectorAll(
+    ".tab-button"
+  )
+  .forEach(
+    button => {
 
-      document
-        .querySelectorAll(".tab-button")
-        .forEach((item) =>
-          item.classList.remove("active")
-        );
+      button.addEventListener(
+        "click",
+        () => {
 
-      button.classList.add("active");
+          const tab =
+            button.dataset.tab;
 
-      document
-        .querySelectorAll(".tab-page")
-        .forEach((page) =>
-          page.classList.remove("active")
-        );
 
-      const target = $("tab-" + tab);
+          document
+            .querySelectorAll(
+              ".tab-button"
+            )
+            .forEach(
+              item =>
+                item.classList
+                  .remove(
+                    "active"
+                  )
+            );
 
-      if (target) {
-        target.classList.add("active");
-      }
-    });
-  });
+
+          button.classList
+            .add(
+              "active"
+            );
+
+
+          document
+            .querySelectorAll(
+              ".tab-page"
+            )
+            .forEach(
+              page =>
+                page.classList
+                  .remove(
+                    "active"
+                  )
+            );
+
+
+          const target =
+            $(
+              "tab-" + tab
+            );
+
+
+          if (target) {
+
+            target.classList
+              .add(
+                "active"
+              );
+
+          }
+
+        }
+      );
+
+    }
+  );
 
 
 /* =========================================================
-   MENU
+   MENU LOAD
 ========================================================= */
 
 function normalizeMenu(doc) {
-  const data = doc.data() || {};
+
+  const data =
+    doc.data() || {};
+
 
   return {
-    id: doc.id,
 
-    name: String(data.name || ""),
+    id:
+      doc.id,
 
-    category: String(
-      data.category || "Khác"
-    ),
 
-    description: String(
-      data.description || ""
-    ),
+    name:
+      String(
+        data.name || ""
+      ),
 
-    sizes: Array.isArray(data.sizes)
-      ? data.sizes
-      : [],
 
-    toppings: Array.isArray(data.toppings)
-      ? data.toppings
-      : [],
+    category:
+      String(
+        data.category || "Khác"
+      ),
 
-    active: data.active === true,
 
-    ...data
+    description:
+      String(
+        data.description || ""
+      ),
+
+
+    sizes:
+      Array.isArray(
+        data.sizes
+      )
+      ?
+      data.sizes
+      :
+      [],
+
+
+    toppings:
+      Array.isArray(
+        data.toppings
+      )
+      ?
+      data.toppings
+      :
+      [],
+
+
+    active:
+      data.active === true
+
   };
+
 }
 
 
 function loadMenu() {
-  if (unsubscribeMenu) {
+
+  if (
+    unsubscribeMenu
+  ) {
+
     unsubscribeMenu();
+
   }
 
-  unsubscribeMenu = db
-    .collection("menu")
-    .onSnapshot(
-      (snapshot) => {
-        MENU = snapshot.docs
-          .map(normalizeMenu)
-          .sort((a, b) =>
-            String(a.category).localeCompare(
-              String(b.category),
-              "vi"
-            ) ||
-            String(a.name).localeCompare(
-              String(b.name),
-              "vi"
-            )
+
+  unsubscribeMenu =
+    db
+      .collection(
+        "menu"
+      )
+      .onSnapshot(
+
+        snapshot => {
+
+          MENU =
+            snapshot.docs
+              .map(
+                normalizeMenu
+              )
+              .sort(
+                (a, b) => {
+
+                  const categoryCompare =
+                    String(
+                      a.category
+                    )
+                    .localeCompare(
+                      String(
+                        b.category
+                      ),
+                      "vi"
+                    );
+
+
+                  if (
+                    categoryCompare !==
+                    0
+                  ) {
+
+                    return categoryCompare;
+
+                  }
+
+
+                  return String(
+                    a.name
+                  )
+                  .localeCompare(
+                    String(
+                      b.name
+                    ),
+                    "vi"
+                  );
+
+                }
+              );
+
+
+          renderMenuTable();
+
+        },
+
+
+        error => {
+
+          console.error(
+            "Menu:",
+            error
           );
 
-        renderMenuTable();
-      },
 
-      (error) => {
-        console.error("Menu:", error);
+          $("menuTable")
+            .innerHTML = `
 
-        $("menuTable").innerHTML = `
-          <tr>
-            <td colspan="7">
-              Không tải được menu:
-              ${escapeHtml(error.message)}
-            </td>
-          </tr>
-        `;
-      }
-    );
+              <tr>
+
+                <td colspan="7">
+
+                  Không tải được menu:
+
+                  ${escapeHtml(
+                    error.message
+                  )}
+
+                </td>
+
+              </tr>
+
+            `;
+
+        }
+
+      );
+
 }
 
 
 /* =========================================================
-   RENDER MENU TABLE
+   RENDER MENU
 ========================================================= */
 
 function renderMenuTable() {
-  if (!MENU.length) {
-    $("menuTable").innerHTML = `
-      <tr>
-        <td colspan="7">
-          Chưa có món trong menu.
-        </td>
-      </tr>
-    `;
+
+  if (
+    !MENU.length
+  ) {
+
+    $("menuTable")
+      .innerHTML = `
+
+        <tr>
+
+          <td colspan="7">
+            Chưa có món trong menu.
+          </td>
+
+        </tr>
+
+      `;
 
     return;
+
   }
 
-  $("menuTable").innerHTML = MENU.map((item) => {
-    const sizeText = item.sizes
-      .map((size) => {
-        return `${escapeHtml(
-          size.name || size.id
-        )}: ${money(size.price)}`;
-      })
-      .join("<br>");
 
-    const toppingText = item.toppings.length
-      ? item.toppings
-          .map(
-            (topping) =>
-              `${escapeHtml(
-                topping.name
-              )} (+${money(topping.price)})`
-          )
-          .join("<br>")
-      : "—";
+  $("menuTable")
+    .innerHTML =
 
-    return `
-      <tr>
+    MENU.map(
+      item => {
 
-        <td>
-          <strong>
-            ${escapeHtml(item.id)}
-          </strong>
-        </td>
 
-        <td>
-          <strong>
-            ${escapeHtml(item.name)}
-          </strong>
+        const sizeText =
+          item.sizes
+            .map(
+              size =>
 
-          ${
-            item.description
-              ? `
-                <div class="muted">
-                  ${escapeHtml(
-                    item.description
-                  )}
-                </div>
-              `
-              : ""
-          }
-        </td>
+                `${escapeHtml(
+                  size.name ||
+                  size.id
+                )}: ${money(
+                  size.price
+                )}`
 
-        <td>
-          ${escapeHtml(item.category)}
-        </td>
+            )
+            .join("<br>");
 
-        <td>
-          ${sizeText || "—"}
-        </td>
 
-        <td>
-          ${toppingText}
-        </td>
+        const toppingText =
+          item.toppings.length
 
-        <td>
-          ${
-            item.active
-              ? `
-                <span class="status-pill online">
-                  Đang bán
-                </span>
-              `
-              : `
-                <span class="status-pill">
-                  Đã ẩn
-                </span>
-              `
-          }
-        </td>
+          ?
 
-        <td>
+          item.toppings
+            .map(
+              topping =>
 
-          <div class="actions">
+                `${escapeHtml(
+                  topping.name
+                )} (+${money(
+                  topping.price
+                )})`
 
-            <button
-              class="secondary"
-              type="button"
-              onclick="editMenuItem(
-                '${escapeJs(item.id)}'
-              )"
-            >
-              Sửa
-            </button>
+            )
+            .join("<br>")
 
-            <button
-              class="secondary"
-              type="button"
-              onclick="toggleMenuItem(
-                '${escapeJs(item.id)}'
-              )"
-            >
+          :
+
+          "—";
+
+
+        return `
+
+          <tr>
+
+            <td>
+
+              <strong>
+                ${escapeHtml(
+                  item.id
+                )}
+              </strong>
+
+            </td>
+
+
+            <td>
+
+              <strong>
+                ${escapeHtml(
+                  item.name
+                )}
+              </strong>
+
+
+              ${
+                item.description
+
+                ?
+
+                `
+
+                  <div class="muted">
+
+                    ${escapeHtml(
+                      item.description
+                    )}
+
+                  </div>
+
+                `
+
+                :
+
+                ""
+              }
+
+            </td>
+
+
+            <td>
+              ${escapeHtml(
+                item.category
+              )}
+            </td>
+
+
+            <td>
+              ${sizeText || "—"}
+            </td>
+
+
+            <td>
+              ${toppingText}
+            </td>
+
+
+            <td>
+
               ${
                 item.active
-                  ? "Ẩn"
-                  : "Bật"
+
+                ?
+
+                `
+
+                  <span class="status-pill online">
+                    Đang bán
+                  </span>
+
+                `
+
+                :
+
+                `
+
+                  <span class="status-pill">
+                    Đã ẩn
+                  </span>
+
+                `
               }
-            </button>
 
-            <button
-              class="danger"
-              type="button"
-              onclick="deleteMenuItem(
-                '${escapeJs(item.id)}'
-              )"
-            >
-              Xóa
-            </button>
+            </td>
 
-          </div>
 
-        </td>
+            <td>
 
-      </tr>
-    `;
-  }).join("");
+              <div class="actions">
+
+                <button
+                  class="secondary"
+                  type="button"
+                  onclick="
+                    editMenuItem(
+                      '${escapeJs(
+                        item.id
+                      )}'
+                    )
+                  "
+                >
+                  Sửa
+                </button>
+
+
+                <button
+                  class="secondary"
+                  type="button"
+                  onclick="
+                    toggleMenuItem(
+                      '${escapeJs(
+                        item.id
+                      )}'
+                    )
+                  "
+                >
+
+                  ${
+                    item.active
+                    ?
+                    "Ẩn"
+                    :
+                    "Bật"
+                  }
+
+                </button>
+
+
+                <button
+                  class="danger"
+                  type="button"
+                  onclick="
+                    deleteMenuItem(
+                      '${escapeJs(
+                        item.id
+                      )}'
+                    )
+                  "
+                >
+                  Xóa
+                </button>
+
+              </div>
+
+            </td>
+
+          </tr>
+
+        `;
+
+      }
+    )
+    .join("");
+
 }
 
 
 /* =========================================================
-   PARSE SIZE
+   MENU SIZES
 ========================================================= */
 
 function buildSizes() {
-  const result = [];
 
-  const sizeS =
-    Number($("sizeS").value);
+  const result =
+    [];
 
-  const sizeM =
-    Number($("sizeM").value);
 
-  const sizeL =
-    Number($("sizeL").value);
+  const values = [
 
-  if (
-    $("sizeS").value !== "" &&
-    Number.isFinite(sizeS) &&
-    sizeS >= 0
-  ) {
-    result.push({
-      id: "S",
-      name: "S",
-      price: sizeS
-    });
-  }
+    [
+      "S",
+      $("sizeS").value
+    ],
 
-  if (
-    $("sizeM").value !== "" &&
-    Number.isFinite(sizeM) &&
-    sizeM >= 0
-  ) {
-    result.push({
-      id: "M",
-      name: "M",
-      price: sizeM
-    });
-  }
+    [
+      "M",
+      $("sizeM").value
+    ],
 
-  if (
-    $("sizeL").value !== "" &&
-    Number.isFinite(sizeL) &&
-    sizeL >= 0
-  ) {
-    result.push({
-      id: "L",
-      name: "L",
-      price: sizeL
-    });
-  }
+    [
+      "L",
+      $("sizeL").value
+    ]
+
+  ];
+
+
+  values.forEach(
+    (
+      [
+        id,
+        rawValue
+      ]
+    ) => {
+
+      if (
+        String(
+          rawValue
+        ).trim() === ""
+      ) {
+
+        return;
+
+      }
+
+
+      const price =
+        Number(
+          rawValue
+        );
+
+
+      if (
+        !Number.isInteger(
+          price
+        )
+        ||
+        price < 0
+      ) {
+
+        throw new Error(
+          `Giá size ${id} không hợp lệ.`
+        );
+
+      }
+
+
+      result.push({
+
+        id,
+
+        name:
+          id,
+
+        price
+
+      });
+
+    }
+  );
+
 
   return result;
+
 }
 
 
 /* =========================================================
-   PARSE TOPPINGS
+   TOPPINGS
 ========================================================= */
 
 function buildToppings() {
-  const lines = String(
-    $("toppingsText").value || ""
-  )
+
+  const lines =
+    String(
+      $("toppingsText").value ||
+      ""
+    )
     .split("\n")
-    .map((line) => line.trim())
+    .map(
+      line =>
+        line.trim()
+    )
     .filter(Boolean);
 
-  const toppings = [];
 
-  lines.forEach((line, index) => {
-    const parts = line.split("|");
+  return lines.map(
+    (
+      line,
+      index
+    ) => {
 
-    const name =
-      String(parts[0] || "").trim();
+      const parts =
+        line
+          .split("|")
+          .map(
+            value =>
+              value.trim()
+          );
 
-    const price =
-      Number(
-        String(parts[1] || "0")
-          .replace(/[^\d.-]/g, "")
-      );
 
-    if (!name) {
-      return;
+      if (
+        parts.length !== 2
+      ) {
+
+        throw new Error(
+          `Topping dòng ${index + 1} phải có dạng: Tên | Giá`
+        );
+
+      }
+
+
+      const name =
+        parts[0];
+
+
+      const price =
+        Number(
+          parts[1]
+        );
+
+
+      if (
+        !name
+        ||
+        !Number.isInteger(
+          price
+        )
+        ||
+        price < 0
+      ) {
+
+        throw new Error(
+          `Topping dòng ${index + 1} không hợp lệ.`
+        );
+
+      }
+
+
+      return {
+
+        id:
+          (
+            slugify(name)
+            ||
+            `topping-${index + 1}`
+          )
+          .slice(
+            0,
+            40
+          ),
+
+
+        name:
+          name.slice(
+            0,
+            80
+          ),
+
+
+        price
+
+      };
+
     }
+  );
 
-    if (
-      !Number.isFinite(price) ||
-      price < 0
-    ) {
-      return;
-    }
-
-    const id =
-      slugify(name) ||
-      `topping-${index + 1}`;
-
-    toppings.push({
-      id: id.slice(0, 40),
-      name: name.slice(0, 80),
-      price
-    });
-  });
-
-  return toppings;
 }
 
 
@@ -546,263 +1072,439 @@ function buildToppings() {
    SAVE MENU
 ========================================================= */
 
-$("menuForm").addEventListener(
-  "submit",
-  async (event) => {
-    event.preventDefault();
+$("menuForm")
+  .addEventListener(
+    "submit",
+    async event => {
 
-    const id = String(
-      $("itemId").value || ""
-    )
-      .trim()
-      .toUpperCase();
+      event.preventDefault();
 
-    const name = String(
-      $("itemName").value || ""
-    ).trim();
 
-    const category = String(
-      $("itemCategory").value || ""
-    ).trim();
+      try {
 
-    const description = String(
-      $("itemDescription").value || ""
-    ).trim();
-
-    if (
-      !/^[A-Za-z0-9_-]{1,30}$/.test(id)
-    ) {
-      $("message").textContent =
-        "Mã món chỉ được dùng chữ, số, dấu - hoặc _.";
-
-      return;
-    }
-
-    if (!name) {
-      $("message").textContent =
-        "Vui lòng nhập tên món.";
-
-      return;
-    }
-
-    if (!category) {
-      $("message").textContent =
-        "Vui lòng nhập danh mục.";
-
-      return;
-    }
-
-    const sizes = buildSizes();
-
-    if (!sizes.length) {
-      $("message").textContent =
-        "Món phải có ít nhất một size.";
-
-      return;
-    }
-
-    const toppings = buildToppings();
-
-    $("saveBtn").disabled = true;
-
-    $("message").textContent =
-      "Đang lưu...";
-
-    try {
-      const data = {
-        name: name.slice(0, 100),
-
-        category:
-          category.slice(0, 80),
-
-        description:
-          description.slice(0, 300),
-
-        sizes,
-
-        toppings,
-
-        active:
-          $("itemActive").checked,
-
-        updatedAt:
-          firebase.firestore
-            .FieldValue
-            .serverTimestamp()
-      };
-
-      if (editingId) {
-        await db
-          .collection("menu")
-          .doc(editingId)
-          .set(data, {
-            merge: false
-          });
-
-        $("message").textContent =
-          "Đã cập nhật món.";
-      } else {
-        const existing = await db
-          .collection("menu")
-          .doc(id)
-          .get();
-
-        if (existing.exists) {
-          throw new Error(
-            "Mã món này đã tồn tại."
+        const id =
+          (
+            editingId
+            ||
+            $("itemId")
+              .value
+              .trim()
+              .toUpperCase()
           );
+
+
+        if (
+          !/^[A-Z0-9_-]{1,30}$/
+            .test(id)
+        ) {
+
+          throw new Error(
+            "Mã món chỉ được dùng chữ, số, dấu - hoặc _."
+          );
+
         }
 
+
+        const name =
+          $("itemName")
+            .value
+            .trim();
+
+
+        const category =
+          $("itemCategory")
+            .value
+            .trim();
+
+
+        const description =
+          $("itemDescription")
+            .value
+            .trim();
+
+
+        if (!name) {
+
+          throw new Error(
+            "Vui lòng nhập tên món."
+          );
+
+        }
+
+
+        if (!category) {
+
+          throw new Error(
+            "Vui lòng nhập danh mục."
+          );
+
+        }
+
+
+        const sizes =
+          buildSizes();
+
+
+        if (
+          !sizes.length
+        ) {
+
+          throw new Error(
+            "Món phải có ít nhất một size."
+          );
+
+        }
+
+
+        const toppings =
+          buildToppings();
+
+
+        $("saveBtn")
+          .disabled =
+          true;
+
+
+        $("message")
+          .textContent =
+          "Đang lưu...";
+
+
+        const data = {
+
+          name:
+            name.slice(
+              0,
+              100
+            ),
+
+
+          category:
+            category.slice(
+              0,
+              80
+            ),
+
+
+          description:
+            description.slice(
+              0,
+              300
+            ),
+
+
+          sizes,
+
+
+          toppings,
+
+
+          active:
+            $("itemActive")
+              .checked,
+
+
+          updatedAt:
+            firebase
+              .firestore
+              .FieldValue
+              .serverTimestamp()
+
+        };
+
+
+        if (
+          !editingId
+        ) {
+
+          const oldDoc =
+            await db
+              .collection(
+                "menu"
+              )
+              .doc(id)
+              .get();
+
+
+          if (
+            oldDoc.exists
+          ) {
+
+            throw new Error(
+              "Mã món này đã tồn tại."
+            );
+
+          }
+
+        }
+
+
+        /*
+          Không merge để loại bỏ
+          field price của cấu trúc cũ.
+        */
+
         await db
-          .collection("menu")
+          .collection(
+            "menu"
+          )
           .doc(id)
           .set(data);
 
-        $("message").textContent =
-          "Đã thêm món mới.";
+
+        resetMenuForm();
+
+
+        $("message")
+          .textContent =
+          editingId
+          ?
+          "Đã cập nhật món."
+          :
+          "Đã lưu món.";
+
+
+      } catch (error) {
+
+        console.error(
+          "Save menu:",
+          error
+        );
+
+
+        $("message")
+          .textContent =
+          error.message ||
+          "Không lưu được món.";
+
+      } finally {
+
+        $("saveBtn")
+          .disabled =
+          false;
+
       }
 
-      resetMenuForm();
-    } catch (error) {
-      console.error(
-        "Save menu:",
-        error
-      );
-
-      $("message").textContent =
-        error.message ||
-        "Không lưu được món.";
-    } finally {
-      $("saveBtn").disabled = false;
     }
-  }
-);
+  );
 
 
 /* =========================================================
    EDIT MENU
 ========================================================= */
 
-window.editMenuItem = function (id) {
-  const item = MENU.find(
-    (menuItem) =>
-      menuItem.id === id
-  );
+window.editMenuItem =
+  function (id) {
 
-  if (!item) {
-    return;
-  }
+    const item =
+      MENU.find(
+        menuItem =>
+          menuItem.id === id
+      );
 
-  editingId = item.id;
 
-  $("formTitle").textContent =
-    "Sửa món";
-
-  $("saveBtn").textContent =
-    "Lưu thay đổi";
-
-  $("cancelBtn").hidden = false;
-
-  $("itemId").value =
-    item.id;
-
-  $("itemId").disabled =
-    true;
-
-  $("itemName").value =
-    item.name;
-
-  $("itemCategory").value =
-    item.category;
-
-  $("itemDescription").value =
-    item.description || "";
-
-  $("sizeS").value = "";
-  $("sizeM").value = "";
-  $("sizeL").value = "";
-
-  item.sizes.forEach((size) => {
-    const id =
-      String(size.id || "")
-        .toUpperCase();
-
-    if (id === "S") {
-      $("sizeS").value =
-        Number(size.price) || 0;
+    if (!item) {
+      return;
     }
 
-    if (id === "M") {
-      $("sizeM").value =
-        Number(size.price) || 0;
-    }
 
-    if (id === "L") {
-      $("sizeL").value =
-        Number(size.price) || 0;
-    }
-  });
-
-  $("toppingsText").value =
-    item.toppings
-      .map(
-        (topping) =>
-          `${topping.name} | ${Number(
-            topping.price
-          ) || 0}`
-      )
-      .join("\n");
-
-  $("itemActive").checked =
-    item.active;
-
-  $("message").textContent =
-    `Đang sửa ${item.name}`;
-
-  window.scrollTo({
-    top:
-      $("menuForm")
-        .getBoundingClientRect()
-        .top +
-      window.scrollY -
-      120,
-
-    behavior: "smooth"
-  });
-};
+    editingId =
+      item.id;
 
 
-/* =========================================================
-   RESET MENU FORM
-========================================================= */
+    $("formTitle")
+      .textContent =
+      "Sửa món";
+
+
+    $("saveBtn")
+      .textContent =
+      "Lưu thay đổi";
+
+
+    $("cancelBtn")
+      .hidden =
+      false;
+
+
+    $("itemId")
+      .value =
+      item.id;
+
+
+    $("itemId")
+      .disabled =
+      true;
+
+
+    $("itemName")
+      .value =
+      item.name;
+
+
+    $("itemCategory")
+      .value =
+      item.category;
+
+
+    $("itemDescription")
+      .value =
+      item.description || "";
+
+
+    $("sizeS").value = "";
+    $("sizeM").value = "";
+    $("sizeL").value = "";
+
+
+    item.sizes
+      .forEach(
+        size => {
+
+          const sizeId =
+            String(
+              size.id || ""
+            )
+            .toUpperCase();
+
+
+          if (
+            sizeId === "S"
+          ) {
+
+            $("sizeS")
+              .value =
+              Number(
+                size.price
+              ) || 0;
+
+          }
+
+
+          if (
+            sizeId === "M"
+          ) {
+
+            $("sizeM")
+              .value =
+              Number(
+                size.price
+              ) || 0;
+
+          }
+
+
+          if (
+            sizeId === "L"
+          ) {
+
+            $("sizeL")
+              .value =
+              Number(
+                size.price
+              ) || 0;
+
+          }
+
+        }
+      );
+
+
+    $("toppingsText")
+      .value =
+
+      item.toppings
+        .map(
+          topping =>
+
+            `${topping.name} | ${Number(
+              topping.price
+            ) || 0}`
+
+        )
+        .join("\n");
+
+
+    $("itemActive")
+      .checked =
+      item.active;
+
+
+    $("message")
+      .textContent =
+      `Đang sửa ${item.name}`;
+
+
+    window.scrollTo({
+
+      top:
+        $("menuForm")
+          .getBoundingClientRect()
+          .top
+        +
+        window.scrollY
+        -
+        120,
+
+
+      behavior:
+        "smooth"
+
+    });
+
+  };
+
 
 function resetMenuForm() {
-  editingId = null;
 
-  $("menuForm").reset();
+  editingId =
+    null;
 
-  $("itemId").disabled = false;
 
-  $("itemActive").checked = true;
+  $("menuForm")
+    .reset();
 
-  $("formTitle").textContent =
+
+  $("itemId")
+    .disabled =
+    false;
+
+
+  $("itemActive")
+    .checked =
+    true;
+
+
+  $("formTitle")
+    .textContent =
     "Thêm món mới";
 
-  $("saveBtn").textContent =
+
+  $("saveBtn")
+    .textContent =
     "Thêm món";
 
-  $("cancelBtn").hidden = true;
+
+  $("cancelBtn")
+    .hidden =
+    true;
+
 }
 
 
-$("cancelBtn").addEventListener(
-  "click",
-  () => {
-    resetMenuForm();
+$("cancelBtn")
+  .addEventListener(
+    "click",
+    () => {
 
-    $("message").textContent = "";
-  }
-);
+      resetMenuForm();
+
+      $("message")
+        .textContent =
+        "";
+
+    }
+  );
 
 
 /* =========================================================
@@ -811,35 +1513,55 @@ $("cancelBtn").addEventListener(
 
 window.toggleMenuItem =
   async function (id) {
-    const item = MENU.find(
-      (menuItem) =>
-        menuItem.id === id
-    );
+
+    const item =
+      MENU.find(
+        menuItem =>
+          menuItem.id === id
+      );
+
 
     if (!item) {
       return;
     }
 
+
     try {
+
       await db
-        .collection("menu")
+        .collection(
+          "menu"
+        )
         .doc(id)
         .update({
-          active: !item.active,
+
+          active:
+            !item.active,
+
 
           updatedAt:
-            firebase.firestore
+            firebase
+              .firestore
               .FieldValue
               .serverTimestamp()
+
         });
+
     } catch (error) {
-      console.error(error);
+
+      console.error(
+        error
+      );
+
 
       alert(
-        "Không thay đổi được trạng thái món: " +
+        "Không thay đổi được trạng thái món: "
+        +
         error.message
       );
+
     }
+
   };
 
 
@@ -849,41 +1571,63 @@ window.toggleMenuItem =
 
 window.deleteMenuItem =
   async function (id) {
-    const item = MENU.find(
-      (menuItem) =>
-        menuItem.id === id
-    );
+
+    const item =
+      MENU.find(
+        menuItem =>
+          menuItem.id === id
+      );
+
 
     if (!item) {
       return;
     }
 
-    const confirmed = confirm(
-      `Xóa món "${item.name}"?\n\n` +
-      "Đơn hàng cũ sẽ không bị mất."
-    );
 
-    if (!confirmed) {
+    if (
+      !confirm(
+        `Xóa món "${item.name}"?\n\nĐơn cũ sẽ không bị mất.`
+      )
+    ) {
+
       return;
+
     }
 
+
     try {
+
       await db
-        .collection("menu")
+        .collection(
+          "menu"
+        )
         .doc(id)
         .delete();
 
-      if (editingId === id) {
+
+      if (
+        editingId === id
+      ) {
+
         resetMenuForm();
+
       }
+
     } catch (error) {
-      console.error(error);
+
+      console.error(
+        error
+      );
+
 
       alert(
-        "Không xóa được món: " +
+        "Không xóa được món: "
+        +
         error.message
       );
+
     }
+
   };
 
 
@@ -892,49 +1636,151 @@ window.deleteMenuItem =
 ========================================================= */
 
 function loadOrders() {
-  if (unsubscribeOrders) {
+
+  if (
+    unsubscribeOrders
+  ) {
+
     unsubscribeOrders();
+
   }
 
-  const today = dateKeyVN();
 
-  unsubscribeOrders = db
-    .collection("orders")
-    .where(
-      "dateKey",
-      "==",
-      today
-    )
-    .onSnapshot(
-      (snapshot) => {
-        ORDERS = snapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          .sort(
-            (a, b) =>
-              timestampMs(b.createdAt) -
-              timestampMs(a.createdAt)
+  const today =
+    dateKeyVN();
+
+
+  unsubscribeOrders =
+    db
+      .collection(
+        "orders"
+      )
+      .where(
+        "dateKey",
+        "==",
+        today
+      )
+      .onSnapshot(
+
+        snapshot => {
+
+          ORDERS =
+            snapshot.docs
+              .map(
+                doc => ({
+
+                  id:
+                    doc.id,
+
+                  ...doc.data()
+
+                })
+              )
+              .sort(
+                (a, b) =>
+
+                  timestampMs(
+                    b.createdAt
+                  )
+
+                  -
+
+                  timestampMs(
+                    a.createdAt
+                  )
+              );
+
+
+          renderOrders();
+
+        },
+
+
+        error => {
+
+          console.error(
+            "Orders:",
+            error
           );
 
-        renderOrders();
-      },
 
-      (error) => {
-        console.error(
-          "Orders:",
-          error
-        );
+          $("ordersList")
+            .innerHTML = `
 
-        $("ordersList").innerHTML = `
-          <div class="empty-admin">
-            Không tải được đơn:
-            ${escapeHtml(error.message)}
-          </div>
-        `;
-      }
-    );
+              <div class="empty-admin">
+
+                Không tải được đơn:
+
+                ${escapeHtml(
+                  error.message
+                )}
+
+              </div>
+
+            `;
+
+        }
+
+      );
+
+}
+
+
+/* =========================================================
+   ORDER FULFILLMENT HELPERS
+========================================================= */
+
+function fulfillmentLabel(
+  order
+) {
+
+  if (
+    order.fulfillmentType ===
+    "delivery"
+  ) {
+
+    return "🛵 Giao tận nơi";
+
+  }
+
+
+  return "☕ Tại quán";
+
+}
+
+
+function paymentLabel(
+  order
+) {
+
+  if (
+    order.paymentMethod ===
+    "bank_transfer"
+  ) {
+
+    return "🏦 Chuyển khoản";
+
+  }
+
+
+  return "💵 Tiền mặt";
+
+}
+
+
+function paymentStatusLabel(
+  order
+) {
+
+  return (
+    order.paymentStatus ===
+    "paid"
+  )
+  ?
+  "Đã thanh toán"
+  :
+  "Chưa thanh toán";
+
 }
 
 
@@ -943,145 +1789,402 @@ function loadOrders() {
 ========================================================= */
 
 function renderOrders() {
-  if (!ORDERS.length) {
-    $("ordersList").innerHTML = `
-      <div class="empty-admin">
-        Hôm nay chưa có đơn nào.
-      </div>
-    `;
+
+  if (
+    !ORDERS.length
+  ) {
+
+    $("ordersList")
+      .innerHTML = `
+
+        <div class="empty-admin">
+          Hôm nay chưa có đơn nào.
+        </div>
+
+      `;
 
     return;
+
   }
 
-  $("ordersList").innerHTML =
-    ORDERS.map((order) => {
-      const items =
-        Array.isArray(order.items)
-          ? order.items
-          : [];
 
-      const itemsHtml =
-        items.map((item) => {
-          const toppings =
-            Array.isArray(item.toppings)
-              ? item.toppings
-              : [];
+  $("ordersList")
+    .innerHTML =
 
-          const toppingText =
-            toppings.length
-              ? toppings
-                  .map(
-                    (topping) =>
-                      topping.name
+    ORDERS.map(
+      order => {
+
+
+        const items =
+          Array.isArray(
+            order.items
+          )
+          ?
+          order.items
+          :
+          [];
+
+
+        const customer =
+          order.customer &&
+          typeof order.customer ===
+            "object"
+          ?
+          order.customer
+          :
+          {};
+
+
+        const isDelivery =
+          order.fulfillmentType ===
+          "delivery";
+
+
+        const isBank =
+          order.paymentMethod ===
+          "bank_transfer";
+
+
+        const isPaid =
+          order.paymentStatus ===
+          "paid";
+
+
+        const itemsHtml =
+          items
+            .map(
+              item => {
+
+
+                const toppings =
+                  Array.isArray(
+                    item.toppings
                   )
-                  .join(", ")
-              : "Không topping";
+                  ?
+                  item.toppings
+                  :
+                  [];
 
-          return `
-            <div class="order-item">
+
+                const toppingText =
+                  toppings.length
+
+                  ?
+
+                  toppings
+                    .map(
+                      topping =>
+                        topping.name
+                    )
+                    .join(", ")
+
+                  :
+
+                  "Không topping";
+
+
+                return `
+
+                  <div class="order-item">
+
+                    <div>
+
+                      <div class="order-item-name">
+
+                        ${
+                          Number(
+                            item.quantity
+                          ) || 1
+                        }
+
+                        ×
+
+                        ${escapeHtml(
+                          item.name || ""
+                        )}
+
+                      </div>
+
+
+                      <div class="order-item-info">
+
+                        Size:
+                        ${escapeHtml(
+                          item.sizeName ||
+                          item.sizeId ||
+                          ""
+                        )}
+
+                        <br>
+
+                        Topping:
+                        ${escapeHtml(
+                          toppingText
+                        )}
+
+                        <br>
+
+                        Đơn giá:
+                        ${money(
+                          item.unitPrice
+                        )}
+
+                      </div>
+
+
+                      ${
+                        item.note
+
+                        ?
+
+                        `
+
+                          <div class="item-note-admin">
+
+                            <strong>
+                              Ghi chú món:
+                            </strong>
+
+                            ${escapeHtml(
+                              item.note
+                            )}
+
+                          </div>
+
+                        `
+
+                        :
+
+                        ""
+                      }
+
+                    </div>
+
+
+                    <strong>
+                      ${money(
+                        item.subtotal
+                      )}
+                    </strong>
+
+                  </div>
+
+                `;
+
+              }
+            )
+            .join("");
+
+
+        const customerHtml =
+          isDelivery
+
+          ?
+
+          `
+
+            <div class="delivery-info">
+
+              <div class="delivery-info-grid">
+
+                <div class="info-row">
+
+                  <span>
+                    Người nhận
+                  </span>
+
+                  <strong>
+                    ${escapeHtml(
+                      customer.name || ""
+                    )}
+                  </strong>
+
+                </div>
+
+
+                <div class="info-row">
+
+                  <span>
+                    Điện thoại
+                  </span>
+
+                  <strong>
+                    ${escapeHtml(
+                      customer.phone || ""
+                    )}
+                  </strong>
+
+                </div>
+
+
+                <div class="info-row">
+
+                  <span>
+                    Địa chỉ
+                  </span>
+
+                  <strong>
+                    ${escapeHtml(
+                      customer.address || ""
+                    )}
+                  </strong>
+
+                </div>
+
+
+                <div class="info-row">
+
+                  <span>
+                    Ghi chú giao hàng
+                  </span>
+
+                  <strong>
+                    ${escapeHtml(
+                      order.deliveryNote ||
+                      "Không có"
+                    )}
+                  </strong>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          `
+
+          :
+
+          `
+
+            <div class="dinein-info">
+
+              <div class="info-row">
+
+                <span>
+                  Số bàn
+                </span>
+
+                <strong>
+                  ${
+                    escapeHtml(
+                      order.table || "?"
+                    )
+                  }
+                </strong>
+
+              </div>
+
+            </div>
+
+          `;
+
+
+        return `
+
+          <article class="order-card">
+
+            <div class="order-head">
 
               <div>
 
-                <div class="order-item-name">
-                  ${Number(
-                    item.quantity
-                  ) || 1}
-                  ×
-                  ${escapeHtml(
-                    item.name || ""
-                  )}
+                <div class="order-title-row">
+
+                  <div class="order-id">
+
+                    ${
+                      isDelivery
+
+                      ?
+
+                      escapeHtml(
+                        customer.name ||
+                        "Khách giao hàng"
+                      )
+
+                      :
+
+                      "Bàn "
+                      +
+                      escapeHtml(
+                        order.table || "?"
+                      )
+                    }
+
+                  </div>
+
+
+                  <span
+                    class="
+                      status-pill
+                      ${
+                        isDelivery
+                        ?
+                        "delivery"
+                        :
+                        "dine-in"
+                      }
+                    "
+                  >
+
+                    ${
+                      fulfillmentLabel(
+                        order
+                      )
+                    }
+
+                  </span>
+
                 </div>
 
-                <div class="order-item-info">
 
-                  Size:
-                  ${escapeHtml(
-                    item.sizeName ||
-                    item.sizeId ||
-                    ""
+                <div class="order-time">
+
+                  ${formatDateTime(
+                    order.createdAt
                   )}
 
-                  <br>
+                  •
 
-                  Topping:
-                  ${escapeHtml(
-                    toppingText
-                  )}
+                  ${
+                    Number(
+                      order.cups || 0
+                    )
+                  }
 
-                  <br>
-
-                  Đơn giá:
-                  ${money(
-                    item.unitPrice
-                  )}
+                  món
 
                 </div>
-
-                ${
-                  item.note
-                    ? `
-                      <div class="item-note-admin">
-                        <strong>
-                          Ghi chú món:
-                        </strong>
-                        ${escapeHtml(
-                          item.note
-                        )}
-                      </div>
-                    `
-                    : ""
-                }
 
               </div>
 
-              <strong>
+
+              <div class="order-total">
+
                 ${money(
-                  item.subtotal
-                )}
-              </strong>
-
-            </div>
-          `;
-        }).join("");
-
-      return `
-        <article class="order-card">
-
-          <div class="order-head">
-
-            <div>
-
-              <div class="order-id">
-                Bàn
-                ${escapeHtml(
-                  order.table || "?"
-                )}
-              </div>
-
-              <div class="order-time">
-                ${formatDateTime(
-                  order.createdAt
+                  order.total
                 )}
 
-                • ${Number(
-                  order.cups || 0
-                )} món
               </div>
 
             </div>
 
-            <div class="order-total">
-              ${money(order.total)}
-            </div>
 
-          </div>
+            ${customerHtml}
 
-          ${itemsHtml}
 
-          ${
-            order.orderNote
-              ? `
+            ${itemsHtml}
+
+
+            ${
+              order.orderNote
+
+              ?
+
+              `
+
                 <div class="order-note-admin">
+
                   <strong>
                     Ghi chú đơn:
                   </strong>
@@ -1089,69 +2192,225 @@ function renderOrders() {
                   ${escapeHtml(
                     order.orderNote
                   )}
+
                 </div>
+
               `
-              : ""
-          }
 
-          <div class="actions">
+              :
 
-            <button
-              class="${
-                order.status === "new"
-                  ? "primary"
-                  : "secondary"
-              }"
-              type="button"
-              onclick="changeOrderStatus(
-                '${escapeJs(order.id)}',
-                'new'
-              )"
-            >
-              Mới
-            </button>
+              ""
+            }
 
-            <button
-              class="${
-                order.status ===
-                "preparing"
-                  ? "primary"
-                  : "secondary"
-              }"
-              type="button"
-              onclick="changeOrderStatus(
-                '${escapeJs(order.id)}',
-                'preparing'
-              )"
-            >
-              Đang làm
-            </button>
 
-            <button
-              class="${
-                order.status === "done"
-                  ? "primary"
-                  : "secondary"
-              }"
-              type="button"
-              onclick="changeOrderStatus(
-                '${escapeJs(order.id)}',
-                'done'
-              )"
-            >
-              Hoàn thành
-            </button>
+            <div class="order-payment-box">
 
-          </div>
+              <div class="order-payment-head">
 
-        </article>
-      `;
-    }).join("");
+                <strong>
+                  ${paymentLabel(
+                    order
+                  )}
+                </strong>
+
+
+                <div>
+
+                  <span
+                    class="
+                      status-pill
+                      ${
+                        isBank
+                        ?
+                        "bank"
+                        :
+                        "cash"
+                      }
+                    "
+                  >
+
+                    ${
+                      isBank
+                      ?
+                      "Chuyển khoản"
+                      :
+                      "Tiền mặt"
+                    }
+
+                  </span>
+
+
+                  <span
+                    class="
+                      status-pill
+                      ${
+                        isPaid
+                        ?
+                        "paid"
+                        :
+                        "pending"
+                      }
+                    "
+                  >
+
+                    ${
+                      paymentStatusLabel(
+                        order
+                      )
+                    }
+
+                  </span>
+
+                </div>
+
+              </div>
+
+
+              <div class="payment-status-actions">
+
+                <button
+                  class="
+                    ${
+                      !isPaid
+                      ?
+                      "primary"
+                      :
+                      "secondary"
+                    }
+                  "
+                  type="button"
+                  onclick="
+                    changePaymentStatus(
+                      '${escapeJs(
+                        order.id
+                      )}',
+                      'pending'
+                    )
+                  "
+                >
+                  Chưa thanh toán
+                </button>
+
+
+                <button
+                  class="
+                    ${
+                      isPaid
+                      ?
+                      "primary"
+                      :
+                      "secondary"
+                    }
+                  "
+                  type="button"
+                  onclick="
+                    changePaymentStatus(
+                      '${escapeJs(
+                        order.id
+                      )}',
+                      'paid'
+                    )
+                  "
+                >
+                  Đã thanh toán
+                </button>
+
+              </div>
+
+            </div>
+
+
+            <div class="actions">
+
+              <button
+                class="
+                  ${
+                    order.status ===
+                    "new"
+                    ?
+                    "primary"
+                    :
+                    "secondary"
+                  }
+                "
+                type="button"
+                onclick="
+                  changeOrderStatus(
+                    '${escapeJs(
+                      order.id
+                    )}',
+                    'new'
+                  )
+                "
+              >
+                Mới
+              </button>
+
+
+              <button
+                class="
+                  ${
+                    order.status ===
+                    "preparing"
+                    ?
+                    "primary"
+                    :
+                    "secondary"
+                  }
+                "
+                type="button"
+                onclick="
+                  changeOrderStatus(
+                    '${escapeJs(
+                      order.id
+                    )}',
+                    'preparing'
+                  )
+                "
+              >
+                Đang làm
+              </button>
+
+
+              <button
+                class="
+                  ${
+                    order.status ===
+                    "done"
+                    ?
+                    "primary"
+                    :
+                    "secondary"
+                  }
+                "
+                type="button"
+                onclick="
+                  changeOrderStatus(
+                    '${escapeJs(
+                      order.id
+                    )}',
+                    'done'
+                  )
+                "
+              >
+                Hoàn thành
+              </button>
+
+            </div>
+
+          </article>
+
+        `;
+
+      }
+    )
+    .join("");
+
 }
 
 
 /* =========================================================
-   CHANGE ORDER STATUS
+   ORDER STATUS
 ========================================================= */
 
 window.changeOrderStatus =
@@ -1159,26 +2418,121 @@ window.changeOrderStatus =
     orderId,
     status
   ) {
+
+    if (
+      ![
+        "new",
+        "preparing",
+        "done"
+      ].includes(status)
+    ) {
+
+      return;
+
+    }
+
+
     try {
+
       await db
-        .collection("orders")
-        .doc(orderId)
+        .collection(
+          "orders"
+        )
+        .doc(
+          orderId
+        )
         .update({
+
           status,
 
+
           updatedAt:
-            firebase.firestore
+            firebase
+              .firestore
               .FieldValue
               .serverTimestamp()
+
         });
+
     } catch (error) {
-      console.error(error);
+
+      console.error(
+        error
+      );
+
 
       alert(
-        "Không cập nhật được đơn: " +
+        "Không cập nhật được trạng thái đơn: "
+        +
         error.message
       );
+
     }
+
+  };
+
+
+/* =========================================================
+   PAYMENT STATUS
+========================================================= */
+
+window.changePaymentStatus =
+  async function (
+    orderId,
+    paymentStatus
+  ) {
+
+    if (
+      ![
+        "pending",
+        "paid"
+      ].includes(
+        paymentStatus
+      )
+    ) {
+
+      return;
+
+    }
+
+
+    try {
+
+      await db
+        .collection(
+          "orders"
+        )
+        .doc(
+          orderId
+        )
+        .update({
+
+          paymentStatus,
+
+
+          updatedAt:
+            firebase
+              .firestore
+              .FieldValue
+              .serverTimestamp()
+
+        });
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+
+      alert(
+        "Không cập nhật được thanh toán: "
+        +
+        error.message
+      );
+
+    }
+
   };
 
 
@@ -1187,127 +2541,207 @@ window.changeOrderStatus =
 ========================================================= */
 
 function loadStats() {
-  if (unsubscribeStats) {
+
+  if (
+    unsubscribeStats
+  ) {
+
     unsubscribeStats();
+
   }
 
-  unsubscribeStats = db
-    .collection("dailyStats")
-    .orderBy("date", "desc")
-    .limit(31)
-    .onSnapshot(
-      (snapshot) => {
-        const stats =
-          snapshot.docs.map(
-            (doc) => ({
-              id: doc.id,
-              ...doc.data()
-            })
+
+  unsubscribeStats =
+    db
+      .collection(
+        "dailyStats"
+      )
+      .orderBy(
+        "date",
+        "desc"
+      )
+      .limit(31)
+      .onSnapshot(
+
+        snapshot => {
+
+          const stats =
+            snapshot.docs
+              .map(
+                doc => ({
+
+                  id:
+                    doc.id,
+
+                  ...doc.data()
+
+                })
+              );
+
+
+          renderStats(
+            stats
           );
 
-        renderStats(stats);
-      },
+        },
 
-      (error) => {
-        console.error(
-          "Stats:",
-          error
-        );
 
-        $("historyTable").innerHTML = `
-          <tr>
-            <td colspan="4">
-              Không tải được thống kê:
-              ${escapeHtml(
-                error.message
-              )}
-            </td>
-          </tr>
-        `;
-      }
-    );
+        error => {
+
+          console.error(
+            "Stats:",
+            error
+          );
+
+
+          $("historyTable")
+            .innerHTML = `
+
+              <tr>
+
+                <td colspan="4">
+
+                  Không tải được thống kê:
+
+                  ${escapeHtml(
+                    error.message
+                  )}
+
+                </td>
+
+              </tr>
+
+            `;
+
+        }
+
+      );
+
 }
 
 
-/* =========================================================
-   RENDER STATS
-========================================================= */
+function renderStats(
+  stats
+) {
 
-function renderStats(stats) {
   const today =
     dateKeyVN();
 
+
   const todayData =
     stats.find(
-      (item) =>
-        item.date === today ||
+      item =>
+        item.date === today
+        ||
         item.id === today
-    ) || {};
+    )
+    ||
+    {};
 
-  $("todayOrders").textContent =
+
+  $("todayOrders")
+    .textContent =
     Number(
-      todayData.orders || 0
+      todayData.orders ||
+      0
     );
 
-  $("todayCups").textContent =
+
+  $("todayCups")
+    .textContent =
     Number(
-      todayData.cups || 0
+      todayData.cups ||
+      0
     );
 
-  $("todayRevenue").textContent =
+
+  $("todayRevenue")
+    .textContent =
     money(
-      todayData.revenue || 0
+      todayData.revenue ||
+      0
     );
 
-  if (!stats.length) {
-    $("historyTable").innerHTML = `
-      <tr>
-        <td colspan="4">
-          Chưa có dữ liệu doanh thu.
-        </td>
-      </tr>
-    `;
+
+  if (
+    !stats.length
+  ) {
+
+    $("historyTable")
+      .innerHTML = `
+
+        <tr>
+
+          <td colspan="4">
+            Chưa có dữ liệu.
+          </td>
+
+        </tr>
+
+      `;
 
     return;
+
   }
 
-  $("historyTable").innerHTML =
-    stats.map((item) => `
-      <tr>
 
-        <td>
-          <strong>
-            ${escapeHtml(
-              formatDateKey(
-                item.date ||
-                item.id
-              )
+  $("historyTable")
+    .innerHTML =
+
+    stats.map(
+      item => `
+
+        <tr>
+
+          <td>
+
+            <strong>
+
+              ${escapeHtml(
+                formatDateKey(
+                  item.date ||
+                  item.id
+                )
+              )}
+
+            </strong>
+
+          </td>
+
+
+          <td>
+            ${Number(
+              item.orders || 0
             )}
-          </strong>
-        </td>
+          </td>
 
-        <td>
-          ${Number(
-            item.orders || 0
-          )}
-        </td>
 
-        <td>
-          ${Number(
-            item.cups || 0
-          )}
-        </td>
-
-        <td>
-          <strong>
-            ${money(
-              item.revenue || 0
+          <td>
+            ${Number(
+              item.cups || 0
             )}
-          </strong>
-        </td>
+          </td>
 
-      </tr>
-    `).join("");
+
+          <td>
+
+            <strong>
+
+              ${money(
+                item.revenue ||
+                0
+              )}
+
+            </strong>
+
+          </td>
+
+        </tr>
+
+      `
+    )
+    .join("");
+
 }
 
 
@@ -1316,267 +2750,698 @@ function renderStats(stats) {
 ========================================================= */
 
 function loadStoreSettings() {
-  if (unsubscribeStore) {
+
+  if (
+    unsubscribeStore
+  ) {
+
     unsubscribeStore();
+
   }
 
-  unsubscribeStore = db
-    .collection("storeSettings")
-    .doc("contact")
-    .onSnapshot(
-      (doc) => {
-        if (!doc.exists) {
-          setDefaultStoreForm();
-          return;
+
+  unsubscribeStore =
+    db
+      .collection(
+        "storeSettings"
+      )
+      .doc(
+        "contact"
+      )
+      .onSnapshot(
+
+        doc => {
+
+          const data =
+            doc.exists
+            ?
+            doc.data() || {}
+            :
+            {};
+
+
+          $("storeName")
+            .value =
+            data.name ||
+            "CHENG COFFEE";
+
+
+          $("storePhone")
+            .value =
+            data.phone ||
+            "";
+
+
+          $("storeHours")
+            .value =
+            data.openingHours ||
+            "07:00 - 22:00";
+
+
+          $("storeAddress")
+            .value =
+            data.address ||
+            "";
+
+
+          $("storeFacebook")
+            .value =
+            data.facebook ||
+            "";
+
+
+          $("storeZalo")
+            .value =
+            data.zalo ||
+            "";
+
+
+          $("storeTagline")
+            .value =
+            data.tagline ||
+            "Một chút cà phê, một chút bình yên.";
+
+        },
+
+
+        error => {
+
+          console.error(
+            "Store:",
+            error
+          );
+
+
+          $("storeMessage")
+            .textContent =
+            "Không tải được thông tin quán: "
+            +
+            error.message;
+
         }
 
-        const data =
-          doc.data() || {};
+      );
 
-        $("storeName").value =
-          data.name ||
-          "CHENG COFFEE";
+}
 
-        $("storePhone").value =
-          data.phone || "";
 
-        $("storeHours").value =
-          data.openingHours || "";
+/* =========================================================
+   SAVE STORE
+========================================================= */
 
-        $("storeAddress").value =
-          data.address || "";
+$("storeForm")
+  .addEventListener(
+    "submit",
+    async event => {
 
-        $("storeFacebook").value =
-          data.facebook || "";
+      event.preventDefault();
 
-        $("storeZalo").value =
-          data.zalo || "";
 
-        $("storeTagline").value =
-          data.tagline ||
-          "Một chút cà phê, một chút bình yên.";
-      },
+      try {
 
-      (error) => {
+        const name =
+          $("storeName")
+            .value
+            .trim();
+
+
+        if (!name) {
+
+          throw new Error(
+            "Vui lòng nhập tên quán."
+          );
+
+        }
+
+
+        const facebook =
+          normalizeOptionalUrl(
+            $("storeFacebook")
+              .value
+          );
+
+
+        const zalo =
+          normalizeOptionalUrl(
+            $("storeZalo")
+              .value
+          );
+
+
+        if (
+          $("storeFacebook")
+            .value
+            .trim()
+          &&
+          !facebook
+        ) {
+
+          throw new Error(
+            "Link Facebook phải bắt đầu bằng http:// hoặc https://"
+          );
+
+        }
+
+
+        if (
+          $("storeZalo")
+            .value
+            .trim()
+          &&
+          !zalo
+        ) {
+
+          throw new Error(
+            "Link Zalo phải bắt đầu bằng http:// hoặc https://"
+          );
+
+        }
+
+
+        $("storeMessage")
+          .textContent =
+          "Đang lưu...";
+
+
+        await db
+          .collection(
+            "storeSettings"
+          )
+          .doc(
+            "contact"
+          )
+          .set({
+
+            name:
+              name.slice(
+                0,
+                100
+              ),
+
+
+            phone:
+              $("storePhone")
+                .value
+                .trim()
+                .slice(
+                  0,
+                  30
+                ),
+
+
+            openingHours:
+              $("storeHours")
+                .value
+                .trim()
+                .slice(
+                  0,
+                  100
+                ),
+
+
+            address:
+              $("storeAddress")
+                .value
+                .trim()
+                .slice(
+                  0,
+                  200
+                ),
+
+
+            facebook:
+              facebook.slice(
+                0,
+                300
+              ),
+
+
+            zalo:
+              zalo.slice(
+                0,
+                300
+              ),
+
+
+            tagline:
+              $("storeTagline")
+                .value
+                .trim()
+                .slice(
+                  0,
+                  180
+                ),
+
+
+            updatedAt:
+              firebase
+                .firestore
+                .FieldValue
+                .serverTimestamp()
+
+          });
+
+
+        $("storeMessage")
+          .textContent =
+          "Đã lưu thông tin quán.";
+
+      } catch (error) {
+
         console.error(
-          "Store settings:",
+          "Store save:",
           error
         );
 
-        $("storeMessage").textContent =
-          "Không tải được thông tin quán: " +
-          error.message;
+
+        $("storeMessage")
+          .textContent =
+          error.message ||
+          "Không lưu được.";
+
       }
-    );
-}
 
-
-function setDefaultStoreForm() {
-  $("storeName").value =
-    "CHENG COFFEE";
-
-  $("storePhone").value = "";
-
-  $("storeHours").value =
-    "07:00 - 22:00";
-
-  $("storeAddress").value = "";
-
-  $("storeFacebook").value = "";
-
-  $("storeZalo").value = "";
-
-  $("storeTagline").value =
-    "Một chút cà phê, một chút bình yên.";
-}
-
-
-/* =========================================================
-   SAVE STORE SETTINGS
-========================================================= */
-
-$("storeForm").addEventListener(
-  "submit",
-  async (event) => {
-    event.preventDefault();
-
-    const name =
-      $("storeName")
-        .value
-        .trim();
-
-    if (!name) {
-      $("storeMessage").textContent =
-        "Vui lòng nhập tên quán.";
-
-      return;
     }
-
-    const facebook =
-      normalizeOptionalUrl(
-        $("storeFacebook").value
-      );
-
-    const zalo =
-      normalizeOptionalUrl(
-        $("storeZalo").value
-      );
-
-    if (
-      $("storeFacebook")
-        .value
-        .trim() &&
-      !facebook
-    ) {
-      $("storeMessage").textContent =
-        "Link Facebook phải bắt đầu bằng http:// hoặc https://";
-
-      return;
-    }
-
-    if (
-      $("storeZalo")
-        .value
-        .trim() &&
-      !zalo
-    ) {
-      $("storeMessage").textContent =
-        "Link Zalo phải bắt đầu bằng http:// hoặc https://";
-
-      return;
-    }
-
-    $("storeMessage").textContent =
-      "Đang lưu...";
-
-    try {
-      await db
-        .collection("storeSettings")
-        .doc("contact")
-        .set({
-          name:
-            name.slice(0, 100),
-
-          phone:
-            $("storePhone")
-              .value
-              .trim()
-              .slice(0, 30),
-
-          openingHours:
-            $("storeHours")
-              .value
-              .trim()
-              .slice(0, 100),
-
-          address:
-            $("storeAddress")
-              .value
-              .trim()
-              .slice(0, 200),
-
-          facebook:
-            facebook.slice(0, 300),
-
-          zalo:
-            zalo.slice(0, 300),
-
-          tagline:
-            $("storeTagline")
-              .value
-              .trim()
-              .slice(0, 180),
-
-          updatedAt:
-            firebase.firestore
-              .FieldValue
-              .serverTimestamp()
-        });
-
-      $("storeMessage").textContent =
-        "Đã lưu thông tin quán.";
-    } catch (error) {
-      console.error(
-        "Save store:",
-        error
-      );
-
-      $("storeMessage").textContent =
-        "Không lưu được: " +
-        error.message;
-    }
-  }
-);
-
-
-/* =========================================================
-   PUSH NOTIFICATION
-========================================================= */
-
-function messagingSupported() {
-  return (
-    typeof firebase.messaging ===
-    "function"
   );
-}
 
 
-async function getMessagingInstance() {
-  if (!messagingSupported()) {
-    throw new Error(
-      "Trình duyệt không hỗ trợ Firebase Messaging."
-    );
+/* =========================================================
+   PAYMENT SETTINGS
+========================================================= */
+
+function loadPaymentSettings() {
+
+  if (
+    unsubscribePayment
+  ) {
+
+    unsubscribePayment();
+
   }
 
-  return firebase.messaging();
+
+  unsubscribePayment =
+    db
+      .collection(
+        "storeSettings"
+      )
+      .doc(
+        "payment"
+      )
+      .onSnapshot(
+
+        doc => {
+
+          const data =
+            doc.exists
+            ?
+            doc.data() || {}
+            :
+            {};
+
+
+          $("paymentBankName")
+            .value =
+            data.bankName ||
+            "";
+
+
+          $("paymentAccountName")
+            .value =
+            data.accountName ||
+            "";
+
+
+          $("paymentAccountNumber")
+            .value =
+            data.accountNumber ||
+            "";
+
+
+          $("paymentQrImageUrl")
+            .value =
+            data.qrImageUrl ||
+            "";
+
+
+          $("paymentInstructions")
+            .value =
+            data.instructions ||
+            "Vui lòng chuyển đúng số tiền của đơn.";
+
+
+          updatePaymentPreview();
+
+        },
+
+
+        error => {
+
+          console.error(
+            "Payment settings:",
+            error
+          );
+
+
+          $("paymentMessage")
+            .textContent =
+            "Không tải được cấu hình thanh toán: "
+            +
+            error.message;
+
+        }
+
+      );
+
 }
 
+
+/* =========================================================
+   QR PREVIEW
+========================================================= */
+
+function updatePaymentPreview() {
+
+  const url =
+    normalizeOptionalUrl(
+      $("paymentQrImageUrl")
+        .value
+    );
+
+
+  if (url) {
+
+    $("paymentQrPreview")
+      .src =
+      url;
+
+
+    $("paymentQrPreview")
+      .hidden =
+      false;
+
+
+    $("paymentQrPreviewEmpty")
+      .hidden =
+      true;
+
+  } else {
+
+    $("paymentQrPreview")
+      .src =
+      "";
+
+
+    $("paymentQrPreview")
+      .hidden =
+      true;
+
+
+    $("paymentQrPreviewEmpty")
+      .hidden =
+      false;
+
+  }
+
+}
+
+
+$("paymentQrImageUrl")
+  .addEventListener(
+    "input",
+    updatePaymentPreview
+  );
+
+
+$("paymentQrPreview")
+  .addEventListener(
+    "error",
+    () => {
+
+      $("paymentQrPreview")
+        .hidden =
+        true;
+
+
+      $("paymentQrPreviewEmpty")
+        .hidden =
+        false;
+
+
+      $("paymentQrPreviewEmpty")
+        .textContent =
+        "Không tải được ảnh QR";
+
+    }
+  );
+
+
+$("paymentQrPreview")
+  .addEventListener(
+    "load",
+    () => {
+
+      $("paymentQrPreviewEmpty")
+        .textContent =
+        "Chưa có ảnh QR";
+
+    }
+  );
+
+
+/* =========================================================
+   SAVE PAYMENT SETTINGS
+========================================================= */
+
+$("paymentForm")
+  .addEventListener(
+    "submit",
+    async event => {
+
+      event.preventDefault();
+
+
+      try {
+
+        const bankName =
+          $("paymentBankName")
+            .value
+            .trim();
+
+
+        const accountName =
+          $("paymentAccountName")
+            .value
+            .trim();
+
+
+        const accountNumber =
+          $("paymentAccountNumber")
+            .value
+            .trim();
+
+
+        const qrImageUrl =
+          normalizeOptionalUrl(
+            $("paymentQrImageUrl")
+              .value
+          );
+
+
+        const instructions =
+          $("paymentInstructions")
+            .value
+            .trim();
+
+
+        if (
+          $("paymentQrImageUrl")
+            .value
+            .trim()
+          &&
+          !qrImageUrl
+        ) {
+
+          throw new Error(
+            "Link ảnh QR phải bắt đầu bằng http:// hoặc https://"
+          );
+
+        }
+
+
+        if (
+          !bankName
+          &&
+          !accountName
+          &&
+          !accountNumber
+          &&
+          !qrImageUrl
+        ) {
+
+          throw new Error(
+            "Vui lòng nhập thông tin tài khoản ngân hàng."
+          );
+
+        }
+
+
+        $("paymentMessage")
+          .textContent =
+          "Đang lưu...";
+
+
+        await db
+          .collection(
+            "storeSettings"
+          )
+          .doc(
+            "payment"
+          )
+          .set({
+
+            bankName:
+              bankName.slice(
+                0,
+                100
+              ),
+
+
+            accountName:
+              accountName.slice(
+                0,
+                120
+              ),
+
+
+            accountNumber:
+              accountNumber.slice(
+                0,
+                50
+              ),
+
+
+            qrImageUrl:
+              qrImageUrl.slice(
+                0,
+                500
+              ),
+
+
+            instructions:
+              instructions.slice(
+                0,
+                300
+              ),
+
+
+            updatedAt:
+              firebase
+                .firestore
+                .FieldValue
+                .serverTimestamp()
+
+          });
+
+
+        $("paymentMessage")
+          .textContent =
+          "Đã lưu thông tin thanh toán.";
+
+
+        updatePaymentPreview();
+
+      } catch (error) {
+
+        console.error(
+          "Payment save:",
+          error
+        );
+
+
+        $("paymentMessage")
+          .textContent =
+          error.message ||
+          "Không lưu được thanh toán.";
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   PUSH
+========================================================= */
 
 function getSavedPushToken() {
-  return localStorage.getItem(
-    "chengAdminPushToken"
-  ) || "";
-}
 
+  return localStorage
+    .getItem(
+      "chengAdminPushToken"
+    )
+    ||
+    "";
 
-function setPushMessage(message) {
-  $("pushMessage").textContent =
-    message;
 }
 
 
 function updatePushUI() {
+
   const permission =
     "Notification" in window
-      ? Notification.permission
-      : "unsupported";
+    ?
+    Notification.permission
+    :
+    "unsupported";
 
-  const hasToken =
-    !!getSavedPushToken();
 
-  if (
-    permission === "granted" &&
-    hasToken
-  ) {
-    $("pushStatusBadge").textContent =
-      "Đã bật";
+  const token =
+    getSavedPushToken();
 
-    $("pushStatusBadge")
-      .classList.add("online");
-
-    return;
-  }
 
   $("pushStatusBadge")
-    .classList.remove("online");
+    .classList
+    .remove(
+      "online"
+    );
 
-  if (permission === "denied") {
-    $("pushStatusBadge").textContent =
+
+  if (
+    permission ===
+      "granted"
+    &&
+    token
+  ) {
+
+    $("pushStatusBadge")
+      .textContent =
+      "Đã bật";
+
+
+    $("pushStatusBadge")
+      .classList
+      .add(
+        "online"
+      );
+
+  } else if (
+    permission ===
+    "denied"
+  ) {
+
+    $("pushStatusBadge")
+      .textContent =
       "Đã chặn";
+
   } else {
-    $("pushStatusBadge").textContent =
+
+    $("pushStatusBadge")
+      .textContent =
       "Chưa bật";
+
   }
+
 }
 
 
@@ -1584,440 +3449,653 @@ function updatePushUI() {
    ENABLE PUSH
 ========================================================= */
 
-$("enablePushBtn").addEventListener(
-  "click",
-  async () => {
-    try {
-      if (
-        !("Notification" in window)
-      ) {
-        throw new Error(
-          "Thiết bị này không hỗ trợ thông báo."
-        );
-      }
+$("enablePushBtn")
+  .addEventListener(
+    "click",
+    async () => {
 
-      setPushMessage(
-        "Đang bật thông báo..."
-      );
+      try {
 
-      const permission =
-        await Notification
-          .requestPermission();
+        if (
+          !(
+            "Notification"
+            in window
+          )
+        ) {
 
-      if (
-        permission !== "granted"
-      ) {
-        throw new Error(
-          "Bạn chưa cho phép thông báo."
-        );
-      }
-
-      const registration =
-        await navigator
-          .serviceWorker
-          .register(
-            "/firebase-messaging-sw.js"
+          throw new Error(
+            "Thiết bị không hỗ trợ thông báo."
           );
 
-      const messaging =
-        await getMessagingInstance();
+        }
 
-      /*
-        Nếu firebase-config.js của bạn
-        có FIREBASE_VAPID_KEY thì sử dụng.
-      */
 
-      const options = {
-        serviceWorkerRegistration:
-          registration
-      };
+        if (
+          !(
+            "serviceWorker"
+            in navigator
+          )
+        ) {
 
-      if (self.FIREBASE_VAPID_KEY) {
-        options.vapidKey =
-          self.FIREBASE_VAPID_KEY;
-      }
+          throw new Error(
+            "Thiết bị không hỗ trợ Service Worker."
+          );
 
-      const token =
-        await messaging.getToken(
-          options
+        }
+
+
+        $("pushMessage")
+          .textContent =
+          "Đang bật thông báo...";
+
+
+        const permission =
+          await Notification
+            .requestPermission();
+
+
+        if (
+          permission !==
+          "granted"
+        ) {
+
+          throw new Error(
+            "Bạn chưa cho phép thông báo."
+          );
+
+        }
+
+
+        const registration =
+          await navigator
+            .serviceWorker
+            .register(
+              "/firebase-messaging-sw.js"
+            );
+
+
+        const messaging =
+          firebase.messaging();
+
+
+        const options = {
+
+          serviceWorkerRegistration:
+            registration
+
+        };
+
+
+        if (
+          self.FIREBASE_VAPID_KEY
+        ) {
+
+          options.vapidKey =
+            self.FIREBASE_VAPID_KEY;
+
+        }
+
+
+        const token =
+          await messaging
+            .getToken(
+              options
+            );
+
+
+        if (!token) {
+
+          throw new Error(
+            "Không lấy được token thông báo."
+          );
+
+        }
+
+
+        const user =
+          auth.currentUser;
+
+
+        if (
+          !isAdminUser(user)
+        ) {
+
+          throw new Error(
+            "Admin chưa đăng nhập."
+          );
+
+        }
+
+
+        const deviceId =
+          await sha256(
+            token
+          );
+
+
+        await db
+          .collection(
+            "adminDevices"
+          )
+          .doc(
+            deviceId
+          )
+          .set({
+
+            token,
+
+
+            uid:
+              user.uid,
+
+
+            updatedAt:
+              firebase
+                .firestore
+                .FieldValue
+                .serverTimestamp()
+
+          });
+
+
+        localStorage
+          .setItem(
+            "chengAdminPushToken",
+            token
+          );
+
+
+        $("pushMessage")
+          .textContent =
+          "Đã bật thông báo đơn mới.";
+
+
+        updatePushUI();
+
+      } catch (error) {
+
+        console.error(
+          "Push:",
+          error
         );
 
-      if (!token) {
-        throw new Error(
-          "Không lấy được token thông báo."
-        );
+
+        $("pushMessage")
+          .textContent =
+          error.message ||
+          "Không bật được thông báo.";
+
+
+        updatePushUI();
+
       }
 
-      const user =
-        auth.currentUser;
-
-      if (!isAdminUser(user)) {
-        throw new Error(
-          "Admin chưa đăng nhập."
-        );
-      }
-
-      const deviceId =
-        await sha256(token);
-
-      await db
-        .collection("adminDevices")
-        .doc(deviceId)
-        .set({
-          token,
-
-          uid:
-            user.uid,
-
-          updatedAt:
-            firebase.firestore
-              .FieldValue
-              .serverTimestamp()
-        });
-
-      localStorage.setItem(
-        "chengAdminPushToken",
-        token
-      );
-
-      setPushMessage(
-        "Đã bật thông báo đơn mới."
-      );
-
-      updatePushUI();
-    } catch (error) {
-      console.error(
-        "Enable push:",
-        error
-      );
-
-      setPushMessage(
-        error.message ||
-        "Không bật được thông báo."
-      );
-
-      updatePushUI();
     }
-  }
-);
+  );
 
 
 /* =========================================================
    DISABLE PUSH
 ========================================================= */
 
-$("disablePushBtn").addEventListener(
-  "click",
-  async () => {
-    try {
-      const token =
-        getSavedPushToken();
+$("disablePushBtn")
+  .addEventListener(
+    "click",
+    async () => {
 
-      if (token) {
-        const deviceId =
-          await sha256(token);
+      try {
 
-        await db
-          .collection("adminDevices")
-          .doc(deviceId)
-          .delete()
-          .catch(() => {});
+        const token =
+          getSavedPushToken();
 
-        try {
-          const messaging =
-            await getMessagingInstance();
 
-          await messaging.deleteToken();
-        } catch (error) {
-          console.warn(
-            "Delete FCM token:",
-            error
-          );
+        if (token) {
+
+          const deviceId =
+            await sha256(
+              token
+            );
+
+
+          await db
+            .collection(
+              "adminDevices"
+            )
+            .doc(
+              deviceId
+            )
+            .delete()
+            .catch(
+              () => {}
+            );
+
+
+          try {
+
+            const messaging =
+              firebase.messaging();
+
+
+            await messaging
+              .deleteToken();
+
+          } catch (error) {
+
+            console.warn(
+              error
+            );
+
+          }
+
         }
+
+
+        localStorage
+          .removeItem(
+            "chengAdminPushToken"
+          );
+
+
+        $("pushMessage")
+          .textContent =
+          "Đã tắt thông báo trên thiết bị này.";
+
+
+        updatePushUI();
+
+      } catch (error) {
+
+        $("pushMessage")
+          .textContent =
+          error.message ||
+          "Không tắt được thông báo.";
+
       }
 
-      localStorage.removeItem(
-        "chengAdminPushToken"
-      );
-
-      setPushMessage(
-        "Đã tắt nhận thông báo trên thiết bị này."
-      );
-
-      updatePushUI();
-    } catch (error) {
-      console.error(
-        "Disable push:",
-        error
-      );
-
-      setPushMessage(
-        error.message ||
-        "Không tắt được thông báo."
-      );
     }
-  }
-);
+  );
 
 
 /* =========================================================
    TEST PUSH
 ========================================================= */
 
-$("testPushBtn").addEventListener(
-  "click",
-  async () => {
-    try {
-      setPushMessage(
-        "Đang gửi thông báo thử..."
-      );
+$("testPushBtn")
+  .addEventListener(
+    "click",
+    async () => {
 
-      const user =
-        auth.currentUser;
+      try {
 
-      if (!isAdminUser(user)) {
-        throw new Error(
-          "Admin chưa đăng nhập."
+        $("pushMessage")
+          .textContent =
+          "Đang gửi thử...";
+
+
+        if (
+          !isAdminUser(
+            auth.currentUser
+          )
+        ) {
+
+          throw new Error(
+            "Admin chưa đăng nhập."
+          );
+
+        }
+
+
+        await auth
+          .currentUser
+          .getIdToken(true);
+
+
+        await testAdminPush();
+
+
+        $("pushMessage")
+          .textContent =
+          "Đã gửi thông báo thử.";
+
+      } catch (error) {
+
+        console.error(
+          error
         );
+
+
+        $("pushMessage")
+          .textContent =
+          error.message ||
+          "Không gửi được thông báo.";
+
       }
 
-      await user.getIdToken(true);
-
-      await testAdminPush();
-
-      setPushMessage(
-        "Đã gửi thông báo thử."
-      );
-    } catch (error) {
-      console.error(
-        "Test push:",
-        error
-      );
-
-      setPushMessage(
-        error.message ||
-        "Không gửi được thông báo thử."
-      );
     }
-  }
-);
+  );
 
 
 /* =========================================================
-   CHANGE PASSWORD
+   PASSWORD
 ========================================================= */
 
 $("changePasswordForm")
   .addEventListener(
     "submit",
-    async (event) => {
+    async event => {
+
       event.preventDefault();
 
+
       const currentPassword =
-        $("currentPassword").value;
+        $("currentPassword")
+          .value;
+
 
       const newPassword =
-        $("newPassword").value;
+        $("newPassword")
+          .value;
+
 
       const confirmPassword =
-        $("confirmPassword").value;
+        $("confirmPassword")
+          .value;
+
 
       if (
-        newPassword.length < 8
+        newPassword.length <
+        8
       ) {
+
         $("passwordMessage")
           .textContent =
           "Mật khẩu mới phải có ít nhất 8 ký tự.";
 
         return;
+
       }
+
 
       if (
         newPassword !==
         confirmPassword
       ) {
+
         $("passwordMessage")
           .textContent =
           "Hai mật khẩu mới không giống nhau.";
 
         return;
+
       }
+
 
       const user =
         auth.currentUser;
 
-      if (!isAdminUser(user)) {
+
+      if (
+        !isAdminUser(user)
+      ) {
+
         $("passwordMessage")
           .textContent =
           "Admin chưa đăng nhập.";
 
         return;
+
       }
 
-      $("passwordMessage")
-        .textContent =
-        "Đang đổi mật khẩu...";
 
       try {
+
+        $("passwordMessage")
+          .textContent =
+          "Đang đổi mật khẩu...";
+
+
         const credential =
-          firebase.auth
+          firebase
+            .auth
             .EmailAuthProvider
             .credential(
               ADMIN_EMAIL,
               currentPassword
             );
 
+
         await user
           .reauthenticateWithCredential(
             credential
           );
 
-        await user.updatePassword(
-          newPassword
-        );
+
+        await user
+          .updatePassword(
+            newPassword
+          );
+
 
         $("changePasswordForm")
           .reset();
 
+
         $("passwordMessage")
           .textContent =
           "Đổi mật khẩu thành công.";
+
       } catch (error) {
+
         console.error(
-          "Password:",
           error
         );
+
 
         if (
           error.code ===
           "auth/invalid-credential"
         ) {
+
           $("passwordMessage")
             .textContent =
             "Mật khẩu hiện tại không đúng.";
+
         } else {
+
           $("passwordMessage")
             .textContent =
             error.message ||
             "Không đổi được mật khẩu.";
+
         }
+
       }
+
     }
   );
 
 
 /* =========================================================
-   DATE HELPERS
+   DATE
 ========================================================= */
 
 function dateKeyVN() {
+
   const parts =
-    new Intl.DateTimeFormat(
-      "en-CA",
-      {
-        timeZone:
-          "Asia/Ho_Chi_Minh",
+    new Intl
+      .DateTimeFormat(
+        "en-CA",
+        {
 
-        year:
-          "numeric",
+          timeZone:
+            "Asia/Ho_Chi_Minh",
 
-        month:
-          "2-digit",
 
-        day:
-          "2-digit"
-      }
-    ).formatToParts(
-      new Date()
+          year:
+            "numeric",
+
+
+          month:
+            "2-digit",
+
+
+          day:
+            "2-digit"
+
+        }
+      )
+      .formatToParts(
+        new Date()
+      );
+
+
+  const values = {};
+
+
+  parts.forEach(
+    part => {
+
+      values[
+        part.type
+      ] =
+      part.value;
+
+    }
+  );
+
+
+  return (
+    values.year
+    +
+    "-"
+    +
+    values.month
+    +
+    "-"
+    +
+    values.day
+  );
+
+}
+
+
+function formatDateKey(
+  value
+) {
+
+  const parts =
+    String(
+      value || ""
+    )
+    .split("-");
+
+
+  if (
+    parts.length !==
+    3
+  ) {
+
+    return String(
+      value || ""
     );
 
-  const map = {};
-
-  parts.forEach((part) => {
-    map[part.type] =
-      part.value;
-  });
-
-  return (
-    map.year +
-    "-" +
-    map.month +
-    "-" +
-    map.day
-  );
-}
-
-
-function formatDateKey(value) {
-  const text =
-    String(value || "");
-
-  const parts =
-    text.split("-");
-
-  if (parts.length !== 3) {
-    return text;
   }
 
+
   return (
-    parts[2] +
-    "/" +
-    parts[1] +
-    "/" +
+    parts[2]
+    +
+    "/"
+    +
+    parts[1]
+    +
+    "/"
+    +
     parts[0]
   );
+
 }
 
 
-function timestampMs(timestamp) {
-  if (!timestamp) {
+function timestampMs(
+  timestamp
+) {
+
+  if (
+    !timestamp
+  ) {
+
     return 0;
+
   }
+
 
   if (
     typeof timestamp.toMillis ===
     "function"
   ) {
-    return timestamp.toMillis();
+
+    return timestamp
+      .toMillis();
+
   }
 
+
   return 0;
+
 }
 
 
-function formatDateTime(timestamp) {
+function formatDateTime(
+  timestamp
+) {
+
   if (
-    !timestamp ||
+    !timestamp
+    ||
     typeof timestamp.toDate !==
       "function"
   ) {
+
     return "Vừa đặt";
+
   }
 
-  return new Intl.DateTimeFormat(
-    "vi-VN",
-    {
-      timeZone:
-        "Asia/Ho_Chi_Minh",
 
-      hour:
-        "2-digit",
+  return new Intl
+    .DateTimeFormat(
+      "vi-VN",
+      {
 
-      minute:
-        "2-digit",
+        timeZone:
+          "Asia/Ho_Chi_Minh",
 
-      day:
-        "2-digit",
 
-      month:
-        "2-digit",
+        hour:
+          "2-digit",
 
-      year:
-        "numeric"
-    }
-  ).format(
-    timestamp.toDate()
-  );
+
+        minute:
+          "2-digit",
+
+
+        day:
+          "2-digit",
+
+
+        month:
+          "2-digit",
+
+
+        year:
+          "numeric"
+
+      }
+    )
+    .format(
+      timestamp.toDate()
+    );
+
 }
 
 
@@ -2025,72 +4103,112 @@ function formatDateTime(timestamp) {
    URL
 ========================================================= */
 
-function normalizeOptionalUrl(value) {
+function normalizeOptionalUrl(
+  value
+) {
+
   const text =
-    String(value || "").trim();
+    String(
+      value || ""
+    )
+    .trim();
+
 
   if (!text) {
+
     return "";
+
   }
+
 
   if (
-    /^https?:\/\//i.test(text)
+    /^https?:\/\//i
+      .test(text)
   ) {
+
     return text;
+
   }
 
+
   return "";
+
 }
 
 
 /* =========================================================
-   SLUG
+   SLUGIFY
 ========================================================= */
 
 function slugify(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(
-      /[\u0300-\u036f]/g,
-      ""
-    )
-    .toLowerCase()
-    .replace(/đ/g, "d")
-    .replace(
-      /[^a-z0-9]+/g,
-      "-"
-    )
-    .replace(
-      /^-+|-+$/g,
-      ""
-    );
+
+  return String(
+    value || ""
+  )
+  .normalize(
+    "NFD"
+  )
+  .replace(
+    /[\u0300-\u036f]/g,
+    ""
+  )
+  .toLowerCase()
+  .replace(
+    /đ/g,
+    "d"
+  )
+  .replace(
+    /[^a-z0-9]+/g,
+    "-"
+  )
+  .replace(
+    /^-+|-+$/g,
+    ""
+  );
+
 }
 
 
 /* =========================================================
-   HASH
+   SHA256
 ========================================================= */
 
-async function sha256(value) {
+async function sha256(
+  value
+) {
+
   const data =
     new TextEncoder()
-      .encode(value);
+      .encode(
+        value
+      );
+
 
   const hash =
-    await crypto.subtle.digest(
-      "SHA-256",
-      data
-    );
+    await crypto.subtle
+      .digest(
+        "SHA-256",
+        data
+      );
 
-  return Array.from(
-    new Uint8Array(hash)
-  )
-    .map((byte) =>
-      byte
-        .toString(16)
-        .padStart(2, "0")
+
+  return Array
+    .from(
+      new Uint8Array(
+        hash
+      )
+    )
+    .map(
+      byte =>
+        byte
+          .toString(16)
+          .padStart(
+            2,
+            "0"
+          )
     )
     .join("");
+
 }
 
 
@@ -2098,50 +4216,60 @@ async function sha256(value) {
    ESCAPE
 ========================================================= */
 
-function escapeHtml(value) {
+function escapeHtml(
+  value
+) {
+
   return String(
     value ?? ""
   )
-    .replaceAll(
-      "&",
-      "&amp;"
-    )
-    .replaceAll(
-      "<",
-      "&lt;"
-    )
-    .replaceAll(
-      ">",
-      "&gt;"
-    )
-    .replaceAll(
-      '"',
-      "&quot;"
-    )
-    .replaceAll(
-      "'",
-      "&#039;"
-    );
+  .replaceAll(
+    "&",
+    "&amp;"
+  )
+  .replaceAll(
+    "<",
+    "&lt;"
+  )
+  .replaceAll(
+    ">",
+    "&gt;"
+  )
+  .replaceAll(
+    '"',
+    "&quot;"
+  )
+  .replaceAll(
+    "'",
+    "&#039;"
+  );
+
 }
 
 
-function escapeJs(value) {
+function escapeJs(
+  value
+) {
+
   return String(
     value ?? ""
   )
-    .replaceAll(
-      "\\",
-      "\\\\"
-    )
-    .replaceAll(
-      "'",
-      "\\'"
-    );
+  .replaceAll(
+    "\\",
+    "\\\\"
+  )
+  .replaceAll(
+    "'",
+    "\\'"
+  );
+
 }
 
 
 /* =========================================================
-   START UI
+   INITIAL UI
 ========================================================= */
+
+showLogin();
 
 updatePushUI();
