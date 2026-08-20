@@ -9,36 +9,18 @@
     content="width=device-width, initial-scale=1, viewport-fit=cover"
   >
 
-  <meta
-    name="theme-color"
-    content="#111111"
-  >
-
-  <meta
-    name="apple-mobile-web-app-capable"
-    content="yes"
-  >
-
-  <meta
-    name="apple-mobile-web-app-status-bar-style"
-    content="black-translucent"
-  >
+  <meta name="theme-color" content="#111111">
 
   <title>Admin - Cheng Coffee</title>
 
-  <link
-    rel="stylesheet"
-    href="admin.css"
-  >
+  <link rel="stylesheet" href="admin.css">
 </head>
 
 <body>
 
-
 <header class="admin-topbar">
 
   <div>
-
     <div class="brand-small">
       CHENG COFFEE
     </div>
@@ -46,9 +28,7 @@
     <h1>
       Admin Dashboard
     </h1>
-
   </div>
-
 
   <div class="top-actions">
 
@@ -75,10 +55,9 @@
 
 <main class="admin-wrap">
 
-
-  <!-- ===============================
+  <!-- =========================
        LOGIN
-  ================================ -->
+  ========================== -->
 
   <section
     id="loginPanel"
@@ -135,17 +114,14 @@
   </section>
 
 
-  <!-- ===============================
+  <!-- =========================
        ADMIN APP
-  ================================ -->
+  ========================== -->
 
   <div
     id="adminApp"
     hidden
   >
-
-
-    <!-- TABS -->
 
     <nav class="admin-tabs">
 
@@ -200,9 +176,9 @@
     </nav>
 
 
-    <!-- ===============================
+    <!-- =========================
          STATS
-    ================================ -->
+    ========================== -->
 
     <section
       id="tab-stats"
@@ -212,32 +188,53 @@
       <div class="stats-grid">
 
         <article class="stat-card">
-          <div class="stat-icon">🧾</div>
+
+          <div class="stat-icon">
+            🧾
+          </div>
 
           <div>
             <span>Đơn hôm nay</span>
-            <strong id="todayOrders">0</strong>
+
+            <strong id="todayOrders">
+              0
+            </strong>
           </div>
+
         </article>
 
 
         <article class="stat-card">
-          <div class="stat-icon">🥤</div>
+
+          <div class="stat-icon">
+            🥤
+          </div>
 
           <div>
             <span>Số cốc hôm nay</span>
-            <strong id="todayCups">0</strong>
+
+            <strong id="todayCups">
+              0
+            </strong>
           </div>
+
         </article>
 
 
         <article class="stat-card">
-          <div class="stat-icon">💰</div>
+
+          <div class="stat-icon">
+            💰
+          </div>
 
           <div>
             <span>Doanh thu hôm nay</span>
-            <strong id="todayRevenue">0đ</strong>
+
+            <strong id="todayRevenue">
+              0đ
+            </strong>
           </div>
+
         </article>
 
       </div>
@@ -248,6 +245,7 @@
         <div class="section-head">
 
           <div>
+
             <div class="section-label">
               THỐNG KÊ
             </div>
@@ -259,6 +257,7 @@
             <p class="muted">
               31 ngày gần nhất.
             </p>
+
           </div>
 
         </div>
@@ -294,9 +293,9 @@
     </section>
 
 
-    <!-- ===============================
+    <!-- =========================
          ORDERS
-    ================================ -->
+    ========================== -->
 
     <section
       id="tab-orders"
@@ -308,6 +307,7 @@
         <div class="section-head">
 
           <div>
+
             <div class="section-label">
               REALTIME
             </div>
@@ -317,8 +317,9 @@
             </h2>
 
             <p class="muted">
-              Hiển thị tại quán, giao tận nơi và trạng thái thanh toán.
+              Đơn tại quán và giao tận nơi sẽ tự xuất hiện.
             </p>
+
           </div>
 
           <span class="status-pill online">
@@ -327,14 +328,15 @@
 
         </div>
 
-
         <div
           id="ordersList"
           class="orders-list"
         >
+
           <div class="empty-admin">
             Đang tải đơn...
           </div>
+
         </div>
 
       </section>
@@ -342,9 +344,9 @@
     </section>
 
 
-    <!-- ===============================
+    <!-- =========================
          MENU
-    ================================ -->
+    ========================== -->
 
     <section
       id="tab-menu"
@@ -356,6 +358,7 @@
         <div class="section-head">
 
           <div>
+
             <div class="section-label">
               MENU
             </div>
@@ -363,6 +366,11 @@
             <h2 id="formTitle">
               Thêm món mới
             </h2>
+
+            <p class="muted">
+              Quản lý món, danh mục, size và topping.
+            </p>
+
           </div>
 
         </div>
@@ -370,10 +378,10 @@
 
         <form id="menuForm">
 
-
           <div class="form-grid">
 
             <div>
+
               <label for="itemId">
                 Mã món
               </label>
@@ -384,10 +392,12 @@
                 placeholder="CF01"
                 required
               >
+
             </div>
 
 
             <div>
+
               <label for="itemName">
                 Tên món
               </label>
@@ -398,10 +408,12 @@
                 placeholder="Cà phê sữa"
                 required
               >
+
             </div>
 
 
             <div>
+
               <label for="itemCategory">
                 Danh mục
               </label>
@@ -412,10 +424,12 @@
                 placeholder="Cà phê"
                 required
               >
+
             </div>
 
 
             <div>
+
               <label for="itemDescription">
                 Mô tả
               </label>
@@ -425,6 +439,7 @@
                 maxlength="300"
                 placeholder="Cà phê sữa truyền thống"
               >
+
             </div>
 
           </div>
@@ -439,6 +454,7 @@
             <div class="size-admin-grid">
 
               <div>
+
                 <label for="sizeS">
                   Size S
                 </label>
@@ -450,10 +466,12 @@
                   step="1000"
                   placeholder="18000"
                 >
+
               </div>
 
 
               <div>
+
                 <label for="sizeM">
                   Size M
                 </label>
@@ -465,10 +483,12 @@
                   step="1000"
                   placeholder="20000"
                 >
+
               </div>
 
 
               <div>
+
                 <label for="sizeL">
                   Size L
                 </label>
@@ -480,6 +500,7 @@
                   step="1000"
                   placeholder="25000"
                 >
+
               </div>
 
             </div>
@@ -542,7 +563,6 @@
 
           </div>
 
-
           <p
             id="message"
             class="form-message"
@@ -559,13 +579,11 @@
           Danh sách menu
         </h2>
 
-
         <div class="table-wrap">
 
           <table>
 
             <thead>
-
               <tr>
                 <th>Mã</th>
                 <th>Tên món</th>
@@ -575,7 +593,6 @@
                 <th>Trạng thái</th>
                 <th>Thao tác</th>
               </tr>
-
             </thead>
 
             <tbody id="menuTable">
@@ -597,9 +614,9 @@
     </section>
 
 
-    <!-- ===============================
-         STORE INFO
-    ================================ -->
+    <!-- =========================
+         STORE
+    ========================== -->
 
     <section
       id="tab-store"
@@ -631,11 +648,10 @@
 
         <form id="storeForm">
 
-
           <div class="store-form-grid">
 
-
             <div>
+
               <label for="storeName">
                 Tên quán
               </label>
@@ -645,10 +661,12 @@
                 maxlength="100"
                 required
               >
+
             </div>
 
 
             <div>
+
               <label for="storePhone">
                 Điện thoại
               </label>
@@ -657,10 +675,12 @@
                 id="storePhone"
                 maxlength="30"
               >
+
             </div>
 
 
             <div>
+
               <label for="storeHours">
                 Giờ mở cửa
               </label>
@@ -670,10 +690,12 @@
                 maxlength="100"
                 placeholder="07:00 - 22:00"
               >
+
             </div>
 
 
             <div>
+
               <label for="storeAddress">
                 Địa chỉ
               </label>
@@ -682,6 +704,7 @@
                 id="storeAddress"
                 maxlength="200"
               >
+
             </div>
 
           </div>
@@ -690,6 +713,7 @@
           <div class="store-form-grid">
 
             <div>
+
               <label for="storeFacebook">
                 Facebook URL
               </label>
@@ -699,10 +723,12 @@
                 maxlength="300"
                 placeholder="https://..."
               >
+
             </div>
 
 
             <div>
+
               <label for="storeZalo">
                 Zalo URL
               </label>
@@ -712,6 +738,7 @@
                 maxlength="300"
                 placeholder="https://..."
               >
+
             </div>
 
           </div>
@@ -756,9 +783,9 @@
     </section>
 
 
-    <!-- ===============================
-         PAYMENT SETTINGS
-    ================================ -->
+    <!-- =========================
+         PAYMENT
+    ========================== -->
 
     <section
       id="tab-payment"
@@ -780,7 +807,7 @@
             </h2>
 
             <p class="muted">
-              Khách sẽ thấy thông tin này khi chọn chuyển khoản.
+              Upload QR trực tiếp từ máy hoặc điện thoại.
             </p>
 
           </div>
@@ -790,11 +817,10 @@
 
         <form id="paymentForm">
 
-
           <div class="store-form-grid">
 
-
             <div>
+
               <label for="paymentBankName">
                 Tên ngân hàng
               </label>
@@ -802,12 +828,15 @@
               <input
                 id="paymentBankName"
                 maxlength="100"
-                placeholder="MB Bank"
+                placeholder="Ví dụ: MB Bank"
+                required
               >
+
             </div>
 
 
             <div>
+
               <label for="paymentAccountName">
                 Chủ tài khoản
               </label>
@@ -816,11 +845,14 @@
                 id="paymentAccountName"
                 maxlength="120"
                 placeholder="NGUYEN VAN A"
+                required
               >
+
             </div>
 
 
             <div>
+
               <label for="paymentAccountNumber">
                 Số tài khoản
               </label>
@@ -829,20 +861,28 @@
                 id="paymentAccountNumber"
                 maxlength="50"
                 placeholder="123456789"
+                required
               >
+
             </div>
 
 
             <div>
-              <label for="paymentQrImageUrl">
-                Link ảnh QR
+
+              <label for="paymentQrFile">
+                Ảnh QR ngân hàng
               </label>
 
               <input
-                id="paymentQrImageUrl"
-                maxlength="500"
-                placeholder="https://..."
+                id="paymentQrFile"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
               >
+
+              <small class="muted">
+                PNG, JPG hoặc WEBP, tối đa 5MB.
+              </small>
+
             </div>
 
           </div>
@@ -864,18 +904,15 @@
           </div>
 
 
-          <div
-            id="paymentQrPreviewWrap"
-            class="payment-preview"
-          >
+          <div class="payment-preview">
 
             <span>
-              Xem trước QR
+              Mã QR
             </span>
 
             <img
               id="paymentQrPreview"
-              alt="QR ngân hàng"
+              alt="QR Cheng Coffee"
               hidden
             >
 
@@ -892,10 +929,20 @@
           <div class="actions">
 
             <button
+              id="savePaymentBtn"
               class="primary"
               type="submit"
             >
               Lưu thanh toán
+            </button>
+
+            <button
+              id="deleteQrBtn"
+              class="danger"
+              type="button"
+              disabled
+            >
+              Xóa ảnh QR
             </button>
 
           </div>
@@ -913,15 +960,14 @@
     </section>
 
 
-    <!-- ===============================
+    <!-- =========================
          SETTINGS
-    ================================ -->
+    ========================== -->
 
     <section
       id="tab-settings"
       class="tab-page"
     >
-
 
       <section class="panel">
 
@@ -938,7 +984,6 @@
             </h2>
 
           </div>
-
 
           <span
             id="pushStatusBadge"
@@ -978,7 +1023,6 @@
 
         </div>
 
-
         <p
           id="pushMessage"
           class="form-message"
@@ -993,14 +1037,12 @@
           Đổi mật khẩu Admin
         </h2>
 
-
         <form id="changePasswordForm">
-
 
           <div class="password-grid">
 
-
             <div>
+
               <label for="currentPassword">
                 Mật khẩu hiện tại
               </label>
@@ -1010,10 +1052,12 @@
                 type="password"
                 required
               >
+
             </div>
 
 
             <div>
+
               <label for="newPassword">
                 Mật khẩu mới
               </label>
@@ -1024,10 +1068,12 @@
                 minlength="8"
                 required
               >
+
             </div>
 
 
             <div>
+
               <label for="confirmPassword">
                 Nhập lại mật khẩu
               </label>
@@ -1038,8 +1084,8 @@
                 minlength="8"
                 required
               >
-            </div>
 
+            </div>
 
           </div>
 
@@ -1055,7 +1101,6 @@
 
           </div>
 
-
           <p
             id="passwordMessage"
             class="form-message"
@@ -1065,9 +1110,7 @@
 
       </section>
 
-
     </section>
-
 
   </div>
 
@@ -1077,17 +1120,13 @@
 <script src="firebase-config.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-auth-compat.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore-compat.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-functions-compat.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-storage-compat.js"></script>
 
 <script src="admin.js"></script>
-
 
 </body>
 </html>

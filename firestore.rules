@@ -4,11 +4,6 @@ service cloud.firestore {
 
   match /databases/{database}/documents {
 
-
-    // =====================================
-    // HÀM CHUNG
-    // =====================================
-
     function signedIn() {
       return request.auth != null;
     }
@@ -21,20 +16,17 @@ service cloud.firestore {
     }
 
 
-    // =====================================
+    // ================================
     // MENU
-    // =====================================
+    // ================================
 
     match /menu/{id} {
 
-      // Khách chỉ xem món đang bán.
-      // Admin xem toàn bộ.
       allow read:
         if resource.data.active == true
         || isAdmin();
 
 
-      // Chỉ Admin được tạo/sửa menu.
       allow create, update:
         if isAdmin()
 
@@ -77,35 +69,20 @@ service cloud.firestore {
     }
 
 
-    // =====================================
+    // ================================
     // ORDERS
-    // =====================================
+    // ================================
 
     match /orders/{id} {
 
-      // Chỉ Admin đọc đơn.
       allow read:
         if isAdmin();
 
 
-      // Client không tự ghi order.
-      // Cloud Function dùng Admin SDK tạo order.
       allow create:
         if false;
 
 
-      /*
-        Admin được đổi:
-        - trạng thái đơn
-        - trạng thái thanh toán
-
-        Không được sửa:
-        - giá
-        - món
-        - thông tin khách
-        - địa chỉ
-        - tổng tiền
-      */
       allow update:
         if isAdmin()
 
@@ -135,34 +112,30 @@ service cloud.firestore {
           == request.time;
 
 
-      // Không cho client xóa đơn.
       allow delete:
         if false;
 
     }
 
 
-    // =====================================
+    // ================================
     // DAILY STATS
-    // =====================================
+    // ================================
 
     match /dailyStats/{id} {
 
-      // Chỉ Admin xem thống kê.
       allow read:
         if isAdmin();
 
-
-      // Chỉ Cloud Function ghi.
       allow write:
         if false;
 
     }
 
 
-    // =====================================
-    // ADMIN DEVICES / FCM
-    // =====================================
+    // ================================
+    // ADMIN DEVICES
+    // ================================
 
     match /adminDevices/{id} {
 
@@ -198,13 +171,12 @@ service cloud.firestore {
     }
 
 
-    // =====================================
-    // STORE SETTINGS - CONTACT
-    // =====================================
+    // ================================
+    // CONTACT
+    // ================================
 
     match /storeSettings/contact {
 
-      // Public read để trang khách hiển thị footer.
       allow read:
         if true;
 
@@ -255,26 +227,16 @@ service cloud.firestore {
     }
 
 
-    // =====================================
-    // STORE SETTINGS - PAYMENT
-    // =====================================
+    // ================================
+    // PAYMENT
+    // ================================
 
     match /storeSettings/payment {
 
-      /*
-        Public read vì khách cần xem:
-        - ngân hàng
-        - số tài khoản
-        - QR
-        - hướng dẫn
-
-        Không nên lưu bất kỳ secret nào ở đây.
-      */
       allow read:
         if true;
 
 
-      // Chỉ Admin được sửa thanh toán.
       allow create, update:
         if isAdmin()
 
@@ -283,6 +245,7 @@ service cloud.firestore {
           'accountName',
           'accountNumber',
           'qrImageUrl',
+          'qrStoragePath',
           'instructions',
           'updatedAt'
         ])
@@ -297,7 +260,10 @@ service cloud.firestore {
         && request.resource.data.accountNumber.size() <= 50
 
         && request.resource.data.qrImageUrl is string
-        && request.resource.data.qrImageUrl.size() <= 500
+        && request.resource.data.qrImageUrl.size() <= 1000
+
+        && request.resource.data.qrStoragePath is string
+        && request.resource.data.qrStoragePath.size() <= 300
 
         && request.resource.data.instructions is string
         && request.resource.data.instructions.size() <= 300
@@ -312,22 +278,21 @@ service cloud.firestore {
     }
 
 
-    // =====================================
+    // ================================
     // REQUEST IDS
-    // =====================================
+    // ================================
 
     match /requestIds/{id} {
 
-      // Chỉ Cloud Function dùng chống gửi trùng.
       allow read, write:
         if false;
 
     }
 
 
-    // =====================================
+    // ================================
     // KHÓA MẶC ĐỊNH
-    // =====================================
+    // ================================
 
     match /{document=**} {
 

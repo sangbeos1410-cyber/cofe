@@ -1,21 +1,19 @@
-/* =========================================================
-   CHENG COFFEE ADMIN - V7
-========================================================= */
-
 const ADMIN_EMAIL =
   "sangbeos1410@gmail.com";
 
 
-const $ = id =>
-  document.getElementById(id);
+const $ =
+  id =>
+    document.getElementById(id);
 
 
-const money = value =>
-  new Intl.NumberFormat(
-    "vi-VN"
-  ).format(
-    Number(value) || 0
-  ) + "đ";
+const money =
+  value =>
+    new Intl.NumberFormat(
+      "vi-VN"
+    ).format(
+      Number(value) || 0
+    ) + "đ";
 
 
 let MENU = [];
@@ -29,10 +27,13 @@ let unsubscribeStats = null;
 let unsubscribeStore = null;
 let unsubscribePayment = null;
 
+let currentQrImageUrl = "";
+let currentQrStoragePath = "";
 
-/* =========================================================
+
+/* =====================================
    FIREBASE
-========================================================= */
+===================================== */
 
 if (!firebase.apps.length) {
 
@@ -49,6 +50,10 @@ const auth =
 
 const db =
   firebase.firestore();
+
+
+const storage =
+  firebase.storage();
 
 
 const functions =
@@ -68,56 +73,36 @@ const testAdminPush =
 
 auth.setPersistence(
   firebase.auth.Auth.Persistence.LOCAL
-)
-.catch(
-  console.error
 );
 
 
-/* =========================================================
-   AUTH HELPERS
-========================================================= */
+/* =====================================
+   AUTH
+===================================== */
 
 function isAdminUser(user) {
 
-  return (
-    !!user
+  return !!user
     &&
     String(
       user.email || ""
     ).toLowerCase()
     ===
-    ADMIN_EMAIL.toLowerCase()
-  );
+    ADMIN_EMAIL.toLowerCase();
 
 }
 
-
-/* =========================================================
-   SHOW LOGIN / ADMIN
-========================================================= */
 
 function showLogin() {
 
   $("loginPanel").hidden =
     false;
 
-  $("loginPanel").style.display =
-    "grid";
-
-
   $("adminApp").hidden =
     true;
 
-  $("adminApp").style.display =
-    "none";
-
-
   $("logoutBtn").hidden =
     true;
-
-  $("logoutBtn").style.display =
-    "none";
 
 }
 
@@ -127,29 +112,14 @@ function showAdmin() {
   $("loginPanel").hidden =
     true;
 
-  $("loginPanel").style.display =
-    "none";
-
-
   $("adminApp").hidden =
     false;
-
-  $("adminApp").style.display =
-    "block";
-
 
   $("logoutBtn").hidden =
     false;
 
-  $("logoutBtn").style.display =
-    "inline-block";
-
 }
 
-
-/* =========================================================
-   AUTH STATE
-========================================================= */
 
 auth.onAuthStateChanged(
   async user => {
@@ -161,19 +131,9 @@ auth.onAuthStateChanged(
       isAdminUser(user)
     ) {
 
-      try {
-
-        await user
-          .getIdToken(true);
-
-      } catch (error) {
-
-        console.error(
-          "Refresh token:",
-          error
-        );
-
-      }
+      await user
+        .getIdToken(true)
+        .catch(console.error);
 
 
       showAdmin();
@@ -190,9 +150,9 @@ auth.onAuthStateChanged(
 );
 
 
-/* =========================================================
+/* =====================================
    LOGIN
-========================================================= */
+===================================== */
 
 $("loginForm")
   .addEventListener(
@@ -200,10 +160,6 @@ $("loginForm")
     async event => {
 
       event.preventDefault();
-
-
-      const password =
-        $("password").value;
 
 
       $("loginMessage")
@@ -217,7 +173,7 @@ $("loginForm")
           await auth
             .signInWithEmailAndPassword(
               ADMIN_EMAIL,
-              password
+              $("password").value
             );
 
 
@@ -229,9 +185,8 @@ $("loginForm")
 
           await auth.signOut();
 
-
           throw new Error(
-            "Tài khoản không có quyền Admin."
+            "Không có quyền Admin."
           );
 
         }
@@ -249,85 +204,50 @@ $("loginForm")
           .textContent =
           "";
 
-
-        showAdmin();
-
       } catch (error) {
 
-        console.error(
-          "Login:",
-          error
-        );
+        console.error(error);
 
 
-        if (
+        $("loginMessage")
+          .textContent =
+
           error.code ===
             "auth/invalid-credential"
-          ||
-          error.code ===
-            "auth/wrong-password"
-        ) {
 
-          $("loginMessage")
-            .textContent =
-            "Mật khẩu không đúng.";
+          ?
 
-        } else if (
-          error.code ===
-          "auth/too-many-requests"
-        ) {
+          "Mật khẩu không đúng."
 
-          $("loginMessage")
-            .textContent =
-            "Bạn thử quá nhiều lần. Vui lòng chờ rồi thử lại.";
+          :
 
-        } else {
-
-          $("loginMessage")
-            .textContent =
+          (
             error.message ||
-            "Không đăng nhập được.";
-
-        }
+            "Không đăng nhập được."
+          );
 
       }
 
     }
   );
 
-
-/* =========================================================
-   LOGOUT
-========================================================= */
 
 $("logoutBtn")
   .addEventListener(
     "click",
     async () => {
 
-      try {
+      stopAdmin();
 
-        stopAdmin();
-
-        await auth.signOut();
-
-        showLogin();
-
-      } catch (error) {
-
-        console.error(
-          error
-        );
-
-      }
+      await auth.signOut();
 
     }
   );
 
 
-/* =========================================================
-   START / STOP
-========================================================= */
+/* =====================================
+   START
+===================================== */
 
 function startAdmin() {
 
@@ -348,40 +268,27 @@ function startAdmin() {
 
 function stopAdmin() {
 
-  const unsubscribers = [
-
+  [
     unsubscribeMenu,
-
     unsubscribeOrders,
-
     unsubscribeStats,
-
     unsubscribeStore,
-
     unsubscribePayment
+  ]
+  .forEach(
+    fn => {
 
-  ];
+      if (
+        typeof fn ===
+        "function"
+      ) {
 
-
-  unsubscribers
-    .forEach(
-      unsubscribe => {
-
-        if (
-          typeof unsubscribe ===
-          "function"
-        ) {
-
-          try {
-
-            unsubscribe();
-
-          } catch (_) {}
-
-        }
+        fn();
 
       }
-    );
+
+    }
+  );
 
 
   unsubscribeMenu = null;
@@ -390,16 +297,12 @@ function stopAdmin() {
   unsubscribeStore = null;
   unsubscribePayment = null;
 
-
-  MENU = [];
-  ORDERS = [];
-
 }
 
 
-/* =========================================================
+/* =====================================
    TABS
-========================================================= */
+===================================== */
 
 document
   .querySelectorAll(
@@ -412,26 +315,16 @@ document
         "click",
         () => {
 
-          const tab =
-            button.dataset.tab;
-
-
           document
             .querySelectorAll(
               ".tab-button"
             )
             .forEach(
-              item =>
-                item.classList
+              b =>
+                b.classList
                   .remove(
                     "active"
                   )
-            );
-
-
-          button.classList
-            .add(
-              "active"
             );
 
 
@@ -448,15 +341,22 @@ document
             );
 
 
-          const target =
-            $(
-              "tab-" + tab
+          button.classList
+            .add(
+              "active"
             );
 
 
-          if (target) {
+          const page =
+            $(
+              "tab-" +
+              button.dataset.tab
+            );
 
-            target.classList
+
+          if (page) {
+
+            page.classList
               .add(
                 "active"
               );
@@ -470,78 +370,11 @@ document
   );
 
 
-/* =========================================================
-   MENU LOAD
-========================================================= */
-
-function normalizeMenu(doc) {
-
-  const data =
-    doc.data() || {};
-
-
-  return {
-
-    id:
-      doc.id,
-
-
-    name:
-      String(
-        data.name || ""
-      ),
-
-
-    category:
-      String(
-        data.category || "Khác"
-      ),
-
-
-    description:
-      String(
-        data.description || ""
-      ),
-
-
-    sizes:
-      Array.isArray(
-        data.sizes
-      )
-      ?
-      data.sizes
-      :
-      [],
-
-
-    toppings:
-      Array.isArray(
-        data.toppings
-      )
-      ?
-      data.toppings
-      :
-      [],
-
-
-    active:
-      data.active === true
-
-  };
-
-}
-
+/* =====================================
+   MENU
+===================================== */
 
 function loadMenu() {
-
-  if (
-    unsubscribeMenu
-  ) {
-
-    unsubscribeMenu();
-
-  }
-
 
   unsubscribeMenu =
     db
@@ -549,50 +382,44 @@ function loadMenu() {
         "menu"
       )
       .onSnapshot(
-
         snapshot => {
 
           MENU =
             snapshot.docs
               .map(
-                normalizeMenu
+                doc => ({
+
+                  id:
+                    doc.id,
+
+                  ...doc.data()
+
+                })
               )
               .sort(
-                (a, b) => {
+                (a, b) =>
 
-                  const categoryCompare =
-                    String(
-                      a.category
-                    )
-                    .localeCompare(
-                      String(
-                        b.category
-                      ),
-                      "vi"
-                    );
-
-
-                  if (
-                    categoryCompare !==
-                    0
-                  ) {
-
-                    return categoryCompare;
-
-                  }
-
-
-                  return String(
-                    a.name
+                  String(
+                    a.category || ""
                   )
                   .localeCompare(
                     String(
-                      b.name
+                      b.category || ""
                     ),
                     "vi"
-                  );
+                  )
 
-                }
+                  ||
+
+                  String(
+                    a.name || ""
+                  )
+                  .localeCompare(
+                    String(
+                      b.name || ""
+                    ),
+                    "vi"
+                  )
               );
 
 
@@ -600,63 +427,25 @@ function loadMenu() {
 
         },
 
-
         error => {
 
-          console.error(
-            "Menu:",
-            error
-          );
-
-
           $("menuTable")
-            .innerHTML = `
-
-              <tr>
-
-                <td colspan="7">
-
-                  Không tải được menu:
-
-                  ${escapeHtml(
-                    error.message
-                  )}
-
-                </td>
-
-              </tr>
-
-            `;
+            .innerHTML =
+            `<tr><td colspan="7">${escapeHtml(error.message)}</td></tr>`;
 
         }
-
       );
 
 }
 
 
-/* =========================================================
-   RENDER MENU
-========================================================= */
-
 function renderMenuTable() {
 
-  if (
-    !MENU.length
-  ) {
+  if (!MENU.length) {
 
     $("menuTable")
-      .innerHTML = `
-
-        <tr>
-
-          <td colspan="7">
-            Chưa có món trong menu.
-          </td>
-
-        </tr>
-
-      `;
+      .innerHTML =
+      `<tr><td colspan="7">Chưa có món.</td></tr>`;
 
     return;
 
@@ -665,48 +454,27 @@ function renderMenuTable() {
 
   $("menuTable")
     .innerHTML =
-
     MENU.map(
       item => {
 
-
-        const sizeText =
-          item.sizes
-            .map(
-              size =>
-
-                `${escapeHtml(
-                  size.name ||
-                  size.id
-                )}: ${money(
-                  size.price
-                )}`
-
-            )
-            .join("<br>");
-
-
-        const toppingText =
-          item.toppings.length
-
+        const sizes =
+          Array.isArray(
+            item.sizes
+          )
           ?
-
-          item.toppings
-            .map(
-              topping =>
-
-                `${escapeHtml(
-                  topping.name
-                )} (+${money(
-                  topping.price
-                )})`
-
-            )
-            .join("<br>")
-
+          item.sizes
           :
+          [];
 
-          "—";
+
+        const toppings =
+          Array.isArray(
+            item.toppings
+          )
+          ?
+          item.toppings
+          :
+          [];
 
 
         return `
@@ -714,95 +482,49 @@ function renderMenuTable() {
           <tr>
 
             <td>
-
-              <strong>
-                ${escapeHtml(
-                  item.id
-                )}
-              </strong>
-
+              <strong>${escapeHtml(item.id)}</strong>
             </td>
 
+            <td>
+              <strong>${escapeHtml(item.name)}</strong>
+              <div class="muted">${escapeHtml(item.description || "")}</div>
+            </td>
 
             <td>
+              ${escapeHtml(item.category || "")}
+            </td>
 
-              <strong>
-                ${escapeHtml(
-                  item.name
-                )}
-              </strong>
-
-
+            <td>
               ${
-                item.description
-
-                ?
-
-                `
-
-                  <div class="muted">
-
-                    ${escapeHtml(
-                      item.description
-                    )}
-
-                  </div>
-
-                `
-
-                :
-
-                ""
+                sizes.map(
+                  x =>
+                    `${escapeHtml(x.name || x.id)}: ${money(x.price)}`
+                ).join("<br>")
+                ||
+                "—"
               }
-
             </td>
 
-
             <td>
-              ${escapeHtml(
-                item.category
-              )}
+              ${
+                toppings.map(
+                  x =>
+                    `${escapeHtml(x.name)} (+${money(x.price)})`
+                ).join("<br>")
+                ||
+                "—"
+              }
             </td>
 
-
             <td>
-              ${sizeText || "—"}
-            </td>
-
-
-            <td>
-              ${toppingText}
-            </td>
-
-
-            <td>
-
               ${
                 item.active
-
                 ?
-
-                `
-
-                  <span class="status-pill online">
-                    Đang bán
-                  </span>
-
-                `
-
+                '<span class="status-pill online">Đang bán</span>'
                 :
-
-                `
-
-                  <span class="status-pill">
-                    Đã ẩn
-                  </span>
-
-                `
+                '<span class="status-pill">Đã ẩn</span>'
               }
-
             </td>
-
 
             <td>
 
@@ -810,52 +532,21 @@ function renderMenuTable() {
 
                 <button
                   class="secondary"
-                  type="button"
-                  onclick="
-                    editMenuItem(
-                      '${escapeJs(
-                        item.id
-                      )}'
-                    )
-                  "
+                  onclick="editMenuItem('${escapeJs(item.id)}')"
                 >
                   Sửa
                 </button>
 
-
                 <button
                   class="secondary"
-                  type="button"
-                  onclick="
-                    toggleMenuItem(
-                      '${escapeJs(
-                        item.id
-                      )}'
-                    )
-                  "
+                  onclick="toggleMenuItem('${escapeJs(item.id)}')"
                 >
-
-                  ${
-                    item.active
-                    ?
-                    "Ẩn"
-                    :
-                    "Bật"
-                  }
-
+                  ${item.active ? "Ẩn" : "Bật"}
                 </button>
-
 
                 <button
                   class="danger"
-                  type="button"
-                  onclick="
-                    deleteMenuItem(
-                      '${escapeJs(
-                        item.id
-                      )}'
-                    )
-                  "
+                  onclick="deleteMenuItem('${escapeJs(item.id)}')"
                 >
                   Xóa
                 </button>
@@ -875,48 +566,28 @@ function renderMenuTable() {
 }
 
 
-/* =========================================================
-   MENU SIZES
-========================================================= */
+/* =====================================
+   BUILD SIZE
+===================================== */
 
 function buildSizes() {
 
-  const result =
-    [];
-
-
   const values = [
-
-    [
-      "S",
-      $("sizeS").value
-    ],
-
-    [
-      "M",
-      $("sizeM").value
-    ],
-
-    [
-      "L",
-      $("sizeL").value
-    ]
-
+    ["S", $("sizeS").value],
+    ["M", $("sizeM").value],
+    ["L", $("sizeL").value]
   ];
 
 
+  const result = [];
+
+
   values.forEach(
-    (
-      [
-        id,
-        rawValue
-      ]
-    ) => {
+    ([id, raw]) => {
 
       if (
-        String(
-          rawValue
-        ).trim() === ""
+        String(raw).trim() ===
+        ""
       ) {
 
         return;
@@ -925,15 +596,11 @@ function buildSizes() {
 
 
       const price =
-        Number(
-          rawValue
-        );
+        Number(raw);
 
 
       if (
-        !Number.isInteger(
-          price
-        )
+        !Number.isInteger(price)
         ||
         price < 0
       ) {
@@ -965,46 +632,66 @@ function buildSizes() {
 }
 
 
-/* =========================================================
-   TOPPINGS
-========================================================= */
+/* =====================================
+   TOPPING
+===================================== */
+
+function slugify(value) {
+
+  return String(
+    value || ""
+  )
+  .normalize("NFD")
+  .replace(
+    /[\u0300-\u036f]/g,
+    ""
+  )
+  .toLowerCase()
+  .replace(/đ/g, "d")
+  .replace(
+    /[^a-z0-9]+/g,
+    "-"
+  )
+  .replace(
+    /^-+|-+$/g,
+    ""
+  );
+
+}
+
 
 function buildToppings() {
 
   const lines =
-    String(
-      $("toppingsText").value ||
-      ""
-    )
-    .split("\n")
-    .map(
-      line =>
-        line.trim()
-    )
-    .filter(Boolean);
+    $("toppingsText")
+      .value
+      .split("\n")
+      .map(
+        x =>
+          x.trim()
+      )
+      .filter(Boolean);
 
 
   return lines.map(
-    (
-      line,
-      index
-    ) => {
+    (line, index) => {
 
       const parts =
         line
           .split("|")
           .map(
-            value =>
-              value.trim()
+            x =>
+              x.trim()
           );
 
 
       if (
-        parts.length !== 2
+        parts.length !==
+        2
       ) {
 
         throw new Error(
-          `Topping dòng ${index + 1} phải có dạng: Tên | Giá`
+          `Topping dòng ${index + 1} phải là: Tên | Giá`
         );
 
       }
@@ -1023,9 +710,7 @@ function buildToppings() {
       if (
         !name
         ||
-        !Number.isInteger(
-          price
-        )
+        !Number.isInteger(price)
         ||
         price < 0
       ) {
@@ -1044,19 +729,16 @@ function buildToppings() {
             slugify(name)
             ||
             `topping-${index + 1}`
-          )
-          .slice(
+          ).slice(
             0,
             40
           ),
-
 
         name:
           name.slice(
             0,
             80
           ),
-
 
         price
 
@@ -1068,9 +750,9 @@ function buildToppings() {
 }
 
 
-/* =========================================================
+/* =====================================
    SAVE MENU
-========================================================= */
+===================================== */
 
 $("menuForm")
   .addEventListener(
@@ -1081,6 +763,10 @@ $("menuForm")
 
 
       try {
+
+        const wasEditing =
+          !!editingId;
+
 
         const id =
           (
@@ -1099,7 +785,7 @@ $("menuForm")
         ) {
 
           throw new Error(
-            "Mã món chỉ được dùng chữ, số, dấu - hoặc _."
+            "Mã món không hợp lệ."
           );
 
         }
@@ -1117,25 +803,13 @@ $("menuForm")
             .trim();
 
 
-        const description =
-          $("itemDescription")
-            .value
-            .trim();
-
-
-        if (!name) {
+        if (
+          !name ||
+          !category
+        ) {
 
           throw new Error(
-            "Vui lòng nhập tên món."
-          );
-
-        }
-
-
-        if (!category) {
-
-          throw new Error(
-            "Vui lòng nhập danh mục."
+            "Tên món và danh mục không được để trống."
           );
 
         }
@@ -1145,9 +819,7 @@ $("menuForm")
           buildSizes();
 
 
-        if (
-          !sizes.length
-        ) {
+        if (!sizes.length) {
 
           throw new Error(
             "Món phải có ít nhất một size."
@@ -1160,78 +832,19 @@ $("menuForm")
           buildToppings();
 
 
-        $("saveBtn")
-          .disabled =
-          true;
+        if (!wasEditing) {
 
-
-        $("message")
-          .textContent =
-          "Đang lưu...";
-
-
-        const data = {
-
-          name:
-            name.slice(
-              0,
-              100
-            ),
-
-
-          category:
-            category.slice(
-              0,
-              80
-            ),
-
-
-          description:
-            description.slice(
-              0,
-              300
-            ),
-
-
-          sizes,
-
-
-          toppings,
-
-
-          active:
-            $("itemActive")
-              .checked,
-
-
-          updatedAt:
-            firebase
-              .firestore
-              .FieldValue
-              .serverTimestamp()
-
-        };
-
-
-        if (
-          !editingId
-        ) {
-
-          const oldDoc =
+          const existing =
             await db
-              .collection(
-                "menu"
-              )
+              .collection("menu")
               .doc(id)
               .get();
 
 
-          if (
-            oldDoc.exists
-          ) {
+          if (existing.exists) {
 
             throw new Error(
-              "Mã món này đã tồn tại."
+              "Mã món đã tồn tại."
             );
 
           }
@@ -1239,17 +852,42 @@ $("menuForm")
         }
 
 
-        /*
-          Không merge để loại bỏ
-          field price của cấu trúc cũ.
-        */
+        $("saveBtn").disabled =
+          true;
+
 
         await db
           .collection(
             "menu"
           )
           .doc(id)
-          .set(data);
+          .set({
+
+            name:
+              name.slice(0, 100),
+
+            category:
+              category.slice(0, 80),
+
+            description:
+              $("itemDescription")
+                .value
+                .trim()
+                .slice(0, 300),
+
+            sizes,
+
+            toppings,
+
+            active:
+              $("itemActive").checked,
+
+            updatedAt:
+              firebase.firestore
+                .FieldValue
+                .serverTimestamp()
+
+          });
 
 
         resetMenuForm();
@@ -1257,30 +895,21 @@ $("menuForm")
 
         $("message")
           .textContent =
-          editingId
+          wasEditing
           ?
           "Đã cập nhật món."
           :
-          "Đã lưu món.";
-
+          "Đã thêm món mới.";
 
       } catch (error) {
 
-        console.error(
-          "Save menu:",
-          error
-        );
-
-
         $("message")
           .textContent =
-          error.message ||
-          "Không lưu được món.";
+          error.message;
 
       } finally {
 
-        $("saveBtn")
-          .disabled =
+        $("saveBtn").disabled =
           false;
 
       }
@@ -1289,17 +918,37 @@ $("menuForm")
   );
 
 
-/* =========================================================
-   EDIT MENU
-========================================================= */
+function resetMenuForm() {
+
+  editingId = null;
+
+  $("menuForm").reset();
+
+  $("itemId").disabled =
+    false;
+
+  $("itemActive").checked =
+    true;
+
+  $("formTitle").textContent =
+    "Thêm món mới";
+
+  $("saveBtn").textContent =
+    "Thêm món";
+
+  $("cancelBtn").hidden =
+    true;
+
+}
+
 
 window.editMenuItem =
-  function (id) {
+  function(id) {
 
     const item =
       MENU.find(
-        menuItem =>
-          menuItem.id === id
+        x =>
+          x.id === id
       );
 
 
@@ -1309,46 +958,33 @@ window.editMenuItem =
 
 
     editingId =
-      item.id;
+      id;
 
 
-    $("formTitle")
-      .textContent =
+    $("formTitle").textContent =
       "Sửa món";
 
-
-    $("saveBtn")
-      .textContent =
+    $("saveBtn").textContent =
       "Lưu thay đổi";
 
-
-    $("cancelBtn")
-      .hidden =
+    $("cancelBtn").hidden =
       false;
 
 
-    $("itemId")
-      .value =
-      item.id;
+    $("itemId").value =
+      id;
 
-
-    $("itemId")
-      .disabled =
+    $("itemId").disabled =
       true;
 
 
-    $("itemName")
-      .value =
-      item.name;
+    $("itemName").value =
+      item.name || "";
 
+    $("itemCategory").value =
+      item.category || "";
 
-    $("itemCategory")
-      .value =
-      item.category;
-
-
-    $("itemDescription")
-      .value =
+    $("itemDescription").value =
       item.description || "";
 
 
@@ -1357,167 +993,61 @@ window.editMenuItem =
     $("sizeL").value = "";
 
 
-    item.sizes
-      .forEach(
-        size => {
+    (
+      item.sizes || []
+    )
+    .forEach(
+      size => {
 
-          const sizeId =
-            String(
-              size.id || ""
-            )
-            .toUpperCase();
-
-
-          if (
-            sizeId === "S"
-          ) {
-
-            $("sizeS")
-              .value =
-              Number(
-                size.price
-              ) || 0;
-
-          }
+        const key =
+          "size" +
+          String(
+            size.id
+          ).toUpperCase();
 
 
-          if (
-            sizeId === "M"
-          ) {
+        if ($(key)) {
 
-            $("sizeM")
-              .value =
-              Number(
-                size.price
-              ) || 0;
-
-          }
-
-
-          if (
-            sizeId === "L"
-          ) {
-
-            $("sizeL")
-              .value =
-              Number(
-                size.price
-              ) || 0;
-
-          }
+          $(key).value =
+            size.price;
 
         }
-      );
+
+      }
+    );
 
 
-    $("toppingsText")
-      .value =
-
-      item.toppings
-        .map(
-          topping =>
-
-            `${topping.name} | ${Number(
-              topping.price
-            ) || 0}`
-
-        )
-        .join("\n");
+    $("toppingsText").value =
+      (
+        item.toppings || []
+      )
+      .map(
+        x =>
+          `${x.name} | ${x.price}`
+      )
+      .join("\n");
 
 
-    $("itemActive")
-      .checked =
-      item.active;
-
-
-    $("message")
-      .textContent =
-      `Đang sửa ${item.name}`;
-
-
-    window.scrollTo({
-
-      top:
-        $("menuForm")
-          .getBoundingClientRect()
-          .top
-        +
-        window.scrollY
-        -
-        120,
-
-
-      behavior:
-        "smooth"
-
-    });
+    $("itemActive").checked =
+      item.active === true;
 
   };
-
-
-function resetMenuForm() {
-
-  editingId =
-    null;
-
-
-  $("menuForm")
-    .reset();
-
-
-  $("itemId")
-    .disabled =
-    false;
-
-
-  $("itemActive")
-    .checked =
-    true;
-
-
-  $("formTitle")
-    .textContent =
-    "Thêm món mới";
-
-
-  $("saveBtn")
-    .textContent =
-    "Thêm món";
-
-
-  $("cancelBtn")
-    .hidden =
-    true;
-
-}
 
 
 $("cancelBtn")
   .addEventListener(
     "click",
-    () => {
-
-      resetMenuForm();
-
-      $("message")
-        .textContent =
-        "";
-
-    }
+    resetMenuForm
   );
 
 
-/* =========================================================
-   TOGGLE MENU
-========================================================= */
-
 window.toggleMenuItem =
-  async function (id) {
+  async function(id) {
 
     const item =
       MENU.find(
-        menuItem =>
-          menuItem.id === id
+        x =>
+          x.id === id
       );
 
 
@@ -1526,56 +1056,31 @@ window.toggleMenuItem =
     }
 
 
-    try {
+    await db
+      .collection("menu")
+      .doc(id)
+      .update({
 
-      await db
-        .collection(
-          "menu"
-        )
-        .doc(id)
-        .update({
+        active:
+          !item.active,
 
-          active:
-            !item.active,
+        updatedAt:
+          firebase.firestore
+            .FieldValue
+            .serverTimestamp()
 
-
-          updatedAt:
-            firebase
-              .firestore
-              .FieldValue
-              .serverTimestamp()
-
-        });
-
-    } catch (error) {
-
-      console.error(
-        error
-      );
-
-
-      alert(
-        "Không thay đổi được trạng thái món: "
-        +
-        error.message
-      );
-
-    }
+      });
 
   };
 
 
-/* =========================================================
-   DELETE MENU
-========================================================= */
-
 window.deleteMenuItem =
-  async function (id) {
+  async function(id) {
 
     const item =
       MENU.find(
-        menuItem =>
-          menuItem.id === id
+        x =>
+          x.id === id
       );
 
 
@@ -1586,7 +1091,7 @@ window.deleteMenuItem =
 
     if (
       !confirm(
-        `Xóa món "${item.name}"?\n\nĐơn cũ sẽ không bị mất.`
+        `Xóa món "${item.name}"?`
       )
     ) {
 
@@ -1595,73 +1100,126 @@ window.deleteMenuItem =
     }
 
 
-    try {
-
-      await db
-        .collection(
-          "menu"
-        )
-        .doc(id)
-        .delete();
-
-
-      if (
-        editingId === id
-      ) {
-
-        resetMenuForm();
-
-      }
-
-    } catch (error) {
-
-      console.error(
-        error
-      );
-
-
-      alert(
-        "Không xóa được món: "
-        +
-        error.message
-      );
-
-    }
+    await db
+      .collection("menu")
+      .doc(id)
+      .delete();
 
   };
 
 
-/* =========================================================
+/* =====================================
    ORDERS
-========================================================= */
+===================================== */
 
-function loadOrders() {
+function dateKeyVN() {
+
+  const parts =
+    new Intl.DateTimeFormat(
+      "en-CA",
+      {
+        timeZone:
+          "Asia/Ho_Chi_Minh",
+
+        year:
+          "numeric",
+
+        month:
+          "2-digit",
+
+        day:
+          "2-digit"
+      }
+    )
+    .formatToParts(
+      new Date()
+    );
+
+
+  const map = {};
+
+
+  parts.forEach(
+    x =>
+      map[x.type] =
+        x.value
+  );
+
+
+  return `${map.year}-${map.month}-${map.day}`;
+
+}
+
+
+function timestampMs(value) {
+
+  return value
+    &&
+    typeof value.toMillis ===
+      "function"
+
+    ?
+
+    value.toMillis()
+
+    :
+
+    0;
+
+}
+
+
+function formatDateTime(value) {
 
   if (
-    unsubscribeOrders
+    !value
+    ||
+    typeof value.toDate !==
+      "function"
   ) {
 
-    unsubscribeOrders();
+    return "Vừa đặt";
 
   }
 
 
-  const today =
-    dateKeyVN();
+  return new Intl.DateTimeFormat(
+    "vi-VN",
+    {
+      timeZone:
+        "Asia/Ho_Chi_Minh",
 
+      hour:
+        "2-digit",
+
+      minute:
+        "2-digit",
+
+      day:
+        "2-digit",
+
+      month:
+        "2-digit"
+    }
+  )
+  .format(
+    value.toDate()
+  );
+
+}
+
+
+function loadOrders() {
 
   unsubscribeOrders =
     db
-      .collection(
-        "orders"
-      )
+      .collection("orders")
       .where(
         "dateKey",
         "==",
-        today
+        dateKeyVN()
       )
       .onSnapshot(
-
         snapshot => {
 
           ORDERS =
@@ -1678,13 +1236,10 @@ function loadOrders() {
               )
               .sort(
                 (a, b) =>
-
                   timestampMs(
                     b.createdAt
                   )
-
                   -
-
                   timestampMs(
                     a.createdAt
                   )
@@ -1695,124 +1250,42 @@ function loadOrders() {
 
         },
 
-
         error => {
 
-          console.error(
-            "Orders:",
-            error
-          );
-
-
           $("ordersList")
-            .innerHTML = `
-
-              <div class="empty-admin">
-
-                Không tải được đơn:
-
-                ${escapeHtml(
-                  error.message
-                )}
-
-              </div>
-
-            `;
+            .innerHTML =
+            `<div class="empty-admin">${escapeHtml(error.message)}</div>`;
 
         }
-
       );
 
 }
 
 
-/* =========================================================
-   ORDER FULFILLMENT HELPERS
-========================================================= */
-
-function fulfillmentLabel(
-  order
-) {
-
-  if (
-    order.fulfillmentType ===
-    "delivery"
-  ) {
-
-    return "🛵 Giao tận nơi";
-
-  }
-
-
-  return "☕ Tại quán";
-
-}
-
-
-function paymentLabel(
-  order
-) {
-
-  if (
-    order.paymentMethod ===
-    "bank_transfer"
-  ) {
-
-    return "🏦 Chuyển khoản";
-
-  }
-
-
-  return "💵 Tiền mặt";
-
-}
-
-
-function paymentStatusLabel(
-  order
-) {
-
-  return (
-    order.paymentStatus ===
-    "paid"
-  )
-  ?
-  "Đã thanh toán"
-  :
-  "Chưa thanh toán";
-
-}
-
-
-/* =========================================================
-   RENDER ORDERS
-========================================================= */
-
 function renderOrders() {
 
-  if (
-    !ORDERS.length
-  ) {
+  if (!ORDERS.length) {
 
     $("ordersList")
-      .innerHTML = `
-
-        <div class="empty-admin">
-          Hôm nay chưa có đơn nào.
-        </div>
-
-      `;
+      .innerHTML =
+      '<div class="empty-admin">Hôm nay chưa có đơn.</div>';
 
     return;
 
   }
 
 
-  $("ordersList")
-    .innerHTML =
-
+  $("ordersList").innerHTML =
     ORDERS.map(
       order => {
+
+        const delivery =
+          order.fulfillmentType ===
+          "delivery";
+
+
+        const customer =
+          order.customer || {};
 
 
         const items =
@@ -1823,261 +1296,6 @@ function renderOrders() {
           order.items
           :
           [];
-
-
-        const customer =
-          order.customer &&
-          typeof order.customer ===
-            "object"
-          ?
-          order.customer
-          :
-          {};
-
-
-        const isDelivery =
-          order.fulfillmentType ===
-          "delivery";
-
-
-        const isBank =
-          order.paymentMethod ===
-          "bank_transfer";
-
-
-        const isPaid =
-          order.paymentStatus ===
-          "paid";
-
-
-        const itemsHtml =
-          items
-            .map(
-              item => {
-
-
-                const toppings =
-                  Array.isArray(
-                    item.toppings
-                  )
-                  ?
-                  item.toppings
-                  :
-                  [];
-
-
-                const toppingText =
-                  toppings.length
-
-                  ?
-
-                  toppings
-                    .map(
-                      topping =>
-                        topping.name
-                    )
-                    .join(", ")
-
-                  :
-
-                  "Không topping";
-
-
-                return `
-
-                  <div class="order-item">
-
-                    <div>
-
-                      <div class="order-item-name">
-
-                        ${
-                          Number(
-                            item.quantity
-                          ) || 1
-                        }
-
-                        ×
-
-                        ${escapeHtml(
-                          item.name || ""
-                        )}
-
-                      </div>
-
-
-                      <div class="order-item-info">
-
-                        Size:
-                        ${escapeHtml(
-                          item.sizeName ||
-                          item.sizeId ||
-                          ""
-                        )}
-
-                        <br>
-
-                        Topping:
-                        ${escapeHtml(
-                          toppingText
-                        )}
-
-                        <br>
-
-                        Đơn giá:
-                        ${money(
-                          item.unitPrice
-                        )}
-
-                      </div>
-
-
-                      ${
-                        item.note
-
-                        ?
-
-                        `
-
-                          <div class="item-note-admin">
-
-                            <strong>
-                              Ghi chú món:
-                            </strong>
-
-                            ${escapeHtml(
-                              item.note
-                            )}
-
-                          </div>
-
-                        `
-
-                        :
-
-                        ""
-                      }
-
-                    </div>
-
-
-                    <strong>
-                      ${money(
-                        item.subtotal
-                      )}
-                    </strong>
-
-                  </div>
-
-                `;
-
-              }
-            )
-            .join("");
-
-
-        const customerHtml =
-          isDelivery
-
-          ?
-
-          `
-
-            <div class="delivery-info">
-
-              <div class="delivery-info-grid">
-
-                <div class="info-row">
-
-                  <span>
-                    Người nhận
-                  </span>
-
-                  <strong>
-                    ${escapeHtml(
-                      customer.name || ""
-                    )}
-                  </strong>
-
-                </div>
-
-
-                <div class="info-row">
-
-                  <span>
-                    Điện thoại
-                  </span>
-
-                  <strong>
-                    ${escapeHtml(
-                      customer.phone || ""
-                    )}
-                  </strong>
-
-                </div>
-
-
-                <div class="info-row">
-
-                  <span>
-                    Địa chỉ
-                  </span>
-
-                  <strong>
-                    ${escapeHtml(
-                      customer.address || ""
-                    )}
-                  </strong>
-
-                </div>
-
-
-                <div class="info-row">
-
-                  <span>
-                    Ghi chú giao hàng
-                  </span>
-
-                  <strong>
-                    ${escapeHtml(
-                      order.deliveryNote ||
-                      "Không có"
-                    )}
-                  </strong>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          `
-
-          :
-
-          `
-
-            <div class="dinein-info">
-
-              <div class="info-row">
-
-                <span>
-                  Số bàn
-                </span>
-
-                <strong>
-                  ${
-                    escapeHtml(
-                      order.table || "?"
-                    )
-                  }
-                </strong>
-
-              </div>
-
-            </div>
-
-          `;
 
 
         return `
@@ -2093,19 +1311,14 @@ function renderOrders() {
                   <div class="order-id">
 
                     ${
-                      isDelivery
-
+                      delivery
                       ?
-
                       escapeHtml(
                         customer.name ||
-                        "Khách giao hàng"
+                        "Khách ship"
                       )
-
                       :
-
-                      "Bàn "
-                      +
+                      "Bàn " +
                       escapeHtml(
                         order.table || "?"
                       )
@@ -2113,85 +1326,68 @@ function renderOrders() {
 
                   </div>
 
-
-                  <span
-                    class="
-                      status-pill
-                      ${
-                        isDelivery
-                        ?
-                        "delivery"
-                        :
-                        "dine-in"
-                      }
-                    "
-                  >
+                  <span class="status-pill ${delivery ? "delivery" : "dine-in"}">
 
                     ${
-                      fulfillmentLabel(
-                        order
-                      )
+                      delivery
+                      ?
+                      "🛵 Giao tận nơi"
+                      :
+                      "☕ Tại quán"
                     }
 
                   </span>
 
                 </div>
 
-
                 <div class="order-time">
 
-                  ${formatDateTime(
-                    order.createdAt
-                  )}
+                  ${formatDateTime(order.createdAt)}
 
-                  •
-
-                  ${
-                    Number(
-                      order.cups || 0
-                    )
-                  }
-
-                  món
+                  • ${Number(order.cups || 0)} món
 
                 </div>
 
               </div>
 
-
               <div class="order-total">
-
-                ${money(
-                  order.total
-                )}
-
+                ${money(order.total)}
               </div>
 
             </div>
 
 
-            ${customerHtml}
-
-
-            ${itemsHtml}
-
-
             ${
-              order.orderNote
-
+              delivery
               ?
 
               `
 
-                <div class="order-note-admin">
+                <div class="delivery-info">
 
-                  <strong>
-                    Ghi chú đơn:
-                  </strong>
+                  <div class="delivery-info-grid">
 
-                  ${escapeHtml(
-                    order.orderNote
-                  )}
+                    <div class="info-row">
+                      <span>Người nhận</span>
+                      <strong>${escapeHtml(customer.name || "")}</strong>
+                    </div>
+
+                    <div class="info-row">
+                      <span>Điện thoại</span>
+                      <strong>${escapeHtml(customer.phone || "")}</strong>
+                    </div>
+
+                    <div class="info-row">
+                      <span>Địa chỉ</span>
+                      <strong>${escapeHtml(customer.address || "")}</strong>
+                    </div>
+
+                    <div class="info-row">
+                      <span>Ghi chú giao hàng</span>
+                      <strong>${escapeHtml(order.deliveryNote || "Không có")}</strong>
+                    </div>
+
+                  </div>
 
                 </div>
 
@@ -2203,114 +1399,118 @@ function renderOrders() {
             }
 
 
+            ${
+              items.map(
+                item => `
+
+                  <div class="order-item">
+
+                    <div>
+
+                      <div class="order-item-name">
+
+                        ${item.quantity} ×
+                        ${escapeHtml(item.name)}
+
+                      </div>
+
+                      <div class="order-item-info">
+
+                        Size:
+                        ${escapeHtml(item.sizeName || item.sizeId)}
+
+                        <br>
+
+                        Topping:
+                        ${
+                          (
+                            item.toppings || []
+                          )
+                          .map(
+                            t =>
+                              escapeHtml(t.name)
+                          )
+                          .join(", ")
+                          ||
+                          "Không topping"
+                        }
+
+                      </div>
+
+                      ${
+                        item.note
+                        ?
+                        `<div class="item-note-admin"><strong>Ghi chú:</strong> ${escapeHtml(item.note)}</div>`
+                        :
+                        ""
+                      }
+
+                    </div>
+
+                    <strong>
+                      ${money(item.subtotal)}
+                    </strong>
+
+                  </div>
+
+                `
+              ).join("")
+            }
+
+
+            ${
+              order.orderNote
+              ?
+              `<div class="order-note-admin"><strong>Ghi chú đơn:</strong> ${escapeHtml(order.orderNote)}</div>`
+              :
+              ""
+            }
+
+
             <div class="order-payment-box">
 
               <div class="order-payment-head">
 
                 <strong>
-                  ${paymentLabel(
-                    order
-                  )}
+
+                  ${
+                    order.paymentMethod ===
+                    "bank_transfer"
+                    ?
+                    "🏦 Chuyển khoản"
+                    :
+                    "💵 Tiền mặt"
+                  }
+
                 </strong>
 
+                <span class="status-pill ${order.paymentStatus === "paid" ? "paid" : "pending"}">
 
-                <div>
+                  ${
+                    order.paymentStatus ===
+                    "paid"
+                    ?
+                    "Đã thanh toán"
+                    :
+                    "Chưa thanh toán"
+                  }
 
-                  <span
-                    class="
-                      status-pill
-                      ${
-                        isBank
-                        ?
-                        "bank"
-                        :
-                        "cash"
-                      }
-                    "
-                  >
-
-                    ${
-                      isBank
-                      ?
-                      "Chuyển khoản"
-                      :
-                      "Tiền mặt"
-                    }
-
-                  </span>
-
-
-                  <span
-                    class="
-                      status-pill
-                      ${
-                        isPaid
-                        ?
-                        "paid"
-                        :
-                        "pending"
-                      }
-                    "
-                  >
-
-                    ${
-                      paymentStatusLabel(
-                        order
-                      )
-                    }
-
-                  </span>
-
-                </div>
+                </span>
 
               </div>
-
 
               <div class="payment-status-actions">
 
                 <button
-                  class="
-                    ${
-                      !isPaid
-                      ?
-                      "primary"
-                      :
-                      "secondary"
-                    }
-                  "
-                  type="button"
-                  onclick="
-                    changePaymentStatus(
-                      '${escapeJs(
-                        order.id
-                      )}',
-                      'pending'
-                    )
-                  "
+                  class="secondary"
+                  onclick="changePaymentStatus('${escapeJs(order.id)}','pending')"
                 >
                   Chưa thanh toán
                 </button>
 
-
                 <button
-                  class="
-                    ${
-                      isPaid
-                      ?
-                      "primary"
-                      :
-                      "secondary"
-                    }
-                  "
-                  type="button"
-                  onclick="
-                    changePaymentStatus(
-                      '${escapeJs(
-                        order.id
-                      )}',
-                      'paid'
-                    )
-                  "
+                  class="primary"
+                  onclick="changePaymentStatus('${escapeJs(order.id)}','paid')"
                 >
                   Đã thanh toán
                 </button>
@@ -2323,75 +1523,22 @@ function renderOrders() {
             <div class="actions">
 
               <button
-                class="
-                  ${
-                    order.status ===
-                    "new"
-                    ?
-                    "primary"
-                    :
-                    "secondary"
-                  }
-                "
-                type="button"
-                onclick="
-                  changeOrderStatus(
-                    '${escapeJs(
-                      order.id
-                    )}',
-                    'new'
-                  )
-                "
+                class="secondary"
+                onclick="changeOrderStatus('${escapeJs(order.id)}','new')"
               >
                 Mới
               </button>
 
-
               <button
-                class="
-                  ${
-                    order.status ===
-                    "preparing"
-                    ?
-                    "primary"
-                    :
-                    "secondary"
-                  }
-                "
-                type="button"
-                onclick="
-                  changeOrderStatus(
-                    '${escapeJs(
-                      order.id
-                    )}',
-                    'preparing'
-                  )
-                "
+                class="secondary"
+                onclick="changeOrderStatus('${escapeJs(order.id)}','preparing')"
               >
                 Đang làm
               </button>
 
-
               <button
-                class="
-                  ${
-                    order.status ===
-                    "done"
-                    ?
-                    "primary"
-                    :
-                    "secondary"
-                  }
-                "
-                type="button"
-                onclick="
-                  changeOrderStatus(
-                    '${escapeJs(
-                      order.id
-                    )}',
-                    'done'
-                  )
-                "
+                class="primary"
+                onclick="changeOrderStatus('${escapeJs(order.id)}','done')"
               >
                 Hoàn thành
               </button>
@@ -2409,160 +1556,67 @@ function renderOrders() {
 }
 
 
-/* =========================================================
-   ORDER STATUS
-========================================================= */
-
 window.changeOrderStatus =
-  async function (
-    orderId,
+  async function(
+    id,
     status
   ) {
 
-    if (
-      ![
-        "new",
-        "preparing",
-        "done"
-      ].includes(status)
-    ) {
+    await db
+      .collection("orders")
+      .doc(id)
+      .update({
 
-      return;
+        status,
 
-    }
+        updatedAt:
+          firebase.firestore
+            .FieldValue
+            .serverTimestamp()
 
-
-    try {
-
-      await db
-        .collection(
-          "orders"
-        )
-        .doc(
-          orderId
-        )
-        .update({
-
-          status,
-
-
-          updatedAt:
-            firebase
-              .firestore
-              .FieldValue
-              .serverTimestamp()
-
-        });
-
-    } catch (error) {
-
-      console.error(
-        error
-      );
-
-
-      alert(
-        "Không cập nhật được trạng thái đơn: "
-        +
-        error.message
-      );
-
-    }
+      });
 
   };
 
 
-/* =========================================================
-   PAYMENT STATUS
-========================================================= */
-
 window.changePaymentStatus =
-  async function (
-    orderId,
+  async function(
+    id,
     paymentStatus
   ) {
 
-    if (
-      ![
-        "pending",
-        "paid"
-      ].includes(
-        paymentStatus
-      )
-    ) {
+    await db
+      .collection("orders")
+      .doc(id)
+      .update({
 
-      return;
+        paymentStatus,
 
-    }
+        updatedAt:
+          firebase.firestore
+            .FieldValue
+            .serverTimestamp()
 
-
-    try {
-
-      await db
-        .collection(
-          "orders"
-        )
-        .doc(
-          orderId
-        )
-        .update({
-
-          paymentStatus,
-
-
-          updatedAt:
-            firebase
-              .firestore
-              .FieldValue
-              .serverTimestamp()
-
-        });
-
-    } catch (error) {
-
-      console.error(
-        error
-      );
-
-
-      alert(
-        "Không cập nhật được thanh toán: "
-        +
-        error.message
-      );
-
-    }
+      });
 
   };
 
 
-/* =========================================================
+/* =====================================
    STATS
-========================================================= */
+===================================== */
 
 function loadStats() {
 
-  if (
-    unsubscribeStats
-  ) {
-
-    unsubscribeStats();
-
-  }
-
-
   unsubscribeStats =
     db
-      .collection(
-        "dailyStats"
-      )
+      .collection("dailyStats")
       .orderBy(
         "date",
         "desc"
       )
       .limit(31)
       .onSnapshot(
-
         snapshot => {
 
           const stats =
@@ -2579,186 +1633,81 @@ function loadStats() {
               );
 
 
-          renderStats(
-            stats
-          );
-
-        },
+          const today =
+            dateKeyVN();
 
 
-        error => {
+          const current =
+            stats.find(
+              x =>
+                x.date === today
+                ||
+                x.id === today
+            )
+            ||
+            {};
 
-          console.error(
-            "Stats:",
-            error
-          );
+
+          $("todayOrders").textContent =
+            Number(
+              current.orders || 0
+            );
 
 
-          $("historyTable")
-            .innerHTML = `
+          $("todayCups").textContent =
+            Number(
+              current.cups || 0
+            );
 
-              <tr>
 
-                <td colspan="4">
+          $("todayRevenue").textContent =
+            money(
+              current.revenue || 0
+            );
 
-                  Không tải được thống kê:
 
-                  ${escapeHtml(
-                    error.message
-                  )}
+          $("historyTable").innerHTML =
+            stats.length
+            ?
+            stats.map(
+              x => `
 
-                </td>
+                <tr>
 
-              </tr>
+                  <td>
+                    ${escapeHtml(x.date || x.id)}
+                  </td>
 
-            `;
+                  <td>
+                    ${Number(x.orders || 0)}
+                  </td>
+
+                  <td>
+                    ${Number(x.cups || 0)}
+                  </td>
+
+                  <td>
+                    ${money(x.revenue || 0)}
+                  </td>
+
+                </tr>
+
+              `
+            ).join("")
+            :
+            '<tr><td colspan="4">Chưa có dữ liệu.</td></tr>';
 
         }
-
       );
 
 }
 
 
-function renderStats(
-  stats
-) {
-
-  const today =
-    dateKeyVN();
-
-
-  const todayData =
-    stats.find(
-      item =>
-        item.date === today
-        ||
-        item.id === today
-    )
-    ||
-    {};
-
-
-  $("todayOrders")
-    .textContent =
-    Number(
-      todayData.orders ||
-      0
-    );
-
-
-  $("todayCups")
-    .textContent =
-    Number(
-      todayData.cups ||
-      0
-    );
-
-
-  $("todayRevenue")
-    .textContent =
-    money(
-      todayData.revenue ||
-      0
-    );
-
-
-  if (
-    !stats.length
-  ) {
-
-    $("historyTable")
-      .innerHTML = `
-
-        <tr>
-
-          <td colspan="4">
-            Chưa có dữ liệu.
-          </td>
-
-        </tr>
-
-      `;
-
-    return;
-
-  }
-
-
-  $("historyTable")
-    .innerHTML =
-
-    stats.map(
-      item => `
-
-        <tr>
-
-          <td>
-
-            <strong>
-
-              ${escapeHtml(
-                formatDateKey(
-                  item.date ||
-                  item.id
-                )
-              )}
-
-            </strong>
-
-          </td>
-
-
-          <td>
-            ${Number(
-              item.orders || 0
-            )}
-          </td>
-
-
-          <td>
-            ${Number(
-              item.cups || 0
-            )}
-          </td>
-
-
-          <td>
-
-            <strong>
-
-              ${money(
-                item.revenue ||
-                0
-              )}
-
-            </strong>
-
-          </td>
-
-        </tr>
-
-      `
-    )
-    .join("");
-
-}
-
-
-/* =========================================================
-   STORE SETTINGS
-========================================================= */
+/* =====================================
+   STORE CONTACT
+===================================== */
 
 function loadStoreSettings() {
-
-  if (
-    unsubscribeStore
-  ) {
-
-    unsubscribeStore();
-
-  }
-
 
   unsubscribeStore =
     db
@@ -2769,85 +1718,45 @@ function loadStoreSettings() {
         "contact"
       )
       .onSnapshot(
-
         doc => {
 
-          const data =
+          const x =
             doc.exists
             ?
-            doc.data() || {}
+            doc.data()
             :
             {};
 
 
-          $("storeName")
-            .value =
-            data.name ||
+          $("storeName").value =
+            x.name ||
             "CHENG COFFEE";
 
+          $("storePhone").value =
+            x.phone || "";
 
-          $("storePhone")
-            .value =
-            data.phone ||
-            "";
-
-
-          $("storeHours")
-            .value =
-            data.openingHours ||
+          $("storeHours").value =
+            x.openingHours ||
             "07:00 - 22:00";
 
+          $("storeAddress").value =
+            x.address || "";
 
-          $("storeAddress")
-            .value =
-            data.address ||
-            "";
+          $("storeFacebook").value =
+            x.facebook || "";
 
+          $("storeZalo").value =
+            x.zalo || "";
 
-          $("storeFacebook")
-            .value =
-            data.facebook ||
-            "";
-
-
-          $("storeZalo")
-            .value =
-            data.zalo ||
-            "";
-
-
-          $("storeTagline")
-            .value =
-            data.tagline ||
+          $("storeTagline").value =
+            x.tagline ||
             "Một chút cà phê, một chút bình yên.";
 
-        },
-
-
-        error => {
-
-          console.error(
-            "Store:",
-            error
-          );
-
-
-          $("storeMessage")
-            .textContent =
-            "Không tải được thông tin quán: "
-            +
-            error.message;
-
         }
-
       );
 
 }
 
-
-/* =========================================================
-   SAVE STORE
-========================================================= */
 
 $("storeForm")
   .addEventListener(
@@ -2857,188 +1766,90 @@ $("storeForm")
       event.preventDefault();
 
 
-      try {
-
-        const name =
-          $("storeName")
-            .value
-            .trim();
+      const name =
+        $("storeName")
+          .value
+          .trim();
 
 
-        if (!name) {
+      if (!name) {
 
-          throw new Error(
-            "Vui lòng nhập tên quán."
-          );
+        $("storeMessage").textContent =
+          "Vui lòng nhập tên quán.";
 
-        }
-
-
-        const facebook =
-          normalizeOptionalUrl(
-            $("storeFacebook")
-              .value
-          );
-
-
-        const zalo =
-          normalizeOptionalUrl(
-            $("storeZalo")
-              .value
-          );
-
-
-        if (
-          $("storeFacebook")
-            .value
-            .trim()
-          &&
-          !facebook
-        ) {
-
-          throw new Error(
-            "Link Facebook phải bắt đầu bằng http:// hoặc https://"
-          );
-
-        }
-
-
-        if (
-          $("storeZalo")
-            .value
-            .trim()
-          &&
-          !zalo
-        ) {
-
-          throw new Error(
-            "Link Zalo phải bắt đầu bằng http:// hoặc https://"
-          );
-
-        }
-
-
-        $("storeMessage")
-          .textContent =
-          "Đang lưu...";
-
-
-        await db
-          .collection(
-            "storeSettings"
-          )
-          .doc(
-            "contact"
-          )
-          .set({
-
-            name:
-              name.slice(
-                0,
-                100
-              ),
-
-
-            phone:
-              $("storePhone")
-                .value
-                .trim()
-                .slice(
-                  0,
-                  30
-                ),
-
-
-            openingHours:
-              $("storeHours")
-                .value
-                .trim()
-                .slice(
-                  0,
-                  100
-                ),
-
-
-            address:
-              $("storeAddress")
-                .value
-                .trim()
-                .slice(
-                  0,
-                  200
-                ),
-
-
-            facebook:
-              facebook.slice(
-                0,
-                300
-              ),
-
-
-            zalo:
-              zalo.slice(
-                0,
-                300
-              ),
-
-
-            tagline:
-              $("storeTagline")
-                .value
-                .trim()
-                .slice(
-                  0,
-                  180
-                ),
-
-
-            updatedAt:
-              firebase
-                .firestore
-                .FieldValue
-                .serverTimestamp()
-
-          });
-
-
-        $("storeMessage")
-          .textContent =
-          "Đã lưu thông tin quán.";
-
-      } catch (error) {
-
-        console.error(
-          "Store save:",
-          error
-        );
-
-
-        $("storeMessage")
-          .textContent =
-          error.message ||
-          "Không lưu được.";
+        return;
 
       }
+
+
+      await db
+        .collection(
+          "storeSettings"
+        )
+        .doc(
+          "contact"
+        )
+        .set({
+
+          name:
+            name.slice(0, 100),
+
+          phone:
+            $("storePhone")
+              .value
+              .trim()
+              .slice(0, 30),
+
+          openingHours:
+            $("storeHours")
+              .value
+              .trim()
+              .slice(0, 100),
+
+          address:
+            $("storeAddress")
+              .value
+              .trim()
+              .slice(0, 200),
+
+          facebook:
+            $("storeFacebook")
+              .value
+              .trim()
+              .slice(0, 300),
+
+          zalo:
+            $("storeZalo")
+              .value
+              .trim()
+              .slice(0, 300),
+
+          tagline:
+            $("storeTagline")
+              .value
+              .trim()
+              .slice(0, 180),
+
+          updatedAt:
+            firebase.firestore
+              .FieldValue
+              .serverTimestamp()
+
+        });
+
+
+      $("storeMessage").textContent =
+        "Đã lưu thông tin quán.";
 
     }
   );
 
 
-/* =========================================================
-   PAYMENT SETTINGS
-========================================================= */
+/* =====================================
+   PAYMENT LOAD
+===================================== */
 
 function loadPaymentSettings() {
-
-  if (
-    unsubscribePayment
-  ) {
-
-    unsubscribePayment();
-
-  }
-
 
   unsubscribePayment =
     db
@@ -3049,169 +1860,258 @@ function loadPaymentSettings() {
         "payment"
       )
       .onSnapshot(
-
         doc => {
 
-          const data =
+          const x =
             doc.exists
             ?
-            doc.data() || {}
+            doc.data()
             :
             {};
 
 
-          $("paymentBankName")
-            .value =
-            data.bankName ||
-            "";
+          $("paymentBankName").value =
+            x.bankName || "";
 
+          $("paymentAccountName").value =
+            x.accountName || "";
 
-          $("paymentAccountName")
-            .value =
-            data.accountName ||
-            "";
+          $("paymentAccountNumber").value =
+            x.accountNumber || "";
 
-
-          $("paymentAccountNumber")
-            .value =
-            data.accountNumber ||
-            "";
-
-
-          $("paymentQrImageUrl")
-            .value =
-            data.qrImageUrl ||
-            "";
-
-
-          $("paymentInstructions")
-            .value =
-            data.instructions ||
+          $("paymentInstructions").value =
+            x.instructions ||
             "Vui lòng chuyển đúng số tiền của đơn.";
 
 
-          updatePaymentPreview();
+          currentQrImageUrl =
+            x.qrImageUrl || "";
 
-        },
+
+          currentQrStoragePath =
+            x.qrStoragePath || "";
 
 
-        error => {
-
-          console.error(
-            "Payment settings:",
-            error
+          renderQrPreview(
+            currentQrImageUrl
           );
 
-
-          $("paymentMessage")
-            .textContent =
-            "Không tải được cấu hình thanh toán: "
-            +
-            error.message;
-
         }
-
       );
 
 }
 
 
-/* =========================================================
+/* =====================================
    QR PREVIEW
-========================================================= */
+===================================== */
 
-function updatePaymentPreview() {
-
-  const url =
-    normalizeOptionalUrl(
-      $("paymentQrImageUrl")
-        .value
-    );
-
+function renderQrPreview(url) {
 
   if (url) {
 
-    $("paymentQrPreview")
-      .src =
+    $("paymentQrPreview").src =
       url;
 
-
-    $("paymentQrPreview")
-      .hidden =
+    $("paymentQrPreview").hidden =
       false;
 
-
-    $("paymentQrPreviewEmpty")
-      .hidden =
+    $("paymentQrPreviewEmpty").hidden =
       true;
+
+    $("deleteQrBtn").disabled =
+      false;
 
   } else {
 
-    $("paymentQrPreview")
-      .src =
+    $("paymentQrPreview").src =
       "";
 
-
-    $("paymentQrPreview")
-      .hidden =
+    $("paymentQrPreview").hidden =
       true;
 
-
-    $("paymentQrPreviewEmpty")
-      .hidden =
+    $("paymentQrPreviewEmpty").hidden =
       false;
+
+    $("deleteQrBtn").disabled =
+      true;
 
   }
 
 }
 
 
-$("paymentQrImageUrl")
+$("paymentQrFile")
   .addEventListener(
-    "input",
-    updatePaymentPreview
-  );
-
-
-$("paymentQrPreview")
-  .addEventListener(
-    "error",
+    "change",
     () => {
 
-      $("paymentQrPreview")
-        .hidden =
-        true;
+      const file =
+        $("paymentQrFile")
+          .files[0];
 
 
-      $("paymentQrPreviewEmpty")
-        .hidden =
+      if (!file) {
+
+        renderQrPreview(
+          currentQrImageUrl
+        );
+
+        return;
+
+      }
+
+
+      if (
+        ![
+          "image/png",
+          "image/jpeg",
+          "image/webp"
+        ]
+        .includes(
+          file.type
+        )
+      ) {
+
+        $("paymentMessage").textContent =
+          "Ảnh phải là PNG, JPG hoặc WEBP.";
+
+        $("paymentQrFile").value =
+          "";
+
+        return;
+
+      }
+
+
+      if (
+        file.size >
+        5 * 1024 * 1024
+      ) {
+
+        $("paymentMessage").textContent =
+          "Ảnh không được lớn hơn 5MB.";
+
+        $("paymentQrFile").value =
+          "";
+
+        return;
+
+      }
+
+
+      $("paymentQrPreview").src =
+        URL.createObjectURL(
+          file
+        );
+
+
+      $("paymentQrPreview").hidden =
         false;
 
 
-      $("paymentQrPreviewEmpty")
-        .textContent =
-        "Không tải được ảnh QR";
+      $("paymentQrPreviewEmpty").hidden =
+        true;
+
+
+      $("paymentMessage").textContent =
+        "Ảnh đã chọn. Bấm Lưu thanh toán.";
 
     }
   );
 
 
-$("paymentQrPreview")
-  .addEventListener(
-    "load",
-    () => {
+/* =====================================
+   UPLOAD QR
+===================================== */
 
-      $("paymentQrPreviewEmpty")
-        .textContent =
-        "Chưa có ảnh QR";
+async function uploadBankQr(file) {
 
-    }
-  );
+  if (!file) {
+
+    return {
+
+      url:
+        currentQrImageUrl,
+
+      path:
+        currentQrStoragePath
+
+    };
+
+  }
 
 
-/* =========================================================
-   SAVE PAYMENT SETTINGS
-========================================================= */
+  const ext =
+    file.type === "image/jpeg"
+    ?
+    "jpg"
+    :
+    file.type === "image/webp"
+    ?
+    "webp"
+    :
+    "png";
+
+
+  const path =
+    `bank-qr/cheng-coffee-payment.${ext}`;
+
+
+  if (
+    currentQrStoragePath
+    &&
+    currentQrStoragePath !==
+    path
+  ) {
+
+    await storage
+      .ref()
+      .child(
+        currentQrStoragePath
+      )
+      .delete()
+      .catch(
+        () => {}
+      );
+
+  }
+
+
+  const ref =
+    storage
+      .ref()
+      .child(
+        path
+      );
+
+
+  const snapshot =
+    await ref.put(
+      file,
+      {
+        contentType:
+          file.type
+      }
+    );
+
+
+  return {
+
+    url:
+      await snapshot.ref
+        .getDownloadURL(),
+
+    path
+
+  };
+
+}
+
+
+/* =====================================
+   SAVE PAYMENT
+===================================== */
 
 $("paymentForm")
   .addEventListener(
@@ -3219,6 +2119,10 @@ $("paymentForm")
     async event => {
 
       event.preventDefault();
+
+
+      const button =
+        $("savePaymentBtn");
 
 
       try {
@@ -3241,54 +2145,55 @@ $("paymentForm")
             .trim();
 
 
-        const qrImageUrl =
-          normalizeOptionalUrl(
-            $("paymentQrImageUrl")
-              .value
-          );
-
-
-        const instructions =
-          $("paymentInstructions")
-            .value
-            .trim();
-
-
-        if (
-          $("paymentQrImageUrl")
-            .value
-            .trim()
-          &&
-          !qrImageUrl
-        ) {
-
-          throw new Error(
-            "Link ảnh QR phải bắt đầu bằng http:// hoặc https://"
-          );
-
-        }
-
-
         if (
           !bankName
-          &&
+          ||
           !accountName
-          &&
+          ||
           !accountNumber
-          &&
-          !qrImageUrl
         ) {
 
           throw new Error(
-            "Vui lòng nhập thông tin tài khoản ngân hàng."
+            "Vui lòng nhập đầy đủ thông tin ngân hàng."
           );
 
         }
 
 
-        $("paymentMessage")
-          .textContent =
+        const file =
+          $("paymentQrFile")
+            .files[0];
+
+
+        if (
+          !file
+          &&
+          !currentQrImageUrl
+        ) {
+
+          throw new Error(
+            "Vui lòng chọn ảnh QR."
+          );
+
+        }
+
+
+        button.disabled =
+          true;
+
+
+        $("paymentMessage").textContent =
+          file
+          ?
+          "Đang upload QR..."
+          :
           "Đang lưu...";
+
+
+        const qr =
+          await uploadBankQr(
+            file
+          );
 
 
         await db
@@ -3301,68 +2206,80 @@ $("paymentForm")
           .set({
 
             bankName:
-              bankName.slice(
-                0,
-                100
-              ),
-
+              bankName.slice(0, 100),
 
             accountName:
-              accountName.slice(
-                0,
-                120
-              ),
-
+              accountName.slice(0, 120),
 
             accountNumber:
-              accountNumber.slice(
-                0,
-                50
-              ),
-
+              accountNumber.slice(0, 50),
 
             qrImageUrl:
-              qrImageUrl.slice(
+              String(
+                qr.url || ""
+              ).slice(
                 0,
-                500
+                1000
               ),
 
-
-            instructions:
-              instructions.slice(
+            qrStoragePath:
+              String(
+                qr.path || ""
+              ).slice(
                 0,
                 300
               ),
 
+            instructions:
+              $("paymentInstructions")
+                .value
+                .trim()
+                .slice(
+                  0,
+                  300
+                ),
 
             updatedAt:
-              firebase
-                .firestore
+              firebase.firestore
                 .FieldValue
                 .serverTimestamp()
 
           });
 
 
-        $("paymentMessage")
-          .textContent =
-          "Đã lưu thông tin thanh toán.";
+        currentQrImageUrl =
+          qr.url;
 
 
-        updatePaymentPreview();
+        currentQrStoragePath =
+          qr.path;
 
-      } catch (error) {
 
-        console.error(
-          "Payment save:",
-          error
+        $("paymentQrFile").value =
+          "";
+
+
+        renderQrPreview(
+          currentQrImageUrl
         );
 
 
-        $("paymentMessage")
-          .textContent =
+        $("paymentMessage").textContent =
+          "Đã lưu thanh toán và QR.";
+
+      } catch (error) {
+
+        console.error(error);
+
+
+        $("paymentMessage").textContent =
           error.message ||
-          "Không lưu được thanh toán.";
+          "Không lưu được.";
+
+      } finally {
+
+        button.disabled =
+          false;
 
       }
 
@@ -3370,9 +2287,106 @@ $("paymentForm")
   );
 
 
-/* =========================================================
+/* =====================================
+   DELETE QR
+===================================== */
+
+$("deleteQrBtn")
+  .addEventListener(
+    "click",
+    async () => {
+
+      if (
+        !currentQrImageUrl
+      ) {
+
+        return;
+
+      }
+
+
+      if (
+        !confirm(
+          "Xóa ảnh QR ngân hàng?"
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      try {
+
+        if (
+          currentQrStoragePath
+        ) {
+
+          await storage
+            .ref()
+            .child(
+              currentQrStoragePath
+            )
+            .delete()
+            .catch(
+              () => {}
+            );
+
+        }
+
+
+        await db
+          .collection(
+            "storeSettings"
+          )
+          .doc(
+            "payment"
+          )
+          .update({
+
+            qrImageUrl:
+              "",
+
+            qrStoragePath:
+              "",
+
+            updatedAt:
+              firebase.firestore
+                .FieldValue
+                .serverTimestamp()
+
+          });
+
+
+        currentQrImageUrl =
+          "";
+
+        currentQrStoragePath =
+          "";
+
+
+        renderQrPreview(
+          ""
+        );
+
+
+        $("paymentMessage").textContent =
+          "Đã xóa QR.";
+
+      } catch (error) {
+
+        $("paymentMessage").textContent =
+          error.message;
+
+      }
+
+    }
+  );
+
+
+/* =====================================
    PUSH
-========================================================= */
+===================================== */
 
 function getSavedPushToken() {
 
@@ -3388,66 +2402,64 @@ function getSavedPushToken() {
 
 function updatePushUI() {
 
-  const permission =
+  const active =
     "Notification" in window
+    &&
+    Notification.permission ===
+      "granted"
+    &&
+    !!getSavedPushToken();
+
+
+  $("pushStatusBadge")
+    .textContent =
+    active
     ?
-    Notification.permission
+    "Đã bật"
     :
-    "unsupported";
-
-
-  const token =
-    getSavedPushToken();
+    "Chưa bật";
 
 
   $("pushStatusBadge")
     .classList
-    .remove(
-      "online"
+    .toggle(
+      "online",
+      active
     );
-
-
-  if (
-    permission ===
-      "granted"
-    &&
-    token
-  ) {
-
-    $("pushStatusBadge")
-      .textContent =
-      "Đã bật";
-
-
-    $("pushStatusBadge")
-      .classList
-      .add(
-        "online"
-      );
-
-  } else if (
-    permission ===
-    "denied"
-  ) {
-
-    $("pushStatusBadge")
-      .textContent =
-      "Đã chặn";
-
-  } else {
-
-    $("pushStatusBadge")
-      .textContent =
-      "Chưa bật";
-
-  }
 
 }
 
 
-/* =========================================================
-   ENABLE PUSH
-========================================================= */
+async function sha256(value) {
+
+  const data =
+    new TextEncoder()
+      .encode(value);
+
+
+  const hash =
+    await crypto.subtle
+      .digest(
+        "SHA-256",
+        data
+      );
+
+
+  return Array.from(
+    new Uint8Array(hash)
+  )
+  .map(
+    x =>
+      x.toString(16)
+        .padStart(
+          2,
+          "0"
+        )
+  )
+  .join("");
+
+}
+
 
 $("enablePushBtn")
   .addEventListener(
@@ -3455,39 +2467,6 @@ $("enablePushBtn")
     async () => {
 
       try {
-
-        if (
-          !(
-            "Notification"
-            in window
-          )
-        ) {
-
-          throw new Error(
-            "Thiết bị không hỗ trợ thông báo."
-          );
-
-        }
-
-
-        if (
-          !(
-            "serviceWorker"
-            in navigator
-          )
-        ) {
-
-          throw new Error(
-            "Thiết bị không hỗ trợ Service Worker."
-          );
-
-        }
-
-
-        $("pushMessage")
-          .textContent =
-          "Đang bật thông báo...";
-
 
         const permission =
           await Notification
@@ -3514,15 +2493,9 @@ $("enablePushBtn")
             );
 
 
-        const messaging =
-          firebase.messaging();
-
-
         const options = {
-
           serviceWorkerRegistration:
             registration
-
         };
 
 
@@ -3537,37 +2510,14 @@ $("enablePushBtn")
 
 
         const token =
-          await messaging
+          await firebase
+            .messaging()
             .getToken(
               options
             );
 
 
-        if (!token) {
-
-          throw new Error(
-            "Không lấy được token thông báo."
-          );
-
-        }
-
-
-        const user =
-          auth.currentUser;
-
-
-        if (
-          !isAdminUser(user)
-        ) {
-
-          throw new Error(
-            "Admin chưa đăng nhập."
-          );
-
-        }
-
-
-        const deviceId =
+        const id =
           await sha256(
             token
           );
@@ -3577,148 +2527,89 @@ $("enablePushBtn")
           .collection(
             "adminDevices"
           )
-          .doc(
-            deviceId
-          )
+          .doc(id)
           .set({
 
             token,
 
-
             uid:
-              user.uid,
-
+              auth.currentUser.uid,
 
             updatedAt:
-              firebase
-                .firestore
+              firebase.firestore
                 .FieldValue
                 .serverTimestamp()
 
           });
 
 
-        localStorage
-          .setItem(
-            "chengAdminPushToken",
-            token
-          );
+        localStorage.setItem(
+          "chengAdminPushToken",
+          token
+        );
 
 
-        $("pushMessage")
-          .textContent =
-          "Đã bật thông báo đơn mới.";
+        $("pushMessage").textContent =
+          "Đã bật thông báo.";
 
 
         updatePushUI();
 
       } catch (error) {
 
-        console.error(
-          "Push:",
-          error
-        );
-
-
-        $("pushMessage")
-          .textContent =
-          error.message ||
-          "Không bật được thông báo.";
-
-
-        updatePushUI();
+        $("pushMessage").textContent =
+          error.message;
 
       }
 
     }
   );
 
-
-/* =========================================================
-   DISABLE PUSH
-========================================================= */
 
 $("disablePushBtn")
   .addEventListener(
     "click",
     async () => {
 
-      try {
-
-        const token =
-          getSavedPushToken();
+      const token =
+        getSavedPushToken();
 
 
-        if (token) {
+      if (token) {
 
-          const deviceId =
-            await sha256(
-              token
-            );
-
-
-          await db
-            .collection(
-              "adminDevices"
-            )
-            .doc(
-              deviceId
-            )
-            .delete()
-            .catch(
-              () => {}
-            );
-
-
-          try {
-
-            const messaging =
-              firebase.messaging();
-
-
-            await messaging
-              .deleteToken();
-
-          } catch (error) {
-
-            console.warn(
-              error
-            );
-
-          }
-
-        }
-
-
-        localStorage
-          .removeItem(
-            "chengAdminPushToken"
+        const id =
+          await sha256(
+            token
           );
 
 
-        $("pushMessage")
-          .textContent =
-          "Đã tắt thông báo trên thiết bị này.";
-
-
-        updatePushUI();
-
-      } catch (error) {
-
-        $("pushMessage")
-          .textContent =
-          error.message ||
-          "Không tắt được thông báo.";
+        await db
+          .collection(
+            "adminDevices"
+          )
+          .doc(id)
+          .delete()
+          .catch(
+            () => {}
+          );
 
       }
+
+
+      localStorage.removeItem(
+        "chengAdminPushToken"
+      );
+
+
+      $("pushMessage").textContent =
+        "Đã tắt thông báo.";
+
+
+      updatePushUI();
 
     }
   );
 
-
-/* =========================================================
-   TEST PUSH
-========================================================= */
 
 $("testPushBtn")
   .addEventListener(
@@ -3727,47 +2618,20 @@ $("testPushBtn")
 
       try {
 
-        $("pushMessage")
-          .textContent =
-          "Đang gửi thử...";
-
-
-        if (
-          !isAdminUser(
-            auth.currentUser
-          )
-        ) {
-
-          throw new Error(
-            "Admin chưa đăng nhập."
-          );
-
-        }
-
-
-        await auth
-          .currentUser
+        await auth.currentUser
           .getIdToken(true);
 
 
         await testAdminPush();
 
 
-        $("pushMessage")
-          .textContent =
+        $("pushMessage").textContent =
           "Đã gửi thông báo thử.";
 
       } catch (error) {
 
-        console.error(
-          error
-        );
-
-
-        $("pushMessage")
-          .textContent =
-          error.message ||
-          "Không gửi được thông báo.";
+        $("pushMessage").textContent =
+          error.message;
 
       }
 
@@ -3775,9 +2639,9 @@ $("testPushBtn")
   );
 
 
-/* =========================================================
+/* =====================================
    PASSWORD
-========================================================= */
+===================================== */
 
 $("changePasswordForm")
   .addEventListener(
@@ -3787,7 +2651,7 @@ $("changePasswordForm")
       event.preventDefault();
 
 
-      const currentPassword =
+      const oldPassword =
         $("currentPassword")
           .value;
 
@@ -3797,50 +2661,14 @@ $("changePasswordForm")
           .value;
 
 
-      const confirmPassword =
-        $("confirmPassword")
-          .value;
-
-
-      if (
-        newPassword.length <
-        8
-      ) {
-
-        $("passwordMessage")
-          .textContent =
-          "Mật khẩu mới phải có ít nhất 8 ký tự.";
-
-        return;
-
-      }
-
-
       if (
         newPassword !==
-        confirmPassword
+        $("confirmPassword")
+          .value
       ) {
 
-        $("passwordMessage")
-          .textContent =
+        $("passwordMessage").textContent =
           "Hai mật khẩu mới không giống nhau.";
-
-        return;
-
-      }
-
-
-      const user =
-        auth.currentUser;
-
-
-      if (
-        !isAdminUser(user)
-      ) {
-
-        $("passwordMessage")
-          .textContent =
-          "Admin chưa đăng nhập.";
 
         return;
 
@@ -3849,28 +2677,22 @@ $("changePasswordForm")
 
       try {
 
-        $("passwordMessage")
-          .textContent =
-          "Đang đổi mật khẩu...";
-
-
         const credential =
-          firebase
-            .auth
+          firebase.auth
             .EmailAuthProvider
             .credential(
               ADMIN_EMAIL,
-              currentPassword
+              oldPassword
             );
 
 
-        await user
+        await auth.currentUser
           .reauthenticateWithCredential(
             credential
           );
 
 
-        await user
+        await auth.currentUser
           .updatePassword(
             newPassword
           );
@@ -3880,34 +2702,13 @@ $("changePasswordForm")
           .reset();
 
 
-        $("passwordMessage")
-          .textContent =
+        $("passwordMessage").textContent =
           "Đổi mật khẩu thành công.";
 
       } catch (error) {
 
-        console.error(
-          error
-        );
-
-
-        if (
-          error.code ===
-          "auth/invalid-credential"
-        ) {
-
-          $("passwordMessage")
-            .textContent =
-            "Mật khẩu hiện tại không đúng.";
-
-        } else {
-
-          $("passwordMessage")
-            .textContent =
-            error.message ||
-            "Không đổi được mật khẩu.";
-
-        }
+        $("passwordMessage").textContent =
+          error.message;
 
       }
 
@@ -3915,341 +2716,25 @@ $("changePasswordForm")
   );
 
 
-/* =========================================================
-   DATE
-========================================================= */
-
-function dateKeyVN() {
-
-  const parts =
-    new Intl
-      .DateTimeFormat(
-        "en-CA",
-        {
-
-          timeZone:
-            "Asia/Ho_Chi_Minh",
-
-
-          year:
-            "numeric",
-
-
-          month:
-            "2-digit",
-
-
-          day:
-            "2-digit"
-
-        }
-      )
-      .formatToParts(
-        new Date()
-      );
-
-
-  const values = {};
-
-
-  parts.forEach(
-    part => {
-
-      values[
-        part.type
-      ] =
-      part.value;
-
-    }
-  );
-
-
-  return (
-    values.year
-    +
-    "-"
-    +
-    values.month
-    +
-    "-"
-    +
-    values.day
-  );
-
-}
-
-
-function formatDateKey(
-  value
-) {
-
-  const parts =
-    String(
-      value || ""
-    )
-    .split("-");
-
-
-  if (
-    parts.length !==
-    3
-  ) {
-
-    return String(
-      value || ""
-    );
-
-  }
-
-
-  return (
-    parts[2]
-    +
-    "/"
-    +
-    parts[1]
-    +
-    "/"
-    +
-    parts[0]
-  );
-
-}
-
-
-function timestampMs(
-  timestamp
-) {
-
-  if (
-    !timestamp
-  ) {
-
-    return 0;
-
-  }
-
-
-  if (
-    typeof timestamp.toMillis ===
-    "function"
-  ) {
-
-    return timestamp
-      .toMillis();
-
-  }
-
-
-  return 0;
-
-}
-
-
-function formatDateTime(
-  timestamp
-) {
-
-  if (
-    !timestamp
-    ||
-    typeof timestamp.toDate !==
-      "function"
-  ) {
-
-    return "Vừa đặt";
-
-  }
-
-
-  return new Intl
-    .DateTimeFormat(
-      "vi-VN",
-      {
-
-        timeZone:
-          "Asia/Ho_Chi_Minh",
-
-
-        hour:
-          "2-digit",
-
-
-        minute:
-          "2-digit",
-
-
-        day:
-          "2-digit",
-
-
-        month:
-          "2-digit",
-
-
-        year:
-          "numeric"
-
-      }
-    )
-    .format(
-      timestamp.toDate()
-    );
-
-}
-
-
-/* =========================================================
-   URL
-========================================================= */
-
-function normalizeOptionalUrl(
-  value
-) {
-
-  const text =
-    String(
-      value || ""
-    )
-    .trim();
-
-
-  if (!text) {
-
-    return "";
-
-  }
-
-
-  if (
-    /^https?:\/\//i
-      .test(text)
-  ) {
-
-    return text;
-
-  }
-
-
-  return "";
-
-}
-
-
-/* =========================================================
-   SLUGIFY
-========================================================= */
-
-function slugify(value) {
-
-  return String(
-    value || ""
-  )
-  .normalize(
-    "NFD"
-  )
-  .replace(
-    /[\u0300-\u036f]/g,
-    ""
-  )
-  .toLowerCase()
-  .replace(
-    /đ/g,
-    "d"
-  )
-  .replace(
-    /[^a-z0-9]+/g,
-    "-"
-  )
-  .replace(
-    /^-+|-+$/g,
-    ""
-  );
-
-}
-
-
-/* =========================================================
-   SHA256
-========================================================= */
-
-async function sha256(
-  value
-) {
-
-  const data =
-    new TextEncoder()
-      .encode(
-        value
-      );
-
-
-  const hash =
-    await crypto.subtle
-      .digest(
-        "SHA-256",
-        data
-      );
-
-
-  return Array
-    .from(
-      new Uint8Array(
-        hash
-      )
-    )
-    .map(
-      byte =>
-        byte
-          .toString(16)
-          .padStart(
-            2,
-            "0"
-          )
-    )
-    .join("");
-
-}
-
-
-/* =========================================================
+/* =====================================
    ESCAPE
-========================================================= */
+===================================== */
 
-function escapeHtml(
-  value
-) {
+function escapeHtml(value) {
 
   return String(
     value ?? ""
   )
-  .replaceAll(
-    "&",
-    "&amp;"
-  )
-  .replaceAll(
-    "<",
-    "&lt;"
-  )
-  .replaceAll(
-    ">",
-    "&gt;"
-  )
-  .replaceAll(
-    '"',
-    "&quot;"
-  )
-  .replaceAll(
-    "'",
-    "&#039;"
-  );
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&#039;");
 
 }
 
 
-function escapeJs(
-  value
-) {
+function escapeJs(value) {
 
   return String(
     value ?? ""
@@ -4265,10 +2750,6 @@ function escapeJs(
 
 }
 
-
-/* =========================================================
-   INITIAL UI
-========================================================= */
 
 showLogin();
 

@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service firebase.storage {
+
+  match /b/{bucket}/o {
+
+    // =====================================
+    // QR NGÂN HÀNG
+    // =====================================
+
+    match /bank-qr/{fileName} {
+
+      // Khách được xem ảnh QR.
+      allow read: if true;
+
+      // Chỉ Admin được upload/thay ảnh QR.
+      allow create, update:
+        if request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email == "sangbeos1410@gmail.com"
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches(
+          'image/(png|jpeg|webp)'
+        );
+
+      // Chỉ Admin được xóa QR.
+      allow delete:
+        if request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email == "sangbeos1410@gmail.com";
+    }
+
+
+    // =====================================
+    // KHÓA TOÀN BỘ FILE KHÁC
+    // =====================================
+
+    match /{allPaths=**} {
+
+      allow read, write: if false;
+
+    }
+
+  }
+
+}
