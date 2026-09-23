@@ -1,13 +1,11 @@
+
 rules_version = '2';
 
 service cloud.firestore {
-
   match /databases/{database}/documents {
-
     function signedIn() {
       return request.auth != null;
     }
-
 
     function isAdmin() {
       return signedIn()
@@ -15,289 +13,124 @@ service cloud.firestore {
         && request.auth.token.email == "sangbeos1410@gmail.com";
     }
 
-
-    // ================================
-    // MENU
-    // ================================
-
     match /menu/{id} {
+      allow read: if isAdmin()
+        || (resource != null && resource.data.active == true);
 
-      allow read:
-        if resource.data.active == true
-        || isAdmin();
-
-
-      allow create, update:
-        if isAdmin()
-
+      allow create, update: if isAdmin()
         && request.resource.data.keys().hasOnly([
-          'name',
-          'category',
-          'description',
-          'sizes',
-          'toppings',
-          'active',
-          'updatedAt'
+          'name', 'category', 'description',
+          'sizes', 'toppings', 'active', 'updatedAt'
         ])
-
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 100
-
         && request.resource.data.category is string
         && request.resource.data.category.size() > 0
         && request.resource.data.category.size() <= 80
-
         && request.resource.data.description is string
         && request.resource.data.description.size() <= 300
-
         && request.resource.data.sizes is list
         && request.resource.data.sizes.size() >= 1
         && request.resource.data.sizes.size() <= 5
-
         && request.resource.data.toppings is list
         && request.resource.data.toppings.size() <= 20
-
         && request.resource.data.active is bool
-
         && request.resource.data.updatedAt == request.time;
 
-
-      allow delete:
-        if isAdmin();
-
+      allow delete: if isAdmin();
     }
-
-
-    // ================================
-    // ORDERS
-    // ================================
 
     match /orders/{id} {
+      allow read: if isAdmin();
+      allow create, delete: if false;
 
-      allow read:
-        if isAdmin();
-
-
-      allow create:
-        if false;
-
-
-      allow update:
-        if isAdmin()
-
-        && request.resource.data
-          .diff(resource.data)
-          .affectedKeys()
-          .hasOnly([
-            'status',
-            'paymentStatus',
-            'updatedAt'
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly([
+            'status', 'paymentStatus', 'updatedAt'
           ])
-
         && request.resource.data.status
-          in [
-            'new',
-            'preparing',
-            'done'
-          ]
-
+          in ['new', 'preparing', 'done']
         && request.resource.data.paymentStatus
-          in [
-            'pending',
-            'paid'
-          ]
-
-        && request.resource.data.updatedAt
-          == request.time;
-
-
-      allow delete:
-        if false;
-
+          in ['pending', 'paid']
+        && request.resource.data.updatedAt == request.time;
     }
-
-
-    // ================================
-    // DAILY STATS
-    // ================================
 
     match /dailyStats/{id} {
-
-      allow read:
-        if isAdmin();
-
-      allow write:
-        if false;
-
+      allow read: if isAdmin();
+      allow write: if false;
     }
-
-
-    // ================================
-    // ADMIN DEVICES
-    // ================================
 
     match /adminDevices/{id} {
+      allow read, delete: if isAdmin();
 
-      allow read:
-        if isAdmin();
-
-
-      allow create, update:
-        if isAdmin()
-
+      allow create, update: if isAdmin()
         && request.resource.data.keys().hasOnly([
-          'token',
-          'uid',
-          'updatedAt'
+          'token', 'uid', 'updatedAt'
         ])
-
-        && request.resource.data.uid
-          == request.auth.uid
-
-        && request.resource.data.token
-          is string
-
-        && request.resource.data.token.size()
-          > 20
-
-        && request.resource.data.updatedAt
-          == request.time;
-
-
-      allow delete:
-        if isAdmin();
-
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.token is string
+        && request.resource.data.token.size() > 20
+        && request.resource.data.updatedAt == request.time;
     }
 
-
-    // ================================
-    // CONTACT
-    // ================================
-
     match /storeSettings/contact {
+      allow read: if true;
 
-      allow read:
-        if true;
-
-
-      allow create, update:
-        if isAdmin()
-
+      allow create, update: if isAdmin()
         && request.resource.data.keys().hasOnly([
-          'name',
-          'phone',
-          'openingHours',
-          'address',
-          'facebook',
-          'zalo',
-          'tagline',
-          'updatedAt'
+          'name', 'phone', 'openingHours', 'address',
+          'facebook', 'zalo', 'tagline', 'updatedAt'
         ])
-
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 100
-
         && request.resource.data.phone is string
         && request.resource.data.phone.size() <= 30
-
         && request.resource.data.openingHours is string
         && request.resource.data.openingHours.size() <= 100
-
         && request.resource.data.address is string
         && request.resource.data.address.size() <= 200
-
         && request.resource.data.facebook is string
         && request.resource.data.facebook.size() <= 300
-
         && request.resource.data.zalo is string
         && request.resource.data.zalo.size() <= 300
-
         && request.resource.data.tagline is string
         && request.resource.data.tagline.size() <= 180
+        && request.resource.data.updatedAt == request.time;
 
-        && request.resource.data.updatedAt
-          == request.time;
-
-
-      allow delete:
-        if isAdmin();
-
+      allow delete: if isAdmin();
     }
-
-
-    // ================================
-    // PAYMENT
-    // ================================
 
     match /storeSettings/payment {
+      allow read: if true;
 
-      allow read:
-        if true;
-
-
-      allow create, update:
-        if isAdmin()
-
+      allow create, update: if isAdmin()
         && request.resource.data.keys().hasOnly([
-          'bankName',
-          'accountName',
-          'accountNumber',
-          'qrImageUrl',
-          'qrStoragePath',
-          'instructions',
-          'updatedAt'
+          'bankName', 'accountName', 'accountNumber',
+          'qrImageUrl', 'qrStoragePath',
+          'instructions', 'updatedAt'
         ])
-
         && request.resource.data.bankName is string
         && request.resource.data.bankName.size() <= 100
-
         && request.resource.data.accountName is string
         && request.resource.data.accountName.size() <= 120
-
         && request.resource.data.accountNumber is string
         && request.resource.data.accountNumber.size() <= 50
-
         && request.resource.data.qrImageUrl is string
         && request.resource.data.qrImageUrl.size() <= 1000
-
         && request.resource.data.qrStoragePath is string
         && request.resource.data.qrStoragePath.size() <= 300
-
         && request.resource.data.instructions is string
         && request.resource.data.instructions.size() <= 300
+        && request.resource.data.updatedAt == request.time;
 
-        && request.resource.data.updatedAt
-          == request.time;
-
-
-      allow delete:
-        if isAdmin();
-
+      allow delete: if isAdmin();
     }
 
-
-    // ================================
-    // REQUEST IDS
-    // ================================
-
-    match /requestIds/{id} {
-
-      allow read, write:
-        if false;
-
-    }
-
-
-    // ================================
-    // KHÓA MẶC ĐỊNH
-    // ================================
-
-
-    // Giá vốn chỉ dành cho quản trị viên.
     match /menuCosts/{id} {
-      allow read: if isAdmin();
+      allow read, delete: if isAdmin();
 
       allow create, update: if isAdmin()
         && request.resource.data.keys().hasOnly([
@@ -309,8 +142,6 @@ service cloud.firestore {
         && request.resource.data.toppings is map
         && request.resource.data.toppings.size() <= 20
         && request.resource.data.updatedAt == request.time;
-
-      allow delete: if isAdmin();
     }
 
     match /toppingCatalog/{id} {
@@ -362,13 +193,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    match /{document=**} {
-
-      allow read, write:
-        if false;
-
+    match /requestIds/{id} {
+      allow read, write: if false;
     }
 
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
-
 }

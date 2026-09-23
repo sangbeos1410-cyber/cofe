@@ -5,8 +5,11 @@ const CCAdmin = (() => {
   const esc = value => String(value ?? "").replace(
     /[&<>"']/g,
     c => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;",
-      '"': "&quot;", "'": "&#39;"
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
     }[c])
   );
 
@@ -18,23 +21,29 @@ const CCAdmin = (() => {
       <input id="${id}" type="${type}" ${extra}>
     </label>`;
 
-  let off = [], reportOff = null;
-  let catalog = [], extras = [], promotions = [];
-  let eventId = null, toppingId = null;
-  let choices = [], costsReady = true;
-  let editVersion = 0, eventsReady = false;
+  let off = [];
+  let reportOff = null;
+  let catalog = [];
+  let extras = [];
+  let promotions = [];
+  let eventId = null;
+  let toppingId = null;
+  let choices = [];
+  let costsReady = true;
+  let editVersion = 0;
+  let eventsReady = false;
 
   const moneyValue = id => {
     const raw = el(id).value.trim();
-    const n = Number(raw);
+    const value = Number(raw);
 
-    if (!raw || !CCPricing.validMoney(n)) {
+    if (!raw || !CCPricing.validMoney(value)) {
       throw new Error(
         "Nhập giá bán/giá vốn nguyên từ 0 đến 100.000.000đ."
       );
     }
 
-    return n;
+    return value;
   };
 
   const notice = (id, error) => {
@@ -44,17 +53,18 @@ const CCAdmin = (() => {
   const stamp = () =>
     firebase.firestore.FieldValue.serverTimestamp();
 
-  document.querySelector(".admin-tabs").insertAdjacentHTML(
-    "beforeend",
-    `<button type="button" class="tab-button"
-      data-tab="promotions">✦ Khuyến mãi</button>`
-  );
+  document.querySelector(".admin-tabs")
+    .insertAdjacentHTML("beforeend", `
+      <button type="button" class="tab-button"
+        data-tab="promotions">✦ Khuyến mãi</button>
+    `);
 
   el("adminApp").insertAdjacentHTML("beforeend", `
     <section id="tab-promotions" class="tab-page">
       <section class="panel">
         <div class="section-label">SỰ KIỆN & ƯU ĐÃI</div>
         <h2>Tạo khoảnh khắc đặc biệt</h2>
+
         <p class="muted">
           Giảm theo phần trăm toàn đơn, gồm topping.
           Không cộng dồn; khách nhận mức giảm tốt nhất.
@@ -79,7 +89,8 @@ const CCAdmin = (() => {
             </label>
           </div>
 
-          <label>Mô tả
+          <label>
+            Mô tả
             <textarea id="eventDescription"
               maxlength="500" rows="3"></textarea>
           </label>
@@ -95,6 +106,7 @@ const CCAdmin = (() => {
 
         <p id="eventMessage" role="status"></p>
       </section>
+
       <div id="eventList" class="v5-grid"></div>
     </section>
   `);
@@ -103,6 +115,7 @@ const CCAdmin = (() => {
     <section class="panel profit-panel">
       <div class="section-label">HIỆU QUẢ KINH DOANH</div>
       <h2>Lợi nhuận thực thu</h2>
+
       <p class="muted">
         Theo ngày đặt đơn, chỉ tính đơn đã thanh toán.
         Lãi gộp = tiền sau giảm giá − giá vốn món và topping,
@@ -122,8 +135,11 @@ const CCAdmin = (() => {
         <table>
           <thead>
             <tr>
-              <th>Ngày</th><th>Đơn đã trả</th><th>Thực thu</th>
-              <th>Giá vốn đã biết</th><th>Lãi gộp đã biết</th>
+              <th>Ngày</th>
+              <th>Đơn đã trả</th>
+              <th>Thực thu</th>
+              <th>Giá vốn đã biết</th>
+              <th>Lãi gộp đã biết</th>
               <th>Thiếu giá vốn</th>
             </tr>
           </thead>
@@ -133,9 +149,9 @@ const CCAdmin = (() => {
     </section>
   `);
 
-  // Giá vốn được lưu riêng khỏi menu công khai.
   for (const size of ["S", "M", "L"]) {
-    el("size" + size).insertAdjacentHTML("afterend",
+    el("size" + size).insertAdjacentHTML(
+      "afterend",
       field(
         "cost" + size,
         "Giá vốn size " + size + " (đ)",
@@ -162,6 +178,7 @@ const CCAdmin = (() => {
   el("tab-menu").insertAdjacentHTML("beforeend", `
     <section class="panel">
       <h2>Danh sách topping dùng chung</h2>
+
       <p class="muted">
         Tạo topping ở đây rồi tích chọn khi thêm/sửa món.
         Thay đổi danh sách này áp dụng khi bạn chọn topping
@@ -213,13 +230,15 @@ const CCAdmin = (() => {
     el("toppingChoices").innerHTML = choices.map((t, i) => `
       <div class="topping-choice">
         <label class="checkbox-row">
-          <input type="checkbox" value="${esc(t.id)}"
+          <input type="checkbox"
+            value="${esc(t.id)}"
             data-i="${i}"
             ${selected.includes(t.id) ? "checked" : ""}>
           ${esc(t.name)} · +${cash(t.price)}
         </label>
 
-        <label>Giá vốn (đ)
+        <label>
+          Giá vốn (đ)
           <input id="tc${i}" type="number" min="0" step="1"
             value="${esc(costs[t.id] ?? t.cost ?? "")}">
         </label>
@@ -323,13 +342,11 @@ const CCAdmin = (() => {
         costs.sizes[size.id] = moneyValue("cost" + size.id);
       }
 
-      const checked = [
+      const toppings = [
         ...el("toppingChoices").querySelectorAll(
           'input[type="checkbox"]:checked'
         )
-      ];
-
-      const toppings = checked.map(input => {
+      ].map(input => {
         const topping = choices[Number(input.dataset.i)];
 
         costs.toppings[topping.id] =
@@ -420,7 +437,9 @@ const CCAdmin = (() => {
     const button = event.target.closest("button[data-id]");
     if (!button) return;
 
-    const topping = catalog.find(t => t.id === button.dataset.id);
+    const topping = catalog.find(t =>
+      t.id === button.dataset.id
+    );
     if (!topping) return;
 
     if (button.dataset.action === "edit") {
@@ -525,15 +544,20 @@ const CCAdmin = (() => {
           <span class="eyebrow">${status}</span>
           <h2>${esc(p.title)} · ${p.percent}%</h2>
           <p>${esc(p.description)}</p>
+
           <p class="muted">
             ${localVN(p.startsAt).replace("T", " ")} →
             ${localVN(p.endsAt).replace("T", " ")} (VN)
             <br>Đơn từ ${cash(p.minTotal)}
           </p>
+
           <div class="actions">
-            <button class="secondary" data-action="edit"
+            <button class="secondary"
+              data-action="edit"
               data-id="${esc(p.id)}">Sửa</button>
-            <button class="secondary" data-action="toggle"
+
+            <button class="secondary"
+              data-action="toggle"
               data-id="${esc(p.id)}">
               ${p.active ? "Ẩn" : "Hiện"}
             </button>
@@ -573,6 +597,7 @@ const CCAdmin = (() => {
       el("eventStart").value = localVN(p.startsAt);
       el("eventEnd").value = localVN(p.endsAt);
       el("eventSave").textContent = "Cập nhật sự kiện";
+
       el("eventForm").scrollIntoView({
         behavior: "smooth",
         block: "center"
@@ -581,12 +606,33 @@ const CCAdmin = (() => {
   });
 
   function report() {
+    if (!el("reportPayment")) {
+      const label = document.createElement("label");
+
+      label.innerHTML = `
+        Phạm vi báo cáo
+        <select id="reportPayment">
+          <option value="paid">Đơn đã thanh toán</option>
+          <option value="all">
+            Tất cả đơn — lãi dự kiến
+          </option>
+        </select>
+      `;
+
+      el("reportForm").appendChild(label);
+      el("reportPayment").addEventListener("change", report);
+    }
+
     const from = el("reportFrom").value;
     const to = el("reportTo").value;
+    const all = el("reportPayment").value === "all";
+    const duration = Date.parse(to) - Date.parse(from);
 
     if (
-      !from || !to || from > to ||
-      (Date.parse(to) - Date.parse(from)) / 86400000 > 366
+      !from || !to ||
+      !Number.isFinite(duration) ||
+      duration < 0 ||
+      duration > 366 * 86400000
     ) {
       notice(
         "reportMessage",
@@ -596,107 +642,201 @@ const CCAdmin = (() => {
     }
 
     if (reportOff) reportOff();
+    reportOff = null;
 
-    notice("reportMessage", "Đang tải báo cáo...");
     el("profitCards").innerHTML = "";
     el("profitRows").innerHTML = "";
+    notice("reportMessage", "Đang tải báo cáo...");
 
-    reportOff = db.collection("orders")
-      .where("dateKey", ">=", from)
-      .where("dateKey", "<=", to)
-      .onSnapshot(snapshot => {
-        const rows = new Map();
+    const panel = el("reportForm").closest(".profit-panel");
 
-        const empty = () => ({
-          orders: 0,
-          revenue: 0,
-          cost: 0,
-          knownRevenue: 0,
-          missing: 0,
-          discount: 0
-        });
+    panel.querySelector("h2").textContent = all
+      ? "Lợi nhuận dự kiến theo đơn"
+      : "Lợi nhuận thực thu";
 
-        const sum = empty();
+    panel.querySelector("p.muted").textContent = all
+      ? "Theo ngày đặt đơn, gồm đơn chưa thanh toán. " +
+        "Đây là lãi dự kiến, chưa trừ chi phí vận hành."
+      : "Theo ngày đặt đơn, chỉ tính đơn đã thanh toán. " +
+        "Lãi gộp chưa trừ chi phí vận hành.";
 
-        for (const doc of snapshot.docs) {
-          const order = doc.data();
-          if (order.paymentStatus !== "paid") continue;
+    panel.querySelectorAll("th")[1].textContent =
+      all ? "Số đơn" : "Đơn đã trả";
 
-          const row = rows.get(order.dateKey) || empty();
+    function fail(error) {
+      console.error("Báo cáo:", error);
 
-          for (const target of [row, sum]) {
-            target.orders++;
-            target.revenue += order.total || 0;
-            target.discount += order.discount || 0;
+      const code = String(error.code || "");
+      let message = error.message || "Không tải được báo cáo.";
 
-            if (
-              order.costComplete === true &&
-              Number.isFinite(order.totalCost)
-            ) {
-              target.cost += order.totalCost;
-              target.knownRevenue += order.total;
-            } else {
-              target.missing++;
+      if (code.includes("permission-denied")) {
+        message =
+          "Firebase từ chối quyền đọc đơn hàng. " +
+          "Hãy triển khai firestore.rules đúng dự án, " +
+          "rồi đăng xuất và đăng nhập lại Admin.";
+      } else if (code.includes("unauthenticated")) {
+        message =
+          "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại Admin.";
+      } else if (code.includes("unavailable")) {
+        message =
+          "Chưa kết nối được Firebase. Kiểm tra mạng " +
+          "và bấm Xem báo cáo để thử lại.";
+      }
+
+      el("profitCards").innerHTML = "";
+      el("profitRows").innerHTML = `
+        <tr><td colspan="6">Không tải được dữ liệu.</td></tr>
+      `;
+
+      notice(
+        "reportMessage",
+        message + (code ? " [" + code + "]" : "")
+      );
+    }
+
+    try {
+      reportOff = db.collection("orders")
+        .where("dateKey", ">=", from)
+        .where("dateKey", "<=", to)
+        .onSnapshot(snapshot => {
+          try {
+            const orders = snapshot.docs.map(d => d.data());
+            const paid = orders.filter(
+              order => order.paymentStatus === "paid"
+            );
+            const selected = all ? orders : paid;
+
+            const empty = () => ({
+              count: 0,
+              revenue: 0,
+              cost: 0,
+              knownRevenue: 0,
+              missing: 0,
+              discount: 0
+            });
+
+            const sum = empty();
+            const rows = new Map();
+
+            const number = value =>
+              Number.isFinite(Number(value))
+                ? Number(value)
+                : 0;
+
+            for (const order of selected) {
+              const row = rows.get(order.dateKey) || empty();
+
+              const complete =
+                order.costComplete === true &&
+                Number.isFinite(order.totalCost) &&
+                order.totalCost >= 0;
+
+              for (const target of [sum, row]) {
+                target.count++;
+                target.revenue += number(order.total);
+                target.discount += number(order.discount);
+
+                if (complete) {
+                  target.cost += order.totalCost;
+                  target.knownRevenue += number(order.total);
+                } else {
+                  target.missing++;
+                }
+              }
+
+              rows.set(order.dateKey, row);
             }
+
+            const profit = sum.knownRevenue - sum.cost;
+            const covered = selected.length - sum.missing;
+
+            const rate = base => base > 0
+              ? (100 * profit / base).toFixed(1) + "%"
+              : "—";
+
+            const cards = [
+              ["Tổng đơn trong khoảng ngày", orders.length],
+              ["Đơn đã thanh toán", paid.length],
+              ["Đơn chưa thanh toán", orders.length - paid.length],
+              [
+                all ? "Giá trị tất cả đơn" : "Thực thu",
+                cash(sum.revenue)
+              ],
+              ["Giảm giá", cash(sum.discount)],
+              ["Giá vốn đã biết", covered ? cash(sum.cost) : "—"],
+              [
+                all ? "Lãi gộp dự kiến đã biết" : "Lãi gộp đã biết",
+                covered ? cash(profit) : "—"
+              ],
+              ["Lãi / giá vốn", covered ? rate(sum.cost) : "—"],
+              [
+                "Biên lãi / doanh thu đủ giá vốn",
+                covered ? rate(sum.knownRevenue) : "—"
+              ]
+            ];
+
+            el("profitCards").innerHTML = cards.map(
+              ([label, value]) => `
+                <article class="profit-card">
+                  <span>${label}</span>
+                  <strong>${value}</strong>
+                </article>
+              `
+            ).join("");
+
+            let message = snapshot.metadata?.fromCache
+              ? "Dữ liệu lưu tạm; đang chờ đồng bộ Firebase. "
+              : "";
+
+            if (!orders.length) {
+              message +=
+                "Không có đơn trong khoảng ngày đã chọn. " +
+                "Thử mở rộng khoảng ngày.";
+            } else if (!selected.length) {
+              message +=
+                "Có " + orders.length +
+                " đơn nhưng chưa có đơn đã thanh toán. " +
+                "Chọn Tất cả đơn để xem lãi dự kiến.";
+            } else if (sum.missing) {
+              message +=
+                sum.missing +
+                " đơn thiếu giá vốn bị loại khỏi phép tính " +
+                "lãi và tỷ suất; vẫn được tính trong giá trị đơn.";
+            } else {
+              message +=
+                "Đã hiển thị " + selected.length +
+                " đơn. Giá vốn lấy tại thời điểm đặt đơn.";
+            }
+
+            notice("reportMessage", message);
+
+            el("profitRows").innerHTML = [...rows]
+              .sort((a, b) => b[0].localeCompare(a[0]))
+              .map(([date, row]) => `
+                <tr>
+                  <td>${esc(date)}</td>
+                  <td>${row.count}</td>
+                  <td>${cash(row.revenue)}</td>
+                  <td>${row.count > row.missing
+                    ? cash(row.cost)
+                    : "—"}</td>
+                  <td>${row.count > row.missing
+                    ? cash(row.knownRevenue - row.cost)
+                    : "—"}</td>
+                  <td>${row.missing}</td>
+                </tr>
+              `).join("") || `
+                <tr><td colspan="6">
+                  Không có đơn phù hợp với bộ lọc.
+                </td></tr>
+              `;
+          } catch (error) {
+            fail(error);
           }
-
-          rows.set(order.dateKey, row);
-        }
-
-        const profit = sum.knownRevenue - sum.cost;
-        const rate = base => base > 0
-          ? (100 * profit / base).toFixed(1) + "%"
-          : "—";
-
-        const cards = [
-          ["Đơn đã thanh toán", sum.orders],
-          ["Thực thu", cash(sum.revenue)],
-          ["Giảm giá", cash(sum.discount)],
-          ["Giá vốn đã biết", cash(sum.cost)],
-          ["Lãi gộp đã biết", cash(profit)],
-          ["Lãi / giá vốn", rate(sum.cost)],
-          [
-            "Biên lãi / doanh thu đủ giá vốn",
-            rate(sum.knownRevenue)
-          ]
-        ];
-
-        el("profitCards").innerHTML = cards
-          .map(([label, value]) => `
-            <article class="profit-card">
-              <span>${label}</span><strong>${value}</strong>
-            </article>
-          `).join("");
-
-        notice("reportMessage", sum.missing
-          ? `${sum.missing} đơn thiếu giá vốn bị loại khỏi ` +
-            "phép tính lãi và tỷ suất. " +
-            "Thực thu vẫn gồm các đơn này."
-          : "Tất cả đơn trong báo cáo đã có giá vốn " +
-            "tại thời điểm đặt."
-        );
-
-        el("profitRows").innerHTML = [...rows]
-          .sort((a, b) => b[0].localeCompare(a[0]))
-          .map(([date, row]) => `
-            <tr>
-              <td>${esc(date)}</td>
-              <td>${row.orders}</td>
-              <td>${cash(row.revenue)}</td>
-              <td>${cash(row.cost)}</td>
-              <td>${cash(row.knownRevenue - row.cost)}</td>
-              <td>${row.missing}</td>
-            </tr>
-          `).join("") || `
-            <tr><td colspan="6">
-              Chưa có đơn đã thanh toán trong khoảng ngày này.
-            </td></tr>
-          `;
-      }, error => {
-        el("profitCards").innerHTML = "";
-        el("profitRows").innerHTML = "";
-        notice("reportMessage", error);
-      });
+        }, fail);
+    } catch (error) {
+      fail(error);
+    }
   }
 
   el("reportForm").addEventListener("submit", event => {
@@ -712,7 +852,8 @@ const CCAdmin = (() => {
     off.push(
       db.collection("toppingCatalog").onSnapshot(snapshot => {
         catalog = snapshot.docs.map(d => ({
-          ...d.data(), id: d.id
+          ...d.data(),
+          id: d.id
         }));
 
         renderChoices();
@@ -723,15 +864,15 @@ const CCAdmin = (() => {
               ${esc(t.name)} · ${cash(t.price)}
               / vốn ${cash(t.cost)}
             </span>
+
             <div class="actions">
               <button class="secondary"
-                data-id="${esc(t.id)}" data-action="edit">
-                Sửa
-              </button>
+                data-id="${esc(t.id)}"
+                data-action="edit">Sửa</button>
+
               <button class="secondary"
-                data-id="${esc(t.id)}" data-action="delete">
-                Xóa
-              </button>
+                data-id="${esc(t.id)}"
+                data-action="delete">Xóa</button>
             </div>
           </div>
         `).join("");
@@ -742,7 +883,8 @@ const CCAdmin = (() => {
       db.collection("promotions").onSnapshot(snapshot => {
         eventsReady = true;
         promotions = snapshot.docs.map(d => ({
-          ...d.data(), id: d.id
+          ...d.data(),
+          id: d.id
         }));
         renderEvents();
       }, error => {
@@ -776,5 +918,11 @@ const CCAdmin = (() => {
     promotions = [];
   }
 
-  return { start, stop, saveMenu, editMenu, resetMenu };
+  return {
+    start,
+    stop,
+    saveMenu,
+    editMenu,
+    resetMenu
+  };
 })();

@@ -1,5 +1,4 @@
-const ADMIN_EMAIL =
-  "sangbeos1410@gmail.com";
+const ADMIN_EMAIL = self.ADMIN_EMAIL;
 
 
 const $ =
@@ -1160,10 +1159,7 @@ function renderOrders() {
                         "Khách ship"
                       )
                       :
-                      "Bàn " +
-                      escapeHtml(
-                        order.table || "?"
-                      )
+                      (order.table ? "Bàn " + escapeHtml(order.table) : "Khách tại quán")
                     }
 
                   </div>

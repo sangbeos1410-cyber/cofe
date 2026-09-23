@@ -1,11 +1,11 @@
 
-/* Công thức dùng chung cho trình duyệt và Cloud Functions. */
 (function(root) {
   const validMoney = n =>
     Number.isSafeInteger(n) && n >= 0 && n <= 100000000;
 
   function quote(subtotal, events, now = Date.now()) {
-    let discount = 0, promotion = null;
+    let discount = 0;
+    let promotion = null;
 
     const sorted = [...events].sort((a, b) =>
       String(a.id).localeCompare(String(b.id))
@@ -49,6 +49,7 @@
 
     for (const item of items) {
       const c = costs[item.menuId];
+
       const parts = [
         c?.sizes?.[item.sizeId],
         ...item.toppings.map(t => c?.toppings?.[t.id])

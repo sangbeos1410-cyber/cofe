@@ -43,8 +43,7 @@ const REGION =
   "asia-southeast1";
 
 
-const ADMIN_EMAIL =
-  "sangbeos1410@gmail.com";
+const ADMIN_EMAIL = "sangbeos1410@gmail.com";
 
 
 /* =========================================================
@@ -385,16 +384,6 @@ exports.createOrder =
           cleanTable(
             table
           );
-
-
-        if (!safeTable) {
-
-          throw new HttpsError(
-            "invalid-argument",
-            "Vui lòng nhập số bàn."
-          );
-
-        }
 
       }
 

@@ -1275,12 +1275,6 @@ function getCheckoutData() {
         0,
         20
       );
-
-    if (!result.table) {
-      throw new Error(
-        "Vui lòng nhập số bàn."
-      );
-    }
   }
 
   if (
