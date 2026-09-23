@@ -294,6 +294,74 @@ service cloud.firestore {
     // KHÓA MẶC ĐỊNH
     // ================================
 
+
+    // Giá vốn chỉ dành cho quản trị viên.
+    match /menuCosts/{id} {
+      allow read: if isAdmin();
+
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+          'sizes', 'toppings', 'updatedAt'
+        ])
+        && request.resource.data.sizes is map
+        && request.resource.data.sizes.size() >= 1
+        && request.resource.data.sizes.size() <= 5
+        && request.resource.data.toppings is map
+        && request.resource.data.toppings.size() <= 20
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isAdmin();
+    }
+
+    match /toppingCatalog/{id} {
+      allow read, delete: if isAdmin();
+
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+          'name', 'price', 'cost', 'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.price is int
+        && request.resource.data.price >= 0
+        && request.resource.data.price <= 100000000
+        && request.resource.data.cost is int
+        && request.resource.data.cost >= 0
+        && request.resource.data.cost <= 100000000
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    match /promotions/{id} {
+      allow read: if resource.data.active == true || isAdmin();
+
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+          'title', 'description', 'percent', 'minTotal',
+          'startsAt', 'endsAt', 'active', 'updatedAt'
+        ])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 100
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 500
+        && request.resource.data.percent is int
+        && request.resource.data.percent >= 1
+        && request.resource.data.percent <= 100
+        && request.resource.data.minTotal is int
+        && request.resource.data.minTotal >= 0
+        && request.resource.data.minTotal <= 100000000
+        && request.resource.data.startsAt is int
+        && request.resource.data.startsAt >= 0
+        && request.resource.data.endsAt is int
+        && request.resource.data.endsAt > request.resource.data.startsAt
+        && request.resource.data.endsAt <= 8640000000000000
+        && request.resource.data.active is bool
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isAdmin();
+    }
+
     match /{document=**} {
 
       allow read, write:

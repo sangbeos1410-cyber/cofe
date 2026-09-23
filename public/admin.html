@@ -14,6 +14,7 @@
   <title>Admin - Cheng Coffee</title>
 
   <link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="theme-v5.css">
 </head>
 
 <body>
@@ -228,7 +229,7 @@
           </div>
 
           <div>
-            <span>Doanh thu hôm nay</span>
+            <span>Giá trị đơn hôm nay</span>
 
             <strong id="todayRevenue">
               0đ
@@ -251,11 +252,11 @@
             </div>
 
             <h2>
-              Lịch sử doanh thu
+              Lịch sử giá trị đơn
             </h2>
 
             <p class="muted">
-              31 ngày gần nhất.
+              31 ngày gần nhất, gồm cả đơn chưa thanh toán. Báo cáo lãi phía trên chỉ tính đơn đã trả.
             </p>
 
           </div>
@@ -272,7 +273,7 @@
                 <th>Ngày</th>
                 <th>Số đơn</th>
                 <th>Số cốc</th>
-                <th>Doanh thu</th>
+                <th>Giá trị đơn</th>
               </tr>
             </thead>
 
@@ -1126,6 +1127,8 @@
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-messaging-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-storage-compat.js"></script>
 
+<script src="pricing-v5.js"></script>
+<script src="admin-v5.js"></script>
 <script src="admin.js"></script>
 
 </body>

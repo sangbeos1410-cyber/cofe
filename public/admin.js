@@ -250,6 +250,7 @@ $("logoutBtn")
 ===================================== */
 
 function startAdmin() {
+  CCAdmin.start();
 
   loadMenu();
 
@@ -267,6 +268,7 @@ function startAdmin() {
 
 
 function stopAdmin() {
+  CCAdmin.stop();
 
   [
     unsubscribeMenu,
@@ -754,175 +756,14 @@ function buildToppings() {
    SAVE MENU
 ===================================== */
 
-$("menuForm")
-  .addEventListener(
-    "submit",
-    async event => {
-
-      event.preventDefault();
-
-
-      try {
-
-        const wasEditing =
-          !!editingId;
-
-
-        const id =
-          (
-            editingId
-            ||
-            $("itemId")
-              .value
-              .trim()
-              .toUpperCase()
-          );
-
-
-        if (
-          !/^[A-Z0-9_-]{1,30}$/
-            .test(id)
-        ) {
-
-          throw new Error(
-            "Mã món không hợp lệ."
-          );
-
-        }
-
-
-        const name =
-          $("itemName")
-            .value
-            .trim();
-
-
-        const category =
-          $("itemCategory")
-            .value
-            .trim();
-
-
-        if (
-          !name ||
-          !category
-        ) {
-
-          throw new Error(
-            "Tên món và danh mục không được để trống."
-          );
-
-        }
-
-
-        const sizes =
-          buildSizes();
-
-
-        if (!sizes.length) {
-
-          throw new Error(
-            "Món phải có ít nhất một size."
-          );
-
-        }
-
-
-        const toppings =
-          buildToppings();
-
-
-        if (!wasEditing) {
-
-          const existing =
-            await db
-              .collection("menu")
-              .doc(id)
-              .get();
-
-
-          if (existing.exists) {
-
-            throw new Error(
-              "Mã món đã tồn tại."
-            );
-
-          }
-
-        }
-
-
-        $("saveBtn").disabled =
-          true;
-
-
-        await db
-          .collection(
-            "menu"
-          )
-          .doc(id)
-          .set({
-
-            name:
-              name.slice(0, 100),
-
-            category:
-              category.slice(0, 80),
-
-            description:
-              $("itemDescription")
-                .value
-                .trim()
-                .slice(0, 300),
-
-            sizes,
-
-            toppings,
-
-            active:
-              $("itemActive").checked,
-
-            updatedAt:
-              firebase.firestore
-                .FieldValue
-                .serverTimestamp()
-
-          });
-
-
-        resetMenuForm();
-
-
-        $("message")
-          .textContent =
-          wasEditing
-          ?
-          "Đã cập nhật món."
-          :
-          "Đã thêm món mới.";
-
-      } catch (error) {
-
-        $("message")
-          .textContent =
-          error.message;
-
-      } finally {
-
-        $("saveBtn").disabled =
-          false;
-
-      }
-
-    }
-  );
-
+$("menuForm").addEventListener("submit", CCAdmin.saveMenu);
 
 function resetMenuForm() {
 
   editingId = null;
 
   $("menuForm").reset();
+  CCAdmin.resetMenu();
 
   $("itemId").disabled =
     false;
@@ -959,6 +800,7 @@ window.editMenuItem =
 
     editingId =
       id;
+    CCAdmin.editMenu(id);
 
 
     $("formTitle").textContent =
@@ -1467,6 +1309,17 @@ function renderOrders() {
             }
 
 
+
+            <div class="discount-summary">
+              ${order.discount ? `
+                <div>
+                  <span>${escapeHtml(
+                    order.promotion?.title || "Khuyến mãi"
+                  )}</span>
+                  <b>−${money(order.discount)}</b>
+                </div>
+              ` : ""}
+            </div>
             <div class="order-payment-box">
 
               <div class="order-payment-head">

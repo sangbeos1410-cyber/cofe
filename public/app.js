@@ -883,6 +883,7 @@ function removeLine(key) {
 
 
 function renderCart() {
+  CCShop.refreshCart();
   const count =
     cart.reduce(
       (
@@ -920,7 +921,7 @@ function renderCart() {
 
     $("total").textContent =
       "0đ";
-
+    CCShop.render();
     return;
   }
 
@@ -1062,6 +1063,7 @@ function renderCart() {
 
   $("total").textContent =
     money(total);
+  CCShop.render();
 }
 
 
@@ -1396,6 +1398,7 @@ async function submitOrder() {
 
     const response =
       await createOrder({
+        expectedTotal: CCShop.expectedTotal(),
         fulfillmentType:
           checkout.fulfillmentType,
 
@@ -1458,6 +1461,7 @@ async function submitOrder() {
 
     const orderId =
       response.data.orderId;
+    CCShop.showTotal(response.data.total);
 
     const usedPaymentMethod =
       checkout.paymentMethod;
@@ -1881,5 +1885,6 @@ ensureAuth()
       loadMenu();
       loadStoreContact();
       loadPaymentSettings();
+      CCShop.start();
     }
   );
