@@ -1,0 +1,89 @@
+from pathlib import Path
+from datetime import datetime
+import shutil
+ROOT=Path(__file__).resolve().parent
+CSS=r'''
+/* Nền trang theo mùa — đặt ở cuối season-themes.css */
+body[data-season] {
+  --season-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='460' height='420' viewBox='0 0 460 420'%3E%3Cg fill='none' stroke='%23bd9eac' stroke-opacity='.36' stroke-width='1.5'%3E%3Cpath d='M30 300Q80 160 165 100M74 206Q38 146 30 122M110 154Q157 166 191 141'/%3E%3C/g%3E%3Cg fill='%23ce99ad' opacity='.36'%3E%3Cellipse cx='165' cy='88' rx='9' ry='15'/%3E%3Cellipse cx='152' cy='99' rx='15' ry='9'/%3E%3Cellipse cx='177' cy='101' rx='15' ry='9'/%3E%3Cellipse cx='163' cy='113' rx='9' ry='15'/%3E%3Cellipse cx='30' cy='115' rx='13' ry='8'/%3E%3Cellipse cx='32' cy='117' rx='8' ry='14'/%3E%3Cellipse cx='344' cy='304' rx='10' ry='17' transform='rotate(35 344 304)'/%3E%3C/g%3E%3Cg fill='%23859b7b' opacity='.30'%3E%3Cpath d='M83 189Q58 158 88 153Q105 173 83 189M117 150Q118 122 145 121Q145 145 117 150'/%3E%3C/g%3E%3C/svg%3E");
+  background-color: var(--paper, #faf8f3);
+  background-image:
+    var(--season-pattern),
+    radial-gradient(ellipse at 5% 15%, var(--season-a) 0, transparent 55%),
+    radial-gradient(ellipse at 95% 75%, var(--season-b) 0, transparent 55%);
+  background-size: 460px 420px, 100% 1000px, 100% 1100px;
+  background-repeat: repeat;
+  background-attachment: scroll;
+}
+body[data-season="summer"] {
+  --season-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='460' height='420'%3E%3Ccircle cx='90' cy='95' r='32' fill='%23dcb95e' opacity='.30'/%3E%3Cg fill='none' stroke='%23c3a45c' stroke-opacity='.25' stroke-width='1.5'%3E%3Ccircle cx='90' cy='95' r='43'/%3E%3Cpath d='M90 36V24M90 154V166M31 95H19M149 95H161M48 53L39 44M132 53L141 44M48 137L39 146M132 137L141 146'/%3E%3C/g%3E%3Cg fill='none' stroke='%237aa59e' stroke-opacity='.32' stroke-width='2'%3E%3Cpath d='M210 285Q240 265 270 285T330 285T390 285M210 302Q240 282 270 302T330 302T390 302M210 319Q240 299 270 319T330 319T390 319'/%3E%3C/g%3E%3C/svg%3E");
+}
+body[data-season="autumn"] {
+  --season-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='460' height='420'%3E%3Cg transform='translate(100 110) rotate(-30)'%3E%3Cpath d='M0 42Q-48 0 0-48Q48 0 0 42' fill='%23ba854f' opacity='.30'/%3E%3Cpath d='M0 53V-35M0 12L-19-3M0-7L17-20' fill='none' stroke='%239d754e' stroke-opacity='.27'/%3E%3C/g%3E%3Cg transform='translate(342 293) rotate(45)'%3E%3Cpath d='M0 34Q-38 0 0-40Q38 0 0 34' fill='%23b9704c' opacity='.30'/%3E%3Cpath d='M0 45V-29M0 9L-14-2M0-6L14-18' fill='none' stroke='%239d754e' stroke-opacity='.25'/%3E%3C/g%3E%3Cpath d='M38 344Q135 301 180 330' fill='none' stroke='%23c5aa7b' stroke-opacity='.32'/%3E%3C/svg%3E");
+}
+body[data-season="winter"] {
+  --season-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='460' height='420'%3E%3Cg stroke='%23899fb7' stroke-opacity='.36' stroke-width='1.5' fill='none'%3E%3Cpath d='M100 60V140M65 80L135 120M65 120L135 80M89 69L100 80L111 69M89 131L100 120L111 131M69 94L82 90L79 77M121 123L118 110L131 106M69 106L82 110L79 123M121 77L118 90L131 94'/%3E%3Cpath d='M345 264V316M322 277L368 303M322 303L368 277'/%3E%3C/g%3E%3Cg fill='%239bb0c5' opacity='.32'%3E%3Ccircle cx='233' cy='163' r='3'/%3E%3Ccircle cx='52' cy='303' r='2'/%3E%3Ccircle cx='397' cy='79' r='3'/%3E%3C/g%3E%3Ccircle cx='266' cy='367' r='25' fill='%23dfc18a' opacity='.10'/%3E%3C/svg%3E");
+}
+/* Thẻ đặc màu để họa tiết không làm khó đọc nội dung. */
+body[data-season] .menu-card,
+body[data-season] .cart-card {
+  background-color: #fffefa;
+}
+body[data-season] .category-tabs {
+  background: transparent;
+}
+@media (max-width: 600px) {
+  body[data-season] {
+    background-size: 340px 310px, 100% 800px, 100% 900px;
+  }
+}
+
+/* Loaded last: fix Vietnamese typography and keep the wallpaper visible. */
+html body,html body h1,html body h2,html body h3,html body h4,
+html body p,html body span,html body strong,html body small,
+html body a,html body button,html body input,html body select,
+html body textarea,html body label,html body th,html body td,
+html body[data-season] .hero h1,html body[data-season] .menu-card h3 {
+  font-family:Arial,"Helvetica Neue",Tahoma,sans-serif!important;
+  letter-spacing:normal!important;
+  word-spacing:normal!important;
+  font-feature-settings:normal!important;
+  font-kerning:normal!important;
+  text-shadow:none!important;
+  -webkit-text-stroke:0!important;
+}
+html body[data-season] .menu-card h3{font-size:23px;font-weight:600;line-height:1.45}
+html body[data-season] .hero h1{font-weight:600;line-height:1.3}
+html body[data-season]{position:relative;isolation:isolate;background-color:var(--paper,#faf8f3);animation:none!important}
+html body[data-season]::before{
+  content:"";position:fixed;inset:-24px;z-index:-1;pointer-events:none;
+  background-image:var(--season-pattern),radial-gradient(ellipse at 0% 25%,var(--season-a),transparent 65%),radial-gradient(ellipse at 100% 80%,var(--season-b),transparent 65%);
+  background-size:380px 350px,100% 100%,100% 100%;
+  background-repeat:repeat,no-repeat,no-repeat;
+  animation:cheng-wallpaper-sway 30s ease-in-out infinite;
+}
+html body[data-season] .main-layout,
+html body[data-season] .menu-area{background:transparent!important}
+html body[data-season] .menu-card,
+html body[data-season] .cart-card{background-color:#fffefa!important}
+@keyframes cheng-wallpaper-sway{0%,100%{transform:translate(0,0)}50%{transform:translate(10px,12px)}}
+@media(max-width:600px){html body[data-season]::before{background-size:300px 280px,100% 100%,100% 100%;animation:none}}
+@media(prefers-reduced-motion:reduce){html body[data-season]::before{animation:none}}
+
+'''
+
+p=ROOT/'public/index.html'
+if not p.is_file():raise SystemExit('Đặt file này cạnh firebase.json.')
+s=p.read_text(encoding='utf-8-sig')
+if 'season-themes.css' not in s:raise SystemExit('Chưa tìm thấy bản giao diện theo mùa.')
+link='<link rel="stylesheet" href="appearance-fix.css?v=1">'
+if 'appearance-fix.css' not in s:s=s.replace('</head>',link+'\n</head>')
+files={'public/index.html':s,'public/appearance-fix.css':CSS}
+backup=ROOT/'cheng-backups'/datetime.now().strftime('appearance-%Y%m%d-%H%M%S-%f')
+for name in files:
+    target=ROOT/name
+    if target.is_file():
+        saved=backup/name;saved.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copy2(target,saved)
+for name,text in files.items():(ROOT/name).write_text(text,encoding='utf-8')
+print('Đã sửa font tiếng Việt và thêm nền 4 mùa. Sao lưu: '+str(backup))
