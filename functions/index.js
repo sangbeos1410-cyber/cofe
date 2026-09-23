@@ -803,31 +803,12 @@ exports.createOrder =
                 );
 
 
-
-              // Đọc dữ liệu trước khi ghi trong transaction.
-              const costDocs = await Promise.all(
-                menuIds.map(id =>
-                  transaction.get(
-                    db.collection("menuCosts").doc(id)
-                  )
-                )
-              );
-
-              const costMap = Object.fromEntries(
-                costDocs.map(d => [
-                  d.id, d.exists ? d.data() : {}
-                ])
-              );
-
-              const promotionDocs = await transaction.get(
-                db.collection("promotions")
-                  .where("active", "==", true)
-              );
-
-              const events = promotionDocs.docs.map(d => ({
-                ...d.data(), id: d.id
-              }));
-
+              // Tất cả lượt đọc nằm trước lượt ghi trong transaction.
+              const costDocs = await Promise.all(menuIds.map(id =>
+                transaction.get(db.collection("menuCosts").doc(id))));
+              const costMap = Object.fromEntries(costDocs.map(d => [d.id, d.exists ? d.data() : {}]));
+              const promotionDocs = await transaction.get(db.collection("promotions").where("active", "==", true));
+              const events = promotionDocs.docs.map(d => ({...d.data(), id:d.id}));
               const menuMap =
                 new Map();
 
@@ -1200,25 +1181,13 @@ exports.createOrder =
               }
 
 
-
-              const pricing = CCPricing.quote(total, events);
-              const accounting = CCPricing.costOf(
-                safeItems, costMap
-              );
-
-              if (
-                req.data.expectedTotal !== undefined &&
-                req.data.expectedTotal !== pricing.total
-              ) {
-                throw new HttpsError(
-                  "failed-precondition",
-                  "Giá hoặc ưu đãi vừa thay đổi. " +
-                  "Kiểm tra lại giỏ hàng rồi đặt lại."
-                );
+              const appearanceDoc = await transaction.get(db.collection("storeSettings").doc("appearance"));
+              const pricing = CCPricing.quote(total, events, Date.now(), safeItems, appearanceDoc.exists ? appearanceDoc.data() : {});
+              const accounting = CCPricing.costOf(safeItems, costMap);
+              if (req.data.expectedTotal !== undefined && req.data.expectedTotal !== pricing.total) {
+                throw new HttpsError("failed-precondition", "Giá hoặc ưu đãi vừa thay đổi. Kiểm tra lại giỏ hàng rồi đặt lại.");
               }
-
               total = pricing.total;
-
               const now =
                 FieldValue
                   .serverTimestamp();
@@ -1260,12 +1229,9 @@ exports.createOrder =
 
                   paymentStatus,
 
-
                   ...pricing,
                   ...accounting,
-                  grossProfit: accounting.costComplete
-                    ? total - accounting.totalCost
-                    : null,
+                  grossProfit: accounting.costComplete ? total - accounting.totalCost : null,
                   items:
                     safeItems,
 

@@ -1305,16 +1305,8 @@ function renderOrders() {
             }
 
 
-
             <div class="discount-summary">
-              ${order.discount ? `
-                <div>
-                  <span>${escapeHtml(
-                    order.promotion?.title || "Khuyến mãi"
-                  )}</span>
-                  <b>−${money(order.discount)}</b>
-                </div>
-              ` : ""}
+              ${order.discount ? `<div><span>${escapeHtml(order.promotion?.title || "Khuyến mãi")}</span><b>−${money(order.discount)}</b></div>` : ""}
             </div>
             <div class="order-payment-box">
 

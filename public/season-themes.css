@@ -1,0 +1,26 @@
+
+body[data-season]{--season-a:#ffe9d4;--season-b:#e0f5df;--season-ink:#255644;--season-accent:#a74522;background:linear-gradient(135deg,var(--season-a),#fffdf8 45%,var(--season-b));background-attachment:fixed}
+body[data-season="spring"]{--season-a:#ffe2ed;--season-b:#ddf6de;--season-ink:#563747;--season-accent:#a32b60}
+body[data-season="summer"]{--season-a:#fff0ad;--season-b:#c9f5f1;--season-ink:#155c60;--season-accent:#176f73}
+body[data-season="autumn"]{--season-a:#ffdfbd;--season-b:#f1e7c4;--season-ink:#663c24;--season-accent:#a3471c}
+body[data-season="winter"]{--season-a:#dbecff;--season-b:#e8e3ff;--season-ink:#304b70;--season-accent:#405cab}
+body[data-season] .hero{background:radial-gradient(circle at 85% 25%,#fff9 0 9%,transparent 9.2%),linear-gradient(120deg,var(--season-a),var(--season-b));color:var(--season-ink);min-height:290px}
+body[data-season] .hero h1,body[data-season] .hero p{color:var(--season-ink)}
+body[data-season] .hero::after{background:#fff5;width:240px;height:240px;right:5%;bottom:-130px}
+body[data-season] .menu-card{border-color:var(--season-a);box-shadow:0 10px 30px #33333308;transition:transform .2s,box-shadow .2s}
+body[data-season] .menu-card:hover{transform:translateY(-5px) rotate(-.4deg);box-shadow:0 18px 36px #33333315}
+body[data-season] .menu-card::before,body[data-season] .menu-card:nth-child(n)::before{background:radial-gradient(circle at 75% 50%,#fff9 0 27px,transparent 28px),linear-gradient(125deg,var(--season-a),var(--season-b));height:90px;border-radius:18px}
+body[data-season] .menu-card button,body[data-season] #orderBtn{background:var(--season-accent);color:white}
+.season-decor{position:absolute;right:3%;top:30px;font-size:clamp(26px,5vw,64px);opacity:.55;pointer-events:none;animation:season-float 6s ease-in-out infinite;white-space:pre}
+.season-caption{font-weight:700;padding:10px 16px;border-radius:30px;background:#ffffff85;display:inline-block}
+.sunday-banner{max-width:1240px;margin:20px auto;padding:22px 26px;border:2px dashed #b76514;border-radius:22px;background:linear-gradient(110deg,#fff1a9,#ffdcdd);color:#633718;font-weight:700;line-height:1.7}
+.sunday-banner[hidden]{display:none}
+.sunday-theme .hero{border-bottom:5px solid #edb73e}
+.sunday-theme .cart-card{border-top:5px solid #edb73e}
+.theme-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:20px 0}
+.theme-options label{padding:22px 12px;border:2px solid transparent;border-radius:18px;cursor:pointer;color:#303c38;font-weight:700}
+.theme-options label:has(input:checked){border-color:#285e49;box-shadow:0 0 0 3px #285e4915}
+.theme-options input{width:auto!important;display:inline-block!important;accent-color:#285e49}
+@keyframes season-float{50%{transform:translateY(12px) rotate(5deg)}}
+@media(max-width:600px){.season-decor{top:10px;opacity:.25}.sunday-banner{margin:12px 16px;padding:16px}.season-caption{font-size:14px}}
+@media(prefers-reduced-motion:reduce){.season-decor{animation:none}body[data-season] .menu-card{transition:none}body[data-season] .menu-card:hover{transform:none}}

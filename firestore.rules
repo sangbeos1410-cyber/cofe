@@ -1,26 +1,28 @@
-
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
       return request.auth != null;
     }
-
     function isAdmin() {
       return signedIn()
         && request.auth.token.email != null
         && request.auth.token.email == "sangbeos1410@gmail.com";
     }
-
     match /menu/{id} {
-      allow read: if isAdmin()
+      allow read:
+        if isAdmin()
         || (resource != null && resource.data.active == true);
-
-      allow create, update: if isAdmin()
+      allow create, update:
+        if isAdmin()
         && request.resource.data.keys().hasOnly([
-          'name', 'category', 'description',
-          'sizes', 'toppings', 'active', 'updatedAt'
+          'name',
+          'category',
+          'description',
+          'sizes',
+          'toppings',
+          'active',
+          'updatedAt'
         ])
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
@@ -37,51 +39,81 @@ service cloud.firestore {
         && request.resource.data.toppings.size() <= 20
         && request.resource.data.active is bool
         && request.resource.data.updatedAt == request.time;
-
-      allow delete: if isAdmin();
+      allow delete:
+        if isAdmin();
     }
-
     match /orders/{id} {
-      allow read: if isAdmin();
-      allow create, delete: if false;
-
-      allow update: if isAdmin()
-        && request.resource.data.diff(resource.data)
-          .affectedKeys().hasOnly([
-            'status', 'paymentStatus', 'updatedAt'
+      allow read:
+        if isAdmin();
+      allow create:
+        if false;
+      allow update:
+        if isAdmin()
+        && request.resource.data
+          .diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            'status',
+            'paymentStatus',
+            'updatedAt'
           ])
         && request.resource.data.status
-          in ['new', 'preparing', 'done']
+          in [
+            'new',
+            'preparing',
+            'done'
+          ]
         && request.resource.data.paymentStatus
-          in ['pending', 'paid']
-        && request.resource.data.updatedAt == request.time;
+          in [
+            'pending',
+            'paid'
+          ]
+        && request.resource.data.updatedAt
+          == request.time;
+      allow delete:
+        if false;
     }
-
     match /dailyStats/{id} {
-      allow read: if isAdmin();
-      allow write: if false;
+      allow read:
+        if isAdmin();
+      allow write:
+        if false;
     }
-
     match /adminDevices/{id} {
-      allow read, delete: if isAdmin();
-
-      allow create, update: if isAdmin()
+      allow read:
+        if isAdmin();
+      allow create, update:
+        if isAdmin()
         && request.resource.data.keys().hasOnly([
-          'token', 'uid', 'updatedAt'
+          'token',
+          'uid',
+          'updatedAt'
         ])
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.token is string
-        && request.resource.data.token.size() > 20
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.uid
+          == request.auth.uid
+        && request.resource.data.token
+          is string
+        && request.resource.data.token.size()
+          > 20
+        && request.resource.data.updatedAt
+          == request.time;
+      allow delete:
+        if isAdmin();
     }
-
     match /storeSettings/contact {
-      allow read: if true;
-
-      allow create, update: if isAdmin()
+      allow read:
+        if true;
+      allow create, update:
+        if isAdmin()
         && request.resource.data.keys().hasOnly([
-          'name', 'phone', 'openingHours', 'address',
-          'facebook', 'zalo', 'tagline', 'updatedAt'
+          'name',
+          'phone',
+          'openingHours',
+          'address',
+          'facebook',
+          'zalo',
+          'tagline',
+          'updatedAt'
         ])
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
@@ -98,19 +130,24 @@ service cloud.firestore {
         && request.resource.data.zalo.size() <= 300
         && request.resource.data.tagline is string
         && request.resource.data.tagline.size() <= 180
-        && request.resource.data.updatedAt == request.time;
-
-      allow delete: if isAdmin();
+        && request.resource.data.updatedAt
+          == request.time;
+      allow delete:
+        if isAdmin();
     }
-
     match /storeSettings/payment {
-      allow read: if true;
-
-      allow create, update: if isAdmin()
+      allow read:
+        if true;
+      allow create, update:
+        if isAdmin()
         && request.resource.data.keys().hasOnly([
-          'bankName', 'accountName', 'accountNumber',
-          'qrImageUrl', 'qrStoragePath',
-          'instructions', 'updatedAt'
+          'bankName',
+          'accountName',
+          'accountNumber',
+          'qrImageUrl',
+          'qrStoragePath',
+          'instructions',
+          'updatedAt'
         ])
         && request.resource.data.bankName is string
         && request.resource.data.bankName.size() <= 100
@@ -124,81 +161,77 @@ service cloud.firestore {
         && request.resource.data.qrStoragePath.size() <= 300
         && request.resource.data.instructions is string
         && request.resource.data.instructions.size() <= 300
+        && request.resource.data.updatedAt
+          == request.time;
+      allow delete:
+        if isAdmin();
+    }
+    match /requestIds/{id} {
+      allow read, write:
+        if false;
+    }
+    match /menuCosts/{id} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['sizes','toppings','updatedAt'])
+        && request.resource.data.sizes is map && request.resource.data.sizes.size() >= 1
+        && request.resource.data.sizes.size() <= 5
+        && request.resource.data.toppings is map && request.resource.data.toppings.size() <= 20
         && request.resource.data.updatedAt == request.time;
-
       allow delete: if isAdmin();
     }
-
-    match /menuCosts/{id} {
-      allow read, delete: if isAdmin();
-
-      allow create, update: if isAdmin()
-        && request.resource.data.keys().hasOnly([
-          'sizes', 'toppings', 'updatedAt'
-        ])
-        && request.resource.data.sizes is map
-        && request.resource.data.sizes.size() >= 1
-        && request.resource.data.sizes.size() <= 5
-        && request.resource.data.toppings is map
-        && request.resource.data.toppings.size() <= 20
-        && request.resource.data.updatedAt == request.time;
-    }
-
     match /toppingCatalog/{id} {
       allow read, delete: if isAdmin();
-
       allow create, update: if isAdmin()
-        && request.resource.data.keys().hasOnly([
-          'name', 'price', 'cost', 'updatedAt'
-        ])
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
+        && request.resource.data.keys().hasOnly(['name','price','cost','updatedAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 80
-        && request.resource.data.price is int
-        && request.resource.data.price >= 0
-        && request.resource.data.price <= 100000000
-        && request.resource.data.cost is int
-        && request.resource.data.cost >= 0
-        && request.resource.data.cost <= 100000000
+        && request.resource.data.price is int && request.resource.data.price >= 0 && request.resource.data.price <= 100000000
+        && request.resource.data.cost is int && request.resource.data.cost >= 0 && request.resource.data.cost <= 100000000
         && request.resource.data.updatedAt == request.time;
     }
-
     match /promotions/{id} {
       allow read: if resource.data.active == true || isAdmin();
-
       allow create, update: if isAdmin()
-        && request.resource.data.keys().hasOnly([
-          'title', 'description', 'percent', 'minTotal',
-          'startsAt', 'endsAt', 'active', 'updatedAt'
-        ])
-        && request.resource.data.title is string
-        && request.resource.data.title.size() > 0
-        && request.resource.data.title.size() <= 100
-        && request.resource.data.description is string
-        && request.resource.data.description.size() <= 500
-        && request.resource.data.percent is int
-        && request.resource.data.percent >= 1
-        && request.resource.data.percent <= 100
-        && request.resource.data.minTotal is int
-        && request.resource.data.minTotal >= 0
-        && request.resource.data.minTotal <= 100000000
-        && request.resource.data.startsAt is int
-        && request.resource.data.startsAt >= 0
-        && request.resource.data.endsAt is int
-        && request.resource.data.endsAt > request.resource.data.startsAt
+        && request.resource.data.keys().hasOnly(['title','description','percent','minTotal','startsAt','endsAt','active','updatedAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 100
+        && request.resource.data.description is string && request.resource.data.description.size() <= 500
+        && request.resource.data.percent is int && request.resource.data.percent >= 1 && request.resource.data.percent <= 100
+        && request.resource.data.minTotal is int && request.resource.data.minTotal >= 0 && request.resource.data.minTotal <= 100000000
+        && request.resource.data.startsAt is int && request.resource.data.startsAt >= 0
+        && request.resource.data.endsAt is int && request.resource.data.endsAt > request.resource.data.startsAt
         && request.resource.data.endsAt <= 8640000000000000
-        && request.resource.data.active is bool
-        && request.resource.data.updatedAt == request.time;
-
+        && request.resource.data.active is bool && request.resource.data.updatedAt == request.time;
       allow delete: if isAdmin();
     }
-
-    match /requestIds/{id} {
-      allow read, write: if false;
+    function validSundayOffer(o) {
+      return o is map
+        && o.keys().hasOnly(['title','buyMenuId','buySizeId','buyLabel','buyQty','giftMenuId','giftSizeId','giftLabel','giftQty','repeat'])
+        && o.title is string && o.title.size() > 0 && o.title.size() <= 100
+        && o.buyMenuId is string && o.buyMenuId.size() > 0 && o.buyMenuId.size() <= 1500
+        && o.giftMenuId is string && o.giftMenuId.size() > 0 && o.giftMenuId.size() <= 1500
+        && o.buySizeId is string && o.buySizeId.size() > 0 && o.buySizeId.size() <= 20
+        && o.giftSizeId is string && o.giftSizeId.size() > 0 && o.giftSizeId.size() <= 20
+        && o.buyLabel is string && o.buyLabel.size() <= 200
+        && o.giftLabel is string && o.giftLabel.size() <= 200
+        && o.buyQty is int && o.buyQty >= 1 && o.buyQty <= 100
+        && o.giftQty is int && o.giftQty >= 1 && o.giftQty <= 100
+        && o.repeat is bool;
     }
-
+    match /storeSettings/appearance {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['season','sundayTheme','sundayDeal','sundayOffer','updatedAt'])
+        && request.resource.data.season in ['default','spring','summer','autumn','winter']
+        && request.resource.data.sundayTheme is bool
+        && request.resource.data.sundayDeal is bool
+        && ((request.resource.data.sundayOffer == null && request.resource.data.sundayDeal == false)
+          || validSundayOffer(request.resource.data.sundayOffer))
+        && request.resource.data.updatedAt == request.time;
+    }
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write:
+        if false;
     }
   }
 }
