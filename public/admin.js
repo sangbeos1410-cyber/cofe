@@ -255,7 +255,7 @@ function startAdmin() {
 
   loadOrders();
 
-  loadStats();
+  // Daily report uses its own realtime order subscription.
 
   loadStoreSettings();
 
