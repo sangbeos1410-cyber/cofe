@@ -206,7 +206,7 @@ service cloud.firestore {
     }
     function validSundayOffer(o) {
       return o is map
-        && o.keys().hasOnly(['title','buyMenuId','buySizeId','buyLabel','buyQty','giftMenuId','giftSizeId','giftLabel','giftQty','repeat'])
+        && o.keys().hasOnly(['title','buyMenuId','buySizeId','buyLabel','buyQty','giftMenuId','giftSizeId','giftLabel','giftQty','repeat','bannerHeading','bannerText'])
         && o.title is string && o.title.size() > 0 && o.title.size() <= 100
         && o.buyMenuId is string && o.buyMenuId.size() > 0 && o.buyMenuId.size() <= 1500
         && o.giftMenuId is string && o.giftMenuId.size() > 0 && o.giftMenuId.size() <= 1500
@@ -216,6 +216,8 @@ service cloud.firestore {
         && o.giftLabel is string && o.giftLabel.size() <= 200
         && o.buyQty is int && o.buyQty >= 1 && o.buyQty <= 100
         && o.giftQty is int && o.giftQty >= 1 && o.giftQty <= 100
+        && o.get('bannerHeading','') is string && o.get('bannerHeading','').size() <= 100
+        && o.get('bannerText','') is string && o.get('bannerText','').size() <= 1000
         && o.repeat is bool;
     }
     match /storeSettings/appearance {

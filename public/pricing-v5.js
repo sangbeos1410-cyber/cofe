@@ -1,3 +1,4 @@
+
 /* Dùng chung công thức ở trình duyệt và Cloud Functions. */
 (function(root) {
   const validMoney = n => Number.isSafeInteger(n) && n >= 0 && n <= 100000000;
@@ -35,15 +36,20 @@
     if(!deal || ![deal.buyQty,deal.giftQty].every(n=>Number.isInteger(n)&&n>=1&&n<=100) ||
       ![deal.buyMenuId,deal.buySizeId,deal.giftMenuId,deal.giftSizeId].every(x=>typeof x==='string'&&x.length))return best;
     if(items.some(i=>!validMoney(i.sizePrice)||!Number.isSafeInteger(i.quantity)||i.quantity<1))return best;
-    const buys=items.filter(i=>i.menuId===deal.buyMenuId&&i.sizeId===deal.buySizeId);
-    const gifts=items.filter(i=>i.menuId===deal.giftMenuId&&i.sizeId===deal.giftSizeId).sort((a,b)=>a.sizePrice-b.sizePrice);
-    const buyCount=buys.reduce((n,i)=>n+i.quantity,0),giftCount=gifts.reduce((n,i)=>n+i.quantity,0);
-    const same=deal.buyMenuId===deal.giftMenuId&&deal.buySizeId===deal.giftSizeId;
-    let sets=same?Math.floor(buyCount/(deal.buyQty+deal.giftQty)):Math.min(Math.floor(buyCount/deal.buyQty),Math.floor(giftCount/deal.giftQty));
+    const matches=(i,menuId,sizeId)=>(menuId==='*'||i.menuId===menuId)&&(sizeId==='*'||i.sizeId===sizeId);
+    const buys=i=>matches(i,deal.buyMenuId,deal.buySizeId);
+    const gifts=i=>matches(i,deal.giftMenuId,deal.giftSizeId);
+    const count=predicate=>items.filter(predicate).reduce((n,i)=>n+i.quantity,0);
+    const buyCount=count(buys),giftCount=count(gifts),union=count(i=>buys(i)||gifts(i));
+    let sets=Math.min(Math.floor(buyCount/deal.buyQty),Math.floor(giftCount/deal.giftQty),Math.floor(union/(deal.buyQty+deal.giftQty)));
     if(deal.repeat!==true)sets=Math.min(sets,1);
-    let left=sets*deal.giftQty,discount=0;
+    let left=sets*deal.giftQty,discount=0,overlapBudget=buyCount-sets*deal.buyQty;
     const freeCount=left;
-    for(const line of gifts){const count=Math.min(left,line.quantity);discount+=count*line.sizePrice;left-=count;}
+    for(const line of items.filter(gifts).sort((a,b)=>a.sizePrice-b.sizePrice)){
+      const count=Math.min(left,line.quantity,buys(line)?overlapBudget:Infinity);
+      discount+=count*line.sizePrice;left-=count;
+      if(buys(line))overlapBudget-=count;
+    }
     discount=Math.min(subtotal,discount);
     if(discount<=best.discount)return best;
     return {subtotal,discount,total:subtotal-discount,promotion:{id:'sunday-custom',title:deal.title||'Quà tặng Chủ nhật',type:'buyXgetY',freeCount,buyMenuId:deal.buyMenuId,buySizeId:deal.buySizeId,giftMenuId:deal.giftMenuId,giftSizeId:deal.giftSizeId,buyQty:deal.buyQty,giftQty:deal.giftQty}};
@@ -52,3 +58,4 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CCPricing = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
+

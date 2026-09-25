@@ -1,0 +1,5 @@
+
+html body[data-season].sunday-theme .sunday-banner::before{content:attr(data-heading)}
+.sunday-banner{white-space:pre-line;overflow-wrap:anywhere}
+.sunday-timing{display:block;margin-top:12px;font-size:12px;font-weight:600;color:#79541d}
+

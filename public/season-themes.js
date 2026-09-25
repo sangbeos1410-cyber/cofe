@@ -1,3 +1,4 @@
+
 const CCThemes = (() => {
   let settings = {}, ready = false;
   const seasons = {spring:['Xuân','🌸','Một chút ngọt ngào, một mùa tươi mới.'],summer:['Hạ','☀️','Nắng lên rồi, mình uống gì mát nhé!'],autumn:['Thu','🍂','Chậm lại một chút, nhâm nhi mùa thu.'],winter:['Đông','❄️','Một ly ấm áp cho ngày se lạnh.']};
@@ -16,8 +17,14 @@ const CCThemes = (() => {
     const active=settings.sundayDeal===true && !!settings.sundayOffer && CCPricing.isSunday(Date.now());
     banner.hidden=!(settings.sundayTheme || active);
     const offer=settings.sundayOffer;
-    const description=offer?`${offer.title}: mua ${offer.buyQty} ${offer.buyLabel}, tặng ${offer.giftQty} ${offer.giftLabel}. ${offer.repeat?'Lặp lại theo số lượng.':'Một lần mỗi đơn.'} Thêm đủ món mua và món tặng vào giỏ; topping tính riêng.`:'';
-    banner.textContent=active?'🎁 CHỦ NHẬT · '+description:settings.sundayDeal&&offer?'🎈 Ưu đãi Chủ nhật · '+description:'🎈 Sunday Funday · Hẹn nhau một ly, vui cả ngày!';
+    const description=offer?.bannerText?.trim() || (offer?`${offer.title}: mua ${offer.buyQty} ${offer.buyLabel}, tặng ${offer.giftQty} ${offer.giftLabel}. ${offer.repeat?'Lặp lại theo số lượng.':'Một lần mỗi đơn.'} Thêm đủ món mua và món tặng vào giỏ; topping tính riêng.`:'');
+    banner.dataset.heading=offer?.bannerHeading?.trim()||'ƯU ĐÃI CHỦ NHẬT';
+    banner.textContent=settings.sundayDeal&&offer?description:'Hẹn nhau một ly, vui cả ngày!';
+    if(settings.sundayDeal&&offer){
+      const note=document.createElement('small');note.className='sunday-timing';
+      note.textContent=active?'Đang áp dụng hôm nay.':'Áp dụng vào Chủ nhật hằng tuần (giờ Việt Nam).';
+      banner.append(note);
+    }
     CCShop.render(); document.dispatchEvent(new Event('cheng-theme-change'));
   }
   db.collection('storeSettings').doc('appearance').onSnapshot(s=>{settings=s.exists?s.data():{};ready=true;render();},()=>{ready=false;banner.hidden=false;banner.textContent='Chưa tải được giao diện và ưu đãi. Vui lòng kiểm tra kết nối.';});
@@ -25,6 +32,7 @@ const CCThemes = (() => {
   return {get settings(){return settings;},get ready(){return ready;},event(){
     if(!settings.sundayDeal || !settings.sundayOffer || !CCPricing.isSunday(Date.now()))return [];
     const o=settings.sundayOffer;
-    return [{active:true,startsAt:0,endsAt:8640000000000000,title:o.title,description:`Mua ${o.buyQty} ${o.buyLabel}, tặng ${o.giftQty} ${o.giftLabel}. ${o.repeat?'Lặp lại theo số lượng.':'Một lần mỗi đơn.'} Thêm đủ món mua và món tặng vào giỏ để nhận ưu đãi. Topping tính riêng; không cộng dồn ưu đãi.`,kind:'buy2get1'}];
+    return [{active:true,startsAt:0,endsAt:8640000000000000,title:o.title,description:o.bannerText?.trim()||`Mua ${o.buyQty} ${o.buyLabel}, tặng ${o.giftQty} ${o.giftLabel}. ${o.repeat?'Lặp lại theo số lượng.':'Một lần mỗi đơn.'} Thêm đủ món mua và món tặng vào giỏ để nhận ưu đãi. Topping tính riêng; không cộng dồn ưu đãi.`,kind:'buy2get1'}];
   }};
 })();
+
