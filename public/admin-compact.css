@@ -1,0 +1,54 @@
+/* Compact admin with a vertical navigation column. */
+body{background:#f4f6f3}
+.admin-topbar{padding:16px 24px!important;min-height:0;border-bottom:1px solid #dce5dd;background:#fff!important;gap:16px}
+.admin-topbar h1{font-size:22px!important;margin:4px 0}
+.admin-topbar .brand-small{font-size:10px}
+.top-actions{gap:8px;flex-wrap:wrap}
+.top-actions a,.top-actions button{padding:9px 13px;font-size:13px}
+.admin-wrap{max-width:1600px;width:100%;box-sizing:border-box;margin:0 auto;padding:22px!important}
+#adminApp:not([hidden]){display:grid;grid-template-columns:210px minmax(0,1fr);gap:22px;align-items:start}
+#adminApp[hidden]{display:none!important}
+#adminApp>.admin-tabs{grid-column:1;grid-row:1;position:sticky;top:18px;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:14px;margin:0;overflow-x:hidden;overflow-y:auto;max-height:calc(100dvh - 36px);box-sizing:border-box;border:1px solid #dde6df;border-radius:16px;background:#fff;box-shadow:0 5px 20px #203d2e05}
+#adminApp>.admin-tabs::before{content:"QUẢN LÝ QUÁN";display:block;padding:8px 10px 14px;color:#758378;font:700 10px/1.4 Arial,sans-serif;letter-spacing:.12em}
+#adminApp .admin-tabs .tab-button{display:flex;align-items:center;width:100%;min-height:44px;flex:none;text-align:left;white-space:normal;line-height:1.5;padding:11px 12px;border-radius:10px;border:1px solid transparent;background:transparent;color:#42594b;font:600 14px/1.5 Arial,sans-serif;box-shadow:none;cursor:pointer;transition:background-color .18s,color .18s}
+#adminApp .admin-tabs .tab-button:hover{background:#eff5ef}
+#adminApp .admin-tabs .tab-button.active{background:#285c46;color:white;border-color:#285c46}
+#adminApp>.tab-page{grid-column:2;grid-row:1;min-width:0;margin:0}
+#adminApp>.tab-page:not(.active){display:none!important}
+#adminApp>.tab-page.active{display:block}
+#adminApp .panel{padding:20px;margin:0 0 18px;border-radius:15px;box-shadow:0 5px 18px #203d2e04}
+#adminApp h2{font-size:22px!important;margin:0 0 12px;line-height:1.4}
+#adminApp h3{font-size:17px;line-height:1.4}
+#adminApp p{line-height:1.6}
+#adminApp .v5-grid{gap:12px;margin:14px 0;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+#adminApp input:not([type="checkbox"]):not([type="radio"]),#adminApp select,#adminApp textarea{box-sizing:border-box;max-width:100%;padding:10px 12px;border-radius:9px;font-size:14px}
+#adminApp label{font-size:13px}
+#adminApp .config-box{padding:16px;border-radius:12px;margin-bottom:14px}
+#adminApp .actions{gap:8px;flex-wrap:wrap}
+#adminApp .primary,#adminApp .secondary{padding:10px 15px;min-height:40px;font-size:13px;border-radius:9px}
+#adminApp .table-wrap{max-width:100%;overflow-x:auto}
+#adminApp th,#adminApp td{padding:11px 12px;font-size:13px}
+#adminApp .theme-options{gap:8px;margin:12px 0;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+#adminApp .theme-options label{padding:52px 10px 12px;min-height:90px}
+#dailyReport .dr-heading{margin:0 0 16px}
+#dailyReport .dr-cards{gap:12px}
+#dailyReport .dr-card{padding:17px;gap:10px}
+#dailyReport .dr-card strong{font-size:clamp(21px,2vw,29px)}
+#dailyReport .dr-filter,#dailyReport .dr-panel{padding:18px;margin:14px 0}
+.admin-nav-toggle{display:none}
+#adminApp :is(button,a,input,select,textarea):focus-visible{outline:3px solid #ae8645;outline-offset:3px}
+@media(max-width:1000px){#adminApp:not([hidden]){grid-template-columns:185px minmax(0,1fr);gap:16px}.admin-wrap{padding:16px!important}#dailyReport .dr-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){
+ .admin-topbar{padding:14px 16px!important;align-items:flex-start;flex-wrap:wrap}.admin-topbar h1{font-size:19px!important}
+ .admin-wrap{padding:12px!important}
+ #adminApp:not([hidden]){display:block}
+ #adminApp>.admin-tabs{position:static;max-height:none;display:flex;margin:0 0 14px;padding:10px;gap:4px}
+ #adminApp.nav-enhanced>.admin-tabs{display:none}
+ #adminApp.nav-enhanced.nav-open>.admin-tabs{display:flex}
+ #adminApp .admin-nav-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin-bottom:12px;padding:12px 15px;min-height:46px;border:1px solid #d5e2d8;border-radius:11px;background:white;color:#285c46;text-align:left;font-size:14px;font-weight:700;cursor:pointer}
+ #adminApp .panel{padding:16px}
+ #adminApp .admin-tabs .tab-button{min-height:44px}
+ #dailyReport .dr-card{padding:14px}
+}
+@media(max-width:380px){#dailyReport .dr-cards{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){#adminApp .admin-tabs .tab-button{transition:none}}
