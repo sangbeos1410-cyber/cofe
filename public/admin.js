@@ -576,7 +576,8 @@ function buildSizes() {
   const values = [
     ["S", $("sizeS").value],
     ["M", $("sizeM").value],
-    ["L", $("sizeL").value]
+    ["L", $("sizeL").value],
+    ["XL", $("sizeXL").value]
   ];
 
 
@@ -832,6 +833,7 @@ window.editMenuItem =
     $("sizeS").value = "";
     $("sizeM").value = "";
     $("sizeL").value = "";
+    $("sizeXL").value = "";
 
 
     (

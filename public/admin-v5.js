@@ -37,7 +37,7 @@ const CCAdmin = (() => {
     <div class="table-wrap"><table><thead><tr><th>Ngày</th><th>Đơn đã trả</th><th>Thực thu</th><th>Giá vốn đã biết</th><th>Lãi gộp đã biết</th><th>Thiếu giá vốn</th></tr></thead>
     <tbody id="profitRows"></tbody></table></div></section>`);
   // Giá vốn tách riêng khỏi menu công khai.
-  for (const size of ['S','M','L']) el('size'+size).insertAdjacentHTML('afterend',
+  for (const size of ['S','M','L','XL']) el('size'+size).insertAdjacentHTML('afterend',
     field('cost'+size, 'Giá vốn size '+size+' (đ)', 'number', 'min="0" step="1" placeholder="Bắt buộc nếu bán size này"'));
   const oldBox = el('toppingsText').closest('.config-box');
   oldBox.hidden = true;
@@ -61,14 +61,14 @@ const CCAdmin = (() => {
   }
   function resetMenu() {
     editVersion++; costsReady = true; extras = [];
-    for (const s of ['S','M','L']) el('cost'+s).value = '';
+    for (const s of ['S','M','L','XL']) el('cost'+s).value = '';
     renderChoices([], {});
   }
   async function editMenu(id) {
     const version = ++editVersion;
     costsReady = false;
     el('message').textContent = 'Đang tải giá vốn...';
-    for (const s of ['S','M','L']) el('cost'+s).value = '';
+    for (const s of ['S','M','L','XL']) el('cost'+s).value = '';
     const item = MENU.find(x=>x.id===id);
     extras = (item?.toppings || []).map(t=>({...t}));
     renderChoices(extras.map(t=>t.id), {});
@@ -76,7 +76,7 @@ const CCAdmin = (() => {
       const d = await db.collection('menuCosts').doc(id).get();
       if (version !== editVersion) return;
       const data = d.exists ? d.data() : {};
-      for (const s of ['S','M','L']) el('cost'+s).value = data.sizes?.[s] ?? '';
+      for (const s of ['S','M','L','XL']) el('cost'+s).value = data.sizes?.[s] ?? '';
       renderChoices(extras.map(t=>t.id), data.toppings || {});
       costsReady = true;
       el('message').textContent = d.exists ? '' : 'Món cũ chưa có giá vốn. Vui lòng nhập trước khi lưu.';
